@@ -56,6 +56,8 @@ export type AttendOutcome =
 export interface AttendDeps extends PrDeps {
   /** "off" never signs commits (tests). Default: your git config decides. */
   signing?: "inherit" | "off";
+  /** Commit identity; default: your git config. */
+  identity?: { name: string; email: string };
   now?: () => number;
 }
 
@@ -221,7 +223,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       const fixed = decisions.filter((x) => x.action === "fixed");
       const lines = [...new Set(fixed.map((f) => commitLine(items.find((i) => i.key === f.key), f.reply)))];
       const message = [shorten(parsed.summary || "Address review feedback", 100), "", ...lines, "", `Assisted-by: Crewreview ${d.version} (${harness.id})`].join("\n");
-      commitSha = await commitAll(worktree, message, { signing: d.signing });
+      commitSha = await commitAll(worktree, message, { signing: d.signing, identity: d.identity });
     }
 
     const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed, sensitive, validation, harness: harness.id, forcedInbox };

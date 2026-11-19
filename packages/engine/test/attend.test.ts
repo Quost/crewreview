@@ -141,7 +141,7 @@ async function setup(harness: Harness, attend: Partial<LinkedRepo["attend"]> = {
   const conformance = ConformanceStore.in(dirs.state);
   await conformance.put({ harness: "claude", version: "test", at: "", structured: "pass", readOnly: "pass", writeScope: "pass", durationMs: 1 });
   const store = new Store(":memory:");
-  const d: AttendDeps = { dirs, config: parseConfig({}), store, conformance, registry: new Map([["claude", harness]]), version: "test", ui: createTranslator("en"), signing: "off" };
+  const d: AttendDeps = { dirs, config: parseConfig({}), store, conformance, registry: new Map([["claude", harness]]), version: "test", ui: createTranslator("en"), signing: "off", identity: { name: "Test", email: "test@example.com" } };
   return { d, repo, ref, store, dirs };
 }
 

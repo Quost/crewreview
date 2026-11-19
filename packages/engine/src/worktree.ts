@@ -56,13 +56,17 @@ export async function stagedDiff(dir: string): Promise<string> {
 export interface CommitOptions {
   /** "inherit" uses your git config (and signs if you sign). "off" never signs (tests). */
   signing?: "inherit" | "off";
+  /** Commit as someone else than your git config says. */
+  identity?: { name: string; email: string };
 }
 
 /** Commit everything the attendant changed. Your git identity and signing settings apply. Returns the new sha. */
 export async function commitAll(dir: string, message: string, o: CommitOptions = {}): Promise<string> {
   await gitOk(["add", "-A"], dir); // ATTEND_DIR is in info/exclude, so it never gets staged
-  const args = o.signing === "off" ? ["-c", "commit.gpgsign=false", "commit", "-q", "-m", message] : ["commit", "-q", "-m", message];
-  await gitOk(args, dir);
+  const config: string[] = [];
+  if (o.signing === "off") config.push("-c", "commit.gpgsign=false");
+  if (o.identity) config.push("-c", `user.name=${o.identity.name}`, "-c", `user.email=${o.identity.email}`);
+  await gitOk([...config, "commit", "-q", "-m", message], dir);
   return (await gitOk(["rev-parse", "HEAD"], dir)).trim();
 }
 
