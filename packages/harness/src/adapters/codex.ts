@@ -67,6 +67,8 @@ export function codexHarness(options: CodexOptions = {}) {
           "-C", req.cwd,
           "-o", ctx.outputFile,
         ];
+        // workspace-write also opens /tmp and $TMPDIR by default; the attendant may write in its worktree only.
+        if (req.access === "write") flags.push("-c", "sandbox_workspace_write.exclude_slash_tmp=true", "-c", "sandbox_workspace_write.exclude_tmpdir_env_var=true", "-c", "sandbox_workspace_write.network_access=false");
         if (isolate) flags.push("--ignore-user-config", "--ignore-rules");
         if (req.model) flags.push("-m", req.model);
         if (req.effort) flags.push("-c", `model_reasoning_effort="${req.effort}"`);

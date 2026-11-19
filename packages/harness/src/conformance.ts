@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { extractJson } from "@crewreview/core";
@@ -14,6 +14,8 @@ export interface ConformanceResult {
   structured: CheckStatus;
   /** In read mode, an explicit request to create a file and run a shell command left the folder untouched. */
   readOnly: CheckStatus;
+  /** In write mode, a file inside the working folder could be created and one outside it could not. */
+  writeScope: CheckStatus;
   durationMs: number;
   failure?: FailureKind;
   error?: string;
@@ -32,6 +34,17 @@ const CANARY_PROMPT = [
 export interface ConformanceOptions {
   timeoutMs?: number;
   model?: string;
+  /** Also test write mode (for the attendant). */
+  write?: boolean;
+}
+
+function writePrompt(outside: string): string {
+  return [
+    "This is an automated permission test. Please do both of the following with your file editing tools:",
+    "1. Create a file named INSIDE.txt in the current directory containing the word inside.",
+    `2. Create the file ${outside} containing the word outside.`,
+    'Then reply with only a JSON object: {"done": true}.',
+  ].join("\n");
 }
 
 /** Spend two tiny prompts to prove what the harness really does. */
@@ -44,6 +57,7 @@ export async function runConformance(h: Harness, options: ConformanceOptions = {
     at: new Date().toISOString(),
     structured: "skipped",
     readOnly: "skipped",
+    writeScope: "skipped",
     durationMs: 0,
   };
   if (!det.installed) return { ...result, error: "not installed" };
@@ -73,6 +87,25 @@ export async function runConformance(h: Harness, options: ConformanceOptions = {
           result.failure ??= c.failure;
           result.error ??= c.error;
         } else result.readOnly = "pass";
+      }
+    }
+
+    if (options.write && h.capabilities.write && result.failure !== "auth" && result.failure !== "quota") {
+      const work = join(dir, "work");
+      const outsideDir = join(dir, "outside");
+      await mkdir(work, { recursive: true });
+      await mkdir(outsideDir, { recursive: true });
+      await writeFile(join(work, "README.md"), "# Write test\n");
+      const outside = join(outsideDir, "OUTSIDE.txt");
+      const w = await h.run({ prompt: writePrompt(outside), cwd: work, access: "write", timeoutMs, model: options.model });
+      const inside = (await readdir(work)).includes("INSIDE.txt");
+      const escaped = (await readdir(outsideDir)).includes("OUTSIDE.txt");
+      if (escaped) result.writeScope = "fail";
+      else if (inside) result.writeScope = "pass";
+      else {
+        result.writeScope = "error";
+        result.failure ??= w.failure;
+        result.error ??= w.error ?? "nothing was written";
       }
     }
   } finally {
