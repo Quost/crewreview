@@ -19,10 +19,11 @@
 <meta name="theme-color" content="#0e1017" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 17l4 4 10-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>document.documentElement.classList.add("js")</script>
 <script type="application/ld+json">{{jsonld}}</script>
 <style>
-:root{--bg:#f7f8fc;--surface:#fff;--surface-2:#f0f2f9;--border:#e2e5ef;--text:#141729;--muted:#5b6278;--accent:#4f46e5;--accent-2:#7c3aed;--accent-soft:#ecebff;--ok:#157347;--ok-soft:#e3f5ea;--warn:#9a5b00;--warn-soft:#fff3db;--bad:#b42318;--bad-soft:#fde8e6;--live:#0e7490;--live-soft:#e0f4f8;--radius:16px;--shadow:0 1px 2px rgb(16 24 40/5%),0 8px 24px rgb(16 24 40/7%);--mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#0c0e15;--surface:#151823;--surface-2:#1c2030;--border:#272c3f;--text:#e9ebf4;--muted:#9aa1b8;--accent:#8b8cf6;--accent-2:#b18cf6;--accent-soft:#232347;--ok:#5fd197;--ok-soft:#133224;--warn:#f0b54a;--warn-soft:#382a0e;--bad:#ff8a7d;--bad-soft:#3b1714;--live:#5fc8dd;--live-soft:#0f2f37;--shadow:none;color-scheme:dark}}
+:root{--bg:#f7f8fc;--surface:#fff;--surface-2:#f0f2f9;--border:#e2e5ef;--text:#141729;--muted:#5b6278;--accent:#4f46e5;--accent-solid:#4f46e5;--accent-2:#7c3aed;--accent-soft:#ecebff;--ok:#157347;--ok-soft:#e3f5ea;--warn:#9a5b00;--warn-soft:#fff3db;--bad:#b42318;--bad-soft:#fde8e6;--live:#0e7490;--live-soft:#e0f4f8;--radius:16px;--shadow:0 1px 2px rgb(16 24 40/5%),0 8px 24px rgb(16 24 40/7%);--mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0c0e15;--surface:#151823;--surface-2:#1c2030;--border:#272c3f;--text:#e9ebf4;--muted:#9aa1b8;--accent:#8b8cf6;--accent-solid:#5b54e6;--accent-2:#b18cf6;--accent-soft:#232347;--ok:#5fd197;--ok-soft:#133224;--warn:#f0b54a;--warn-soft:#382a0e;--bad:#ff8a7d;--bad-soft:#3b1714;--live:#5fc8dd;--live-soft:#0f2f37;--shadow:none;color-scheme:dark}}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
@@ -37,7 +38,7 @@ header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg
 .top nav a:hover{color:var(--text)}
 .lang{font:inherit;font-size:.9rem;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 8px}
 .btn{display:inline-flex;align-items:center;gap:8px;font-weight:650;border-radius:12px;padding:12px 20px;text-decoration:none;border:1px solid var(--border);color:var(--text);background:var(--surface)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff}
 .btn:hover{filter:brightness(1.06)}
 .btn.sponsor{background:#ea4aaa;border-color:#ea4aaa;color:#fff}
 .support{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -92,9 +93,57 @@ section h2{font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.02em;margin:0 0 1
 .h-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
 .h-item b{font-size:1.02rem}
 .h-item small{color:var(--muted)}
-.term{background:#0d0f17;color:#d8dbeb;border-radius:var(--radius);padding:20px 22px;font-family:var(--mono);font-size:.9rem;line-height:1.8;overflow-x:auto;border:1px solid #232739}
-.term .c{color:#6f7591}
-.term .p{color:#8b8cf6;user-select:none}
+[hidden]{display:none!important}
+.install{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.install-head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.seg{display:inline-flex;gap:4px;padding:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px}
+.seg button{font:inherit;font-size:.95rem;font-weight:650;color:var(--muted);background:transparent;border:0;border-radius:9px;padding:8px 18px;cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-selected=true],.seg button[aria-checked=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(16 24 40/12%),0 0 0 1px var(--border)}
+.seg.small{display:flex}.seg.small button{flex:1;font-size:.88rem;padding:7px 10px}
+.dl .seg{background:var(--bg)}
+.detect{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.detect::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.detect.guess::before{background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
+.detect:empty{display:none}
+.install-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+.methods{padding:24px;display:grid;gap:24px;align-content:start}
+.os-panel{display:grid;gap:22px;min-width:0}
+.js .os-panel:not(.on),.js .os-name{display:none}
+.os-name{margin:0;font-size:1.05rem}
+.method{display:grid;gap:8px;min-width:0}
+.m-head{display:flex;gap:10px;align-items:center}
+.method small,.dl small{color:var(--muted);font-size:.86rem;line-height:1.5}
+.cmd{display:flex;align-items:center;gap:8px;background:#0d0f17;border:1px solid #232739;border-radius:12px;padding:5px 5px 5px 14px;min-width:0}
+.cmd code{flex:1;min-width:0;font-family:var(--mono);font-size:.86rem;line-height:1.55;color:#e4e6f2;white-space:pre-wrap;overflow-wrap:break-word;padding:6px 0}
+.dl .cmd code{font-size:.8rem}
+.cmd code[data-p]::before{content:attr(data-p) " ";color:#8b8cf6;user-select:none}
+.copy{flex:none;min-width:84px;justify-content:center;font:inherit;font-size:.82rem;font-weight:650;color:#c9cce0;background:#1b1f2e;border:1px solid #2c3148;border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center}
+.copy:hover{color:#fff;border-color:#8b8cf6}
+.copy.done{color:#5fd197;border-color:#2f6b4c}
+.dl{padding:24px;background:var(--surface-2);border-left:1px solid var(--border);display:grid;gap:14px;align-content:start;min-width:0}
+.dl-title{font-size:1rem}
+.dl-main{display:grid;gap:14px;min-width:0}
+.dl-btn{justify-content:center;gap:12px;padding:13px 18px;width:100%;box-shadow:0 6px 18px color-mix(in srgb,var(--accent-solid) 30%,transparent)}
+.dl-btn span{display:grid;line-height:1.3;text-align:left}
+.dl .dl-btn small{font-weight:500;font-size:.82rem;color:inherit;opacity:.85}
+.dl-note{margin:0;font-size:.88rem;color:var(--muted)}
+.dl-note.ok{color:var(--ok);font-weight:600}
+.dl-then{display:grid;gap:8px;margin:0;min-width:0}
+.builds{padding:12px 14px;margin:0;border-radius:12px}
+.builds summary{font-size:.92rem}
+.builds ul{list-style:none;padding:0;margin:10px 0;display:grid;gap:6px;font-size:.9rem}
+.builds li code{font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+html:not(.js) .seg,html:not(.js) .detect,html:not(.js) .dl-main{display:none}
+.after{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;margin-top:20px}
+.after .card{min-width:0}
+.after .card>p{margin:0 0 14px}
+.after .card .cmd+p{margin-top:18px}
+.after .card .cmd+.cmd{margin-top:8px}
+.next{list-style:none;margin:0;padding:0;display:grid;gap:16px;counter-reset:n}
+.next li{counter-increment:n;display:grid;gap:8px;min-width:0}
+.next li>span{font-size:.95rem;font-weight:600;display:flex;gap:10px;align-items:center}
+.next li>span::before{content:counter(n);display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:700}
 details{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:10px}
 summary{cursor:pointer;font-weight:650}
 details p{color:var(--muted);margin:10px 0 0}
@@ -103,8 +152,8 @@ footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
 footer a{color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (max-width:900px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.two,.grid3{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}.harness{grid-template-columns:repeat(2,minmax(0,1fr))}.top nav a.hide-sm{display:none}}
-@media (max-width:520px){.agent{grid-template-columns:20px 1fr 54px}.agent .tool{display:none}.top nav{gap:10px}.harness{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.install-body,.after{grid-template-columns:minmax(0,1fr)}.dl{border-left:0;border-top:1px solid var(--border)}.hero .wrap{grid-template-columns:minmax(0,1fr)}.two,.grid3{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}.harness{grid-template-columns:repeat(2,minmax(0,1fr))}.top nav a.hide-sm{display:none}}
+@media (max-width:520px){.cmd code{font-size:.8rem}.methods,.dl,.after .card{padding:18px}.install-head{padding:14px 16px}.install-head .seg{display:flex;width:100%}.install-head .seg button{flex:1;padding:8px 6px}.copy{min-width:0;padding:7px 10px}.agent{grid-template-columns:20px 1fr 54px}.agent .tool{display:none}.top nav{gap:10px}.harness{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -224,20 +273,99 @@ footer a{color:var(--muted)}
   <div class="wrap">
     <h2>{{start.title}}</h2>
     <p class="sub">{{start.sub}}</p>
-<pre class="term"><span class="c"># {{start.c0}}</span>
-<span class="p">$ </span>curl -fsSL https://crewreview.web.app/install.sh | sh
-<span class="c"># {{start.c0b}}</span>
-<span class="p">$ </span>brew install Quost/crewreview/crewreview
-<span class="c"># {{start.c1}}</span>
-<span class="p">$ </span>crewreview doctor --conformance
-<span class="c"># {{start.c2}}</span>
-<span class="p">$ </span>crewreview local
-<span class="c"># {{start.c3}}</span>
-<span class="p">$ </span>crewreview repo add https://github.com/acme/shop --attend inbox
-<span class="c"># {{start.c4}}</span>
-<span class="p">$ </span>crewreview service install &amp;&amp; crewreview ui</pre>
-    <p class="sub" style="margin-top:20px">{{start.download_html}}</p>
-    <p class="sub">{{start.agents_html}}</p>
+    <div class="install" data-detected="{{start.detected}}" data-likely="{{start.likely}}" data-phone="{{start.phone}}" data-copy="{{start.copy}}" data-copied="{{start.copied}}" data-download="{{start.download}}" data-apple="{{start.appleSilicon}}" data-intel="{{start.intel}}" data-x64="{{start.x64}}" data-arm64="{{start.arm64}}" data-notarized="{{start.notarized}}" data-winarm="{{start.winArm}}">
+      <div class="install-head">
+        <div class="seg" role="tablist" aria-label="{{start.os}}"><button type="button" role="tab" id="tab-macos" aria-controls="os-macos" aria-selected="true" data-os="macos">macOS</button><button type="button" role="tab" id="tab-linux" aria-controls="os-linux" aria-selected="false" data-os="linux">Linux</button><button type="button" role="tab" id="tab-windows" aria-controls="os-windows" aria-selected="false" data-os="windows">Windows</button></div>
+        <span class="detect" id="detect"></span>
+      </div>
+      <div class="install-body">
+        <div class="methods">
+          <div class="os-panel on" id="os-macos" role="tabpanel" aria-labelledby="tab-macos" data-os="macos">
+            <h3 class="os-name">macOS</h3>
+            <div class="method">
+              <div class="m-head"><b>{{start.script}}</b><span class="pill ok">{{start.recommended}}</span></div>
+              <div class="cmd"><code data-p="$">curl -fsSL https://crewreview.web.app/install.sh | sh</code><button class="copy" type="button">{{start.copy}}</button></div>
+              <small>{{start.scriptNote}}</small>
+            </div>
+            <div class="method">
+              <div class="m-head"><b>Homebrew</b></div>
+              <div class="cmd"><code data-p="$">brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
+              <small>{{start.brewNote}}</small>
+            </div>
+          </div>
+          <div class="os-panel" id="os-linux" role="tabpanel" aria-labelledby="tab-linux" data-os="linux">
+            <h3 class="os-name">Linux</h3>
+            <div class="method">
+              <div class="m-head"><b>{{start.script}}</b><span class="pill ok">{{start.recommended}}</span></div>
+              <div class="cmd"><code data-p="$">curl -fsSL https://crewreview.web.app/install.sh | sh</code><button class="copy" type="button">{{start.copy}}</button></div>
+              <small>{{start.scriptNote}}</small>
+            </div>
+            <div class="method">
+              <div class="m-head"><b>Homebrew</b></div>
+              <div class="cmd"><code data-p="$">brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
+              <small>{{start.brewNote}}</small>
+            </div>
+          </div>
+          <div class="os-panel" id="os-windows" role="tabpanel" aria-labelledby="tab-windows" data-os="windows">
+            <h3 class="os-name">Windows</h3>
+            <div class="method">
+              <div class="m-head"><b>{{start.script}} · PowerShell</b><span class="pill ok">{{start.recommended}}</span></div>
+              <div class="cmd"><code data-p="PS&gt;">irm https://crewreview.web.app/install.ps1 | iex</code><button class="copy" type="button">{{start.copy}}</button></div>
+              <small>{{start.scriptNoteWin}}</small>
+            </div>
+            <div class="method">
+              <div class="m-head"><b>Scoop</b></div>
+              <div class="cmd"><code data-p="PS&gt;">scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
+              <small>{{start.scoopNote}}</small>
+            </div>
+          </div>
+        </div>
+        <aside class="dl" aria-labelledby="dl-title">
+          <b class="dl-title" id="dl-title">{{start.downloadTitle}}</b>
+          <div class="dl-main">
+            <div class="seg small" id="arch" role="radiogroup" aria-label="{{start.variant}}"></div>
+            <a class="btn primary dl-btn" id="dl-btn" href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-darwin-arm64"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span><b id="dl-label">macOS</b><small id="dl-variant"></small></span></a>
+            <p class="dl-note" id="dl-note" hidden></p>
+            <div class="dl-then" id="dl-then-unix"><small>{{start.then}}</small><div class="cmd"><code data-p="$" id="dl-cmd">sudo mkdir -p /usr/local/bin &amp;&amp; sudo install -m 755 ~/Downloads/crewreview-darwin-arm64 /usr/local/bin/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
+            <p class="dl-then" id="dl-then-win" hidden><small>{{start.thenWin}}</small></p>
+          </div>
+          <details class="builds" id="builds" open>
+            <summary>{{start.allBuilds}} · v{{version}}</summary>
+            <ul>
+              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-darwin-arm64">macOS · {{start.appleSilicon}}</a> <code>crewreview-darwin-arm64</code></li>
+              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-darwin-x64">macOS · {{start.intel}}</a> <code>crewreview-darwin-x64</code></li>
+              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-linux-x64">Linux · x64</a> <code>crewreview-linux-x64</code></li>
+              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-linux-arm64">Linux · arm64</a> <code>crewreview-linux-arm64</code></li>
+              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-windows-x64.exe">Windows · x64</a> <code>crewreview-windows-x64.exe</code></li>
+              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/SHA256SUMS">SHA256SUMS</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/SHA256SUMS.minisig">SHA256SUMS.minisig</a></li>
+            </ul>
+            <small>{{start.verify_html}}</small>
+          </details>
+        </aside>
+      </div>
+    </div>
+
+    <div class="after">
+      <div class="card">
+        <h3>{{start.next}}</h3>
+        <p>{{start.before}}</p>
+        <ol class="next">
+          <li><span>{{start.c1}}</span><div class="cmd"><code data-p="$">crewreview doctor --conformance</code><button class="copy" type="button">{{start.copy}}</button></div></li>
+          <li><span>{{start.c2}}</span><div class="cmd"><code data-p="$">crewreview local</code><button class="copy" type="button">{{start.copy}}</button></div></li>
+          <li><span>{{start.c3}}</span><div class="cmd"><code data-p="$">crewreview repo add https://github.com/acme/shop --attend inbox</code><button class="copy" type="button">{{start.copy}}</button></div></li>
+          <li><span>{{start.c4}}</span><div class="cmd"><code data-p="$">crewreview service install &amp;&amp; crewreview ui</code><button class="copy" type="button">{{start.copy}}</button></div></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>{{start.agentsTitle}}</h3>
+        <p>{{start.claude}}</p>
+        <div class="cmd"><code>/plugin marketplace add Quost/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
+        <div class="cmd"><code>/plugin install crewreview@crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
+        <p>{{start.others}}</p>
+        <div class="cmd"><code data-p="$">crewreview mcp setup</code><button class="copy" type="button">{{start.copy}}</button></div>
+      </div>
+    </div>
+    <span class="sr" id="copy-status" aria-live="polite"></span>
   </div>
 </section>
 
@@ -280,7 +408,119 @@ function pick(lang) { try { localStorage.setItem("crewreview.lang", lang); } cat
   if (saved || location.pathname !== "/") return;
   const nav = (navigator.language || "en").toLowerCase();
   const lang = nav.startsWith("pt") ? "pt-BR" : nav.startsWith("es") ? "es" : nav.startsWith("de") ? "de" : nav.startsWith("zh") ? "zh-CN" : "en";
-  if (lang !== "en") location.replace(paths[lang]);
+  if (lang !== "en") location.replace(paths[lang] + location.hash);
+})();
+
+// Install: pick the visitor's system and processor, point the download at that build, copy buttons.
+(function () {
+  const box = document.querySelector(".install");
+  if (!box) return;
+  const t = box.dataset, $ = (id) => document.getElementById(id);
+  const BASE = "https://github.com/Quost/crewreview/releases/latest/download/";
+  const NAMES = { macos: "macOS", linux: "Linux", windows: "Windows" };
+  const VARIANTS = { macos: [["arm64", t.apple], ["x64", t.intel]], linux: [["x64", t.x64], ["arm64", t.arm64]], windows: [["x64", "x64"]] };
+  const fileFor = (os, arch) => os === "windows" ? "crewreview-windows-x64.exe" : "crewreview-" + (os === "macos" ? "darwin" : "linux") + "-" + arch;
+  const tabs = [...box.querySelectorAll('[role="tab"]')], panels = [...box.querySelectorAll(".os-panel")];
+  let os = "macos", arch = "arm64";
+  // Long paths wrap after a slash instead of mid-word; <wbr> adds no text, so copying is unchanged.
+  const breakable = (code) => { code.innerHTML = code.innerHTML.replace(/\/(?!\/)/g, "/<wbr>"); };
+  document.querySelectorAll(".cmd code").forEach(breakable);
+
+  function render() {
+    for (const b of tabs) { const on = b.dataset.os === os; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }
+    for (const p of panels) p.classList.toggle("on", p.dataset.os === os);
+    const variants = VARIANTS[os];
+    if (!variants.some((v) => v[0] === arch)) arch = variants[0][0];
+    const seg = $("arch");
+    seg.replaceChildren(...variants.map(([a, label]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(a === arch)); b.textContent = label;
+      b.addEventListener("click", () => { arch = a; render(); });
+      return b;
+    }));
+    seg.hidden = variants.length < 2;
+    const file = fileFor(os, arch), label = variants.find((v) => v[0] === arch)[1];
+    $("dl-btn").href = BASE + file;
+    $("dl-label").textContent = t.download.replace("{os}", NAMES[os]);
+    $("dl-variant").textContent = os === "macos" ? label + " · " + arch : label;
+    const note = $("dl-note");
+    note.textContent = os === "macos" ? "✓ " + t.notarized : os === "windows" ? t.winarm : "";
+    note.classList.toggle("ok", os === "macos");
+    note.hidden = !note.textContent;
+    $("dl-then-unix").hidden = os === "windows";
+    $("dl-then-win").hidden = os !== "windows";
+    const dlCmd = $("dl-cmd");
+    dlCmd.textContent = (os === "macos" ? "sudo mkdir -p /usr/local/bin && " : "") + "sudo install -m 755 ~/Downloads/" + file + " /usr/local/bin/crewreview";
+    breakable(dlCmd);
+  }
+
+  tabs.forEach((b, i) => {
+    b.addEventListener("click", () => { os = b.dataset.os; render(); });
+    b.addEventListener("keydown", (e) => {
+      const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const next = tabs[(i + d + tabs.length) % tabs.length];
+      os = next.dataset.os; render(); next.focus();
+    });
+  });
+
+  function gpu() {
+    try {
+      const gl = document.createElement("canvas").getContext("webgl");
+      const ext = gl && gl.getExtension("WEBGL_debug_renderer_info");
+      return (ext && gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) || "";
+    } catch { return ""; }
+  }
+  async function detect() {
+    const ua = navigator.userAgent, uad = navigator.userAgentData;
+    const plat = ((uad && uad.platform) || navigator.platform || "").toLowerCase();
+    if (/android|iphone|ipad|ipod/i.test(ua) || (/mac/.test(plat) && navigator.maxTouchPoints > 1)) return { phone: true };
+    const sys = /win/.test(plat) || /windows/i.test(ua) ? "windows" : /mac/.test(plat) || /mac os x/i.test(ua) ? "macos" : /linux|x11|cros/i.test(plat + " " + ua) ? "linux" : null;
+    if (!sys) return null;
+    let cpu = null, sure = false;
+    if (uad && uad.getHighEntropyValues) {
+      try { const v = await uad.getHighEntropyValues(["architecture"]); if (v.architecture) { cpu = v.architecture === "arm" ? "arm64" : "x64"; sure = true; } } catch {}
+    }
+    if (!cpu && /aarch64|arm64/i.test(ua)) { cpu = "arm64"; sure = true; }
+    if (!cpu && /x86_64|amd64/i.test(ua) && sys === "linux") { cpu = "x64"; sure = true; }
+    if (!cpu && sys === "macos") {
+      const g = gpu();
+      if (/apple m\d/i.test(g)) { cpu = "arm64"; sure = true; }
+      else if (/intel|amd|radeon|nvidia/i.test(g)) { cpu = "x64"; sure = true; }
+      else cpu = "arm64";
+    }
+    return { os: sys, arch: cpu || "x64", sure };
+  }
+
+  $("builds").open = false;
+  render();
+  detect().then((d) => {
+    const el = $("detect");
+    if (!d) return;
+    if (d.phone) { el.textContent = t.phone; el.classList.add("guess"); return; }
+    os = d.os; arch = d.arch; render();
+    const chip = d.os === "macos" ? (d.arch === "arm64" ? t.apple : t.intel) : d.arch;
+    el.textContent = (d.sure ? t.detected : t.likely).replace("{system}", NAMES[d.os] + " · " + chip);
+    el.classList.toggle("guess", !d.sure);
+  });
+
+  const status = $("copy-status");
+  for (const c of document.querySelectorAll(".cmd")) {
+    const b = c.querySelector(".copy"), code = c.querySelector("code");
+    b.addEventListener("click", async () => {
+      const text = code.textContent;
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const r = document.createRange(); r.selectNodeContents(code);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        try { document.execCommand("copy"); } catch {}
+      }
+      b.textContent = "✓ " + t.copied; b.classList.add("done"); status.textContent = t.copied;
+      clearTimeout(b._timer);
+      b._timer = setTimeout(() => { b.textContent = t.copy; b.classList.remove("done"); status.textContent = ""; }, 1600);
+    });
+  }
 })();
 </script>
 </body>
