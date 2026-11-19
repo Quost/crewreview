@@ -1,0 +1,158 @@
+import { existsSync, readFileSync } from "node:fs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { DEFAULT_RULES, reviewEligibility, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
+import { createHost, hostTransport, resolveToken, type HostAdapter } from "@crewreview/hosts";
+import type { Config } from "./config.ts";
+import { reviewPullRequest, type PrDeps, type PrOutcome, type PrTarget } from "./pr.ts";
+import type { LinkedRepo } from "./repos.ts";
+
+export type DaemonEvent =
+  | { type: "repo-error"; repo: string; error: string; code?: "no-token" }
+  | { type: "skip"; repo: string; number: number; reason: SkipReason }
+  | { type: "start"; repo: string; number: number; title: string; sha: string }
+  | { type: "outcome"; repo: string; number: number; outcome: PrOutcome }
+  | { type: "cycle"; repos: number; reviewed: number; waiting: number };
+
+export function rulesFor(repo: LinkedRepo, config: Config): ReviewRules {
+  return {
+    ...DEFAULT_RULES,
+    authors: repo.review.authors,
+    skipLabels: repo.review.skipLabels,
+    baseBranches: repo.review.baseBranches,
+    reviewDrafts: repo.review.reviewDrafts,
+    reviewBots: repo.review.reviewBots,
+    settleMs: config.review.settle,
+    ciMaxWaitMs: config.review.ciMaxWait,
+    maxFailures: config.review.maxFailures,
+  };
+}
+
+/** Connect to a linked repository's host with a token found on this machine. */
+export async function connect(repo: LinkedRepo, version: string): Promise<PrTarget | { error: "no-token" }> {
+  const tk = await resolveToken(repo.ref);
+  if (!tk) return { error: "no-token" };
+  const host: HostAdapter = createHost(repo.ref, hostTransport(repo.ref, tk.token, `crewreview/${version}`));
+  return { repo, host, token: tk.token };
+}
+
+interface Due {
+  target: PrTarget;
+  pr: PullRequest;
+  firstSeen: number;
+}
+
+/** One pass over every linked repository: find what's due, review the oldest first, up to the cycle limit. */
+export async function runCycle(
+  d: PrDeps,
+  repos: readonly LinkedRepo[],
+  log: (e: DaemonEvent) => void,
+  now = () => Date.now(),
+  /** How to reach each repository's host (tests swap in an in-memory one). */
+  connectTo: (repo: LinkedRepo) => Promise<PrTarget | { error: "no-token" }> = (r) => connect(r, d.version),
+): Promise<{ reviewed: number; waiting: number }> {
+  const due: Due[] = [];
+  const active = repos.filter((r) => r.review.mode !== "off");
+  for (const repo of active) {
+    const target = await connectTo(repo);
+    if ("error" in target) {
+      log({ type: "repo-error", repo: repo.id, error: "no-token", code: "no-token" });
+      continue;
+    }
+    try {
+      const me = await target.host.whoami();
+      const rules = rulesFor(repo, d.config);
+      for (const pr of await target.host.listOpenPullRequests()) {
+        const firstSeen = d.store.firstSeen(repo.id, pr.number, pr.headSha, now());
+        const input = {
+          pr,
+          me,
+          rules,
+          reviewedSha: d.store.lastDone(repo.id, pr.number)?.headSha,
+          failuresOnHead: d.store.failures(repo.id, pr.number, pr.headSha),
+          firstSeenAt: firstSeen,
+          now: now(),
+          ci: undefined,
+        };
+        let e = reviewEligibility(input);
+        // Only ask for CI when everything else says yes: it costs a request per pull request.
+        if (e.eligible && rules.ciMaxWaitMs > 0) e = reviewEligibility({ ...input, ci: (await target.host.getChecks(pr)).state });
+        if (!e.eligible) {
+          if (e.reason !== "already-reviewed" && e.reason !== "own" && e.reason !== "not-own") log({ type: "skip", repo: repo.id, number: pr.number, reason: e.reason });
+          continue;
+        }
+        due.push({ target, pr, firstSeen });
+      }
+    } catch (err) {
+      log({ type: "repo-error", repo: repo.id, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  due.sort((a, b) => a.firstSeen - b.firstSeen);
+  let reviewed = 0;
+  for (const item of due.slice(0, d.config.schedule.maxReviewsPerCycle)) {
+    if (d.signal?.aborted) break;
+    log({ type: "start", repo: item.target.repo.id, number: item.pr.number, title: item.pr.title, sha: item.pr.headSha });
+    const mode = item.target.repo.review.mode === "auto" ? "auto" : "inbox";
+    const outcome = await reviewPullRequest(d, item.target, item.pr.number, mode);
+    log({ type: "outcome", repo: item.target.repo.id, number: item.pr.number, outcome });
+    if (outcome.kind === "harness") break; // no reviewer available: no point trying the rest
+    reviewed++;
+  }
+  const waiting = Math.max(0, due.length - reviewed);
+  log({ type: "cycle", repos: active.length, reviewed, waiting });
+  return { reviewed, waiting };
+}
+
+/** Peak hours on weekdays get the short interval; nights and weekends the long one. */
+export function nextInterval(config: Config, at = new Date()): number {
+  const [from, to] = config.schedule.peakHours.split("-").map(Number) as [number, number];
+  const day = at.getDay();
+  const hour = at.getHours();
+  const peak = day >= 1 && day <= 5 && (from <= to ? hour >= from && hour < to : hour >= from || hour < to);
+  return peak ? config.schedule.interval : config.schedule.offHoursInterval;
+}
+
+export class LockedError extends Error {
+  constructor(readonly pid: number) {
+    super(`another crewreview is running (pid ${pid})`);
+  }
+}
+
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/** One daemon per machine: a pid file in the state folder, taken over when its process is gone. */
+export async function acquireLock(stateDir: string): Promise<() => Promise<void>> {
+  const file = join(stateDir, "daemon.pid");
+  if (existsSync(file)) {
+    const pid = Number(readFileSync(file, "utf8").trim());
+    if (pid && pid !== process.pid && alive(pid)) throw new LockedError(pid);
+  }
+  await mkdir(stateDir, { recursive: true });
+  await writeFile(file, String(process.pid));
+  return async () => {
+    try {
+      if (readFileSync(file, "utf8").trim() === String(process.pid)) await rm(file, { force: true });
+    } catch {}
+  };
+}
+
+/** Sleep that wakes up early when the signal aborts. */
+export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve();
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", done);
+      resolve();
+    }
+    signal?.addEventListener("abort", done, { once: true });
+  });
+}

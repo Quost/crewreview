@@ -32,6 +32,8 @@ export interface BuildContextOptions {
   headSha: string;
   /** Where project rules come from: the base for pull requests, the head (your own work) for local reviews. */
   rulesRef: string;
+  /** More files for ./ctx/ (pull request text, discussion, CI, delta since the last review). */
+  extraContext?: Record<string, string>;
 }
 
 /** Lay out the job folder the agents work in: `head/` (the tree) and `ctx/` (everything else). */
@@ -84,6 +86,10 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     if (log.length) history.push(`## ${f.path}`, ...log.map((l) => `- ${redactSecrets(l)}`), "");
   }
   await writeFile(join(ctxDir, "history.md"), history.join("\n"));
+  for (const [name, content] of Object.entries(o.extraContext ?? {})) {
+    if (!/^[a-z0-9-]+\.(md|patch|txt|json)$/.test(name)) throw new Error(`bad context file name: ${name}`);
+    await writeFile(join(ctxDir, name), content);
+  }
 
   return {
     jobDir: o.jobDir,

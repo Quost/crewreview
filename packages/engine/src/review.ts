@@ -5,6 +5,7 @@ import {
   applyVerifier,
   checkEvidence,
   decideVerdict,
+  dedupeAgainstThreads,
   dedupeFindings,
   extractJson,
   mapLimit,
@@ -13,6 +14,7 @@ import {
   parseVerifierOutput,
   severityRank,
   type CiState,
+  type ExistingComment,
   type Finding,
   type LensResult,
   type Usage,
@@ -55,6 +57,12 @@ export interface ReviewOptions {
   /** English name of the language findings are written in. */
   language: string;
   policy: VerdictPolicy;
+  /** Comments already on the pull request: a finding they cover isn't raised again. */
+  existingComments?: ExistingComment[];
+  /** More files for ./ctx/. */
+  extraContext?: Record<string, string>;
+  /** Head of the previous review, when this one looks at what changed since. */
+  deltaFrom?: string;
   signal?: AbortSignal;
   onEvent?: (e: ReviewEvent) => void;
 }
@@ -89,6 +97,11 @@ export interface ReviewReport {
   lenses: LensResult[];
   findings: Finding[];
   droppedByEvidence: number;
+  /** Findings left out because the existing discussion already covers them (they still count in the verdict). */
+  coveredByThreads: number;
+  repeated: Finding[];
+  /** Head of the previous review, when ./ctx/delta.patch shows what changed since. */
+  delta?: string;
   verifier: VerifierSummary;
   verdict: Verdict;
   usage: Usage;
@@ -123,7 +136,7 @@ function failedLens(lens: string, harness: string, durationMs: number, failure: 
 export async function runReview(o: ReviewOptions, version: string): Promise<ReviewReport> {
   const startedAt = new Date().toISOString();
   await mkdir(o.jobDir, { recursive: true });
-  const ctx = await buildContext({ ...o.target, jobDir: o.jobDir });
+  const ctx = await buildContext({ ...o.target, jobDir: o.jobDir, extraContext: o.extraContext });
   o.onEvent?.({ type: "context", context: ctx });
   if (ctx.files.length === 0) throw new ReviewError("no-changes", { base: o.target.base, head: o.target.branch });
   if (ctx.changedLines > o.config.limits.maxDiffLines) {
@@ -214,9 +227,17 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     verifier.ok = true;
   }
 
+  // Findings the discussion already covers aren't posted again, but they still count: a blocker that's still in
+  // the code keeps blocking, whether or not it was said before.
+  let repeated: Finding[] = [];
+  if (o.existingComments?.length) {
+    const d = dedupeAgainstThreads(findings, o.existingComments);
+    repeated = sortFindings(d.covered.map((c) => c.finding));
+    findings = d.fresh;
+  }
   findings = sortFindings(findings);
   const verdict = decideVerdict(
-    { findings, lenses: results, ci: o.target.ci, changedLines: ctx.changedLines, verifierRan: verifier.ran, partial: o.partial },
+    { findings: [...findings, ...repeated], lenses: results, ci: o.target.ci, changedLines: ctx.changedLines, verifierRan: verifier.ran, partial: o.partial },
     o.policy,
   );
 
@@ -241,6 +262,9 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     lenses: results,
     findings,
     droppedByEvidence,
+    coveredByThreads: repeated.length,
+    repeated,
+    delta: o.deltaFrom,
     verifier,
     verdict,
     usage: sumUsage([...results.map((r) => r.usage), verifier.usage]),

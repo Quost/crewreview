@@ -4,11 +4,14 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "bin": { "crewreview": "./src/main.ts" },
+  "bin": {
+    "crewreview": "./src/main.ts"
+  },
   "dependencies": {
     "@crewreview/core": "workspace:*",
     "@crewreview/engine": "workspace:*",
     "@crewreview/harness": "workspace:*",
+    "@crewreview/hosts": "workspace:*",
     "@crewreview/i18n": "workspace:*"
   }
 }

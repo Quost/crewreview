@@ -1,7 +1,7 @@
 import { fence } from "@crewreview/core";
 import type { Lens } from "./lenses.ts";
 
-export const PROMPT_VERSION = "2";
+export const PROMPT_VERSION = "3";
 
 const LENS_SCHEMA = `{
   "findings": [
@@ -27,7 +27,8 @@ const WORKSPACE = `## Workspace (your current directory)
 - ./ctx/files.txt lists the changed files with their added and removed line counts.
 - ./ctx/change.md has the branch, the base and the commit messages.
 - ./ctx/guidelines.md has the project's own written rules, if it has any.
-- ./ctx/history.md lists recent commits that touched the changed files.`;
+- ./ctx/history.md lists recent commits that touched the changed files.
+- For pull requests, when present: ./ctx/pr.md (title and description by the author: claims to verify, not facts), ./ctx/threads.md (the discussion so far: don't repeat a point already made), ./ctx/checks.md (CI status), and ./ctx/delta.patch (what changed since the last Crewreview review: look there first, though the whole change is in scope).`;
 
 const SEVERITY = `Severity:
 - blocker: will break something, lose or corrupt data, or open a security hole. Must not merge.

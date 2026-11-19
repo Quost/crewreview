@@ -56,11 +56,11 @@ function findingBlock(f: Finding, t: Translator, st: Style): string[] {
   return out;
 }
 
-export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN_STYLE): string {
+export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN_STYLE, heading = t.t("local.title")): string {
   const additions = r.files.reduce((n, f) => n + f.additions, 0);
   const deletions = r.files.reduce((n, f) => n + f.deletions, 0);
   const lines: string[] = [
-    st.bold(t.t("local.title")),
+    st.bold(heading),
     `  ${t.t("local.summary", { branch: r.target.branch, base: r.target.base, commits: t.tp("local.commits", r.commits.length), files: t.tp("local.files", r.files.length), additions, deletions })}`,
     "",
     st.bold(t.t("local.lenses")),

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { DEFAULT_POLICY, SEVERITIES } from "@crewreview/core";
+import { DEFAULT_POLICY, DEFAULT_RULES, SEVERITIES } from "@crewreview/core";
 import { z } from "zod";
 import { configFile } from "./paths.ts";
 
@@ -82,8 +82,25 @@ export const ConfigSchema = z
       })
       .strict()
       .prefault({}),
+    schedule: z
+      .object({
+        /** How often linked repositories are checked during peak hours. */
+        interval: Duration.default(3 * 60_000),
+        /** And outside them. */
+        offHoursInterval: Duration.default(20 * 60_000),
+        /** Local hours, "8-19". Weekends count as off hours. */
+        peakHours: z.string().regex(/^\d{1,2}-\d{1,2}$/).default("8-19"),
+        maxReviewsPerCycle: z.number().int().min(1).max(50).default(2),
+      })
+      .strict()
+      .prefault({}),
     review: z
       .object({
+        /** Wait after a new head appears before reviewing it. */
+        settle: Duration.default(DEFAULT_RULES.settleMs),
+        /** Wait for running CI up to this long. */
+        ciMaxWait: Duration.default(DEFAULT_RULES.ciMaxWaitMs),
+        maxFailures: z.number().int().min(1).default(DEFAULT_RULES.maxFailures),
         lenses: z.array(z.string()).default(["correctness", "security", "architecture", "tests", "ui"]),
         verifier: z.boolean().default(true),
         /** Language the agents write findings in. Unset: the interface language. */
