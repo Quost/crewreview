@@ -27,6 +27,9 @@ What follows from them:
 | The attendant writing outside its worktree | Its harness must pass a write-scope canary on your machine (a file inside the folder appears, one outside doesn't) for its exact version. Codex runs with `/tmp`, `$TMPDIR` and network closed. |
 | A fix sneaking in a workflow, a secret or a rule change | Changes to CI configuration, secret files, deployment folders, `CODEOWNERS`, `AGENTS.md`/`CLAUDE.md` or `.crewreview/` always wait for your approval, even in auto mode. |
 | An agent pushing or force-pushing | The agent never gets the token. Crewreview commits with your identity and signing settings and pushes without force; a moved branch makes the answer stale instead of overwriting anything. |
+| Other programs or websites reaching the daemon | The API listens on 127.0.0.1 only and refuses any Host header but its own (DNS rebinding). Every data call needs a random token made at each start, kept in a file only you can read and handed to the browser in the URL fragment (never sent to a server or written to a log). Writes also need a custom header, so a page on another site can't post a form to it. |
+| A tampered update | `update` installs a binary only if `SHA256SUMS` has a valid minisign signature from the release key built into the binary you already run, and the binary matches its hash. Downloads follow GitHub's redirect to storage without your token. |
+| Tokens in service files | Service definitions carry PATH and Crewreview's own settings, never tokens; the daemon finds tokens at run time from `gh`/`glab` or the environment you choose. |
 | Hooks and plugins from your harness setup running inside a review | Claude Code runs with `--safe-mode`, `--restricted` and `--strict-mcp-config`; Codex with `--ignore-user-config --ignore-rules`; Kiro never gets `--trust-workspace`. |
 
 ### Out of scope

@@ -12,13 +12,13 @@ Runs on your machine, with the coding agents you already use: Claude Code, Codex
 
 </div>
 
-> **Status: pre-alpha.** Local review (`crewreview local`), pull request review and the attendant that answers the reviews on your own pull requests work today, on GitHub and GitLab. The dashboard and the desktop app are being built; see the [roadmap](docs/ROADMAP.md).
+> **Status: pre-alpha.** Local review, pull request review, the attendant that answers the reviews on your own pull requests, the dashboard, the background service and signed updates work today, on GitHub and GitLab. The desktop app and the website come next; see the [roadmap](docs/ROADMAP.md).
 
 ## What it does
 
 - **Reviewer.** Several read-only lenses look at a change in parallel: correctness, security, architecture, tests and UI. A verifier then tries to refute each finding, and a fixed rule (not a model) decides the verdict. Findings that don't point at a real `file:line` are dropped.
 - **Attendant.** On your own pull requests, it reads new review comments, fixes what it should in an isolated worktree, replies, resolves the thread and asks for a re-review. The agent never holds your git host token: Crewreview does the committing, pushing and posting.
-- **Crew view** *(coming in v0.1)*. A dashboard to watch every agent live, approve what waits in the inbox, link repositories and switch automations on or off, and see limits and costs.
+- **Crew view.** A dashboard to watch every agent live, approve what waits in the inbox, link repositories and switch automations on or off, and see limits and costs.
 
 Everything runs locally. No server, no account, no telemetry.
 
@@ -42,7 +42,7 @@ bun /path/to/crewreview/apps/cli/src/main.ts local
 
 Useful options: `--base origin/develop`, `--uncommitted`, `--harness codex`, `--verifier-harness claude` (a second vendor checks the first), `--lens security`, `--lang pt-BR`, `--json`.
 
-Binaries for macOS, Linux and Windows will come with the first release.
+Signed binaries for macOS, Linux and Windows come with the first release.
 
 ### Review pull requests
 
@@ -86,6 +86,19 @@ crewreview inbox approve f3                       # push, reply, resolve, ask fo
 
 The attendant edits files, so its harness must prove on your machine that it can write in its worktree and can't write outside it: run `crewreview doctor --conformance` once per harness version.
 
+### Dashboard, service and updates
+
+```bash
+crewreview ui                  # open the dashboard (starts the daemon if it isn't running)
+crewreview service install     # start the daemon with your login: launchd, systemd --user or a logon task
+crewreview service status
+crewreview update              # install the newest signed release; --check only looks
+```
+
+- The dashboard is served by the daemon on `127.0.0.1` only. Each start makes a new key, which the browser gets in the link's `#fragment`, so it never reaches a log. Pages: **Now** (agents at work, live, and the activity log), **Inbox** (approve or discard, with findings, replies and diffs), **History**, **Repositories** (switch review and the attendant off, inbox or auto) and **Harnesses & limits**.
+- A service runs without your terminal's environment. Make sure each harness is signed in for unattended use (for Claude Code, `claude setup-token`; Codex and Kiro keep their own login), and that `gh`/`glab` are signed in. On Linux, `loginctl enable-linger $USER` keeps it running after you log out.
+- `update` installs a release only when its `SHA256SUMS` carries a valid signature from the release key built into your binary, and the binary matches its checksum. With `[updates] auto = true` the daemon installs new releases when idle and restarts through the service manager.
+
 ## Harnesses
 
 | Harness | How it runs | Read-only lock |
@@ -123,6 +136,11 @@ interval = "3m"               # how often `crewreview run` checks, during peak h
 offHoursInterval = "20m"
 peakHours = "8-19"
 maxReviewsPerCycle = 2
+
+[updates]
+check = true                  # look for a new release once a day
+auto = false                  # install it when idle and restart
+channel = "stable"            # or "beta"
 
 [limits]
 maxConcurrentAgents = 3
