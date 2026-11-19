@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   appDirs,
   assetName,
@@ -153,6 +153,6 @@ describe("service files", () => {
     expect(unit).toContain('Environment="CREWREVIEW_HOME=/tmp/crew home"');
     expect(windowsTaskCommand({ ...spec, program: ["C:\\Program Files\\Crewreview\\crewreview.exe", "run"] })).toBe('"C:\\Program Files\\Crewreview\\crewreview.exe" run');
     const dev = serviceSpec(dirs, {}, "/Users/x/.bun/bin/bun", "/repo/apps/cli/src/main.ts");
-    expect(dev.program).toEqual(["/Users/x/.bun/bin/bun", "/repo/apps/cli/src/main.ts", "run"]);
+    expect(dev.program).toEqual(["/Users/x/.bun/bin/bun", resolve("/repo/apps/cli/src/main.ts"), "run"]);
   });
 });
