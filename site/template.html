@@ -94,62 +94,43 @@ section h2{font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.02em;margin:0 0 1
 .h-item b{font-size:1.02rem}
 .h-item small{color:var(--muted)}
 [hidden]{display:none!important}
-.install{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
-.install-head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
-.seg{display:inline-flex;gap:4px;padding:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px}
-.seg button{font:inherit;font-size:.95rem;font-weight:650;color:var(--muted);background:transparent;border:0;border-radius:9px;padding:8px 18px;cursor:pointer;white-space:nowrap}
-.seg button:hover{color:var(--text)}
-.seg button[aria-selected=true],.seg button[aria-checked=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(16 24 40/12%),0 0 0 1px var(--border)}
-.seg.small{display:flex}.seg.small button{flex:1;font-size:.88rem;padding:7px 10px}
-.dl .seg{background:var(--bg)}
-.detect{display:inline-flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
-.detect::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
-.detect.guess::before{background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
-.detect:empty{display:none}
-.install-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
-.methods{padding:24px;display:grid;gap:24px;align-content:start}
-.os-panel{display:grid;gap:22px;min-width:0}
-.js .os-panel:not(.on),.js .os-name{display:none}
-.os-name{margin:0;font-size:1.05rem}
-.method{display:grid;gap:8px;min-width:0}
-.m-head{display:flex;gap:10px;align-items:center}
-.method small,.dl small{color:var(--muted);font-size:.86rem;line-height:1.5}
+.get{max-width:760px;margin:0 auto;text-align:center}
+.get .sub{margin:0 auto 28px}
+.get-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.dl-btn{gap:12px;padding:14px 26px;box-shadow:0 8px 22px color-mix(in srgb,var(--accent-solid) 32%,transparent)}
+.dl-btn span{display:grid;line-height:1.3;text-align:left}
+.dl-btn small{font-weight:500;font-size:.82rem;opacity:.85}
+.get-other{margin:16px 0 0;font-size:.88rem;color:var(--muted)}
+.get-other a{color:var(--muted)}
+.get-other a.on{color:var(--text);font-weight:650;text-decoration:none}
+.get-phone{margin:8px 0 0;font-size:.88rem;color:var(--warn)}
+.install{margin-top:32px;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:20px 24px 22px}
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;width:max-content;max-width:100%;margin-bottom:18px}
+.tabs button{font:inherit;font-size:.93rem;font-weight:650;color:var(--muted);background:transparent;border:0;border-radius:9px;padding:7px 16px;cursor:pointer}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgb(16 24 40/12%),0 0 0 1px var(--border)}
+.panel{display:grid;gap:12px;min-width:0}
+.js .panel:not(.on){display:none}
+.js [data-os-show].os-off{display:none}
+.isteps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:i}
+.isteps li{counter-increment:i;display:flex;gap:12px;align-items:baseline}
+.isteps li::before{content:counter(i);flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.8rem;font-weight:700;transform:translateY(-1px)}
+.isteps code,.hint code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:6px}
+.hint{margin:0;color:var(--muted);font-size:.88rem}
+.cmds{display:grid;gap:8px}
 .cmd{display:flex;align-items:center;gap:8px;background:#0d0f17;border:1px solid #232739;border-radius:12px;padding:5px 5px 5px 14px;min-width:0}
 .cmd code{flex:1;min-width:0;font-family:var(--mono);font-size:.86rem;line-height:1.55;color:#e4e6f2;white-space:pre-wrap;overflow-wrap:break-word;padding:6px 0}
-.dl .cmd code{font-size:.8rem}
 .cmd code[data-p]::before{content:attr(data-p) " ";color:#8b8cf6;user-select:none}
 .copy{flex:none;min-width:84px;justify-content:center;font:inherit;font-size:.82rem;font-weight:650;color:#c9cce0;background:#1b1f2e;border:1px solid #2c3148;border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center}
 .copy:hover{color:#fff;border-color:#8b8cf6}
-.copy.done{color:#5fd197;border-color:#2f6b4c}
-.dl{padding:24px;background:var(--surface-2);border-left:1px solid var(--border);display:grid;gap:14px;align-content:start;min-width:0}
-.dl-title{font-size:1rem}
-.dl-main{display:grid;gap:14px;min-width:0}
-.dl-btn{justify-content:center;gap:12px;padding:13px 18px;width:100%;box-shadow:0 6px 18px color-mix(in srgb,var(--accent-solid) 30%,transparent)}
-.dl-btn span{display:grid;line-height:1.3;text-align:left}
-.dl .dl-btn small{font-weight:500;font-size:.82rem;color:inherit;opacity:.85}
-.dl-note{margin:0;font-size:.88rem;color:var(--muted)}
-.dl-note.ok{color:var(--ok);font-weight:600}
-.dl-then{display:grid;gap:8px;margin:0;min-width:0}
-.builds{padding:12px 14px;margin:0;border-radius:12px}
-.builds summary{font-size:.92rem}
-.builds ul{list-style:none;padding:0;margin:10px 0;display:grid;gap:6px;font-size:.9rem}
-.builds li code{font-family:var(--mono);font-size:.76rem;color:var(--muted)}
-.dl-sub{color:var(--muted);font-size:.86rem;line-height:1.5;margin-top:-8px}
-.dl-also{margin:-4px 0 0;font-size:.86rem;color:var(--muted)}
-.dl-cli{display:grid;gap:10px;padding-top:16px;margin-top:4px;border-top:1px solid var(--border);min-width:0}
-.cli-btn{justify-content:center;gap:8px;padding:9px 14px;font-weight:600;font-size:.9rem}
-.cli-btn code{font-family:var(--mono);font-size:.82rem}
-.builds-h{display:block;font-size:.85rem;margin-top:12px}
-html:not(.js) .seg,html:not(.js) .detect,html:not(.js) .dl-main{display:none}
-.after{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;margin-top:20px}
-.after .card{min-width:0}
-.after .card>p{margin:0 0 14px}
-.after .card .cmd+p{margin-top:18px}
-.after .card .cmd+.cmd{margin-top:8px}
-.next{list-style:none;margin:0;padding:0;display:grid;gap:16px;counter-reset:n}
-.next li{counter-increment:n;display:grid;gap:8px;min-width:0}
-.next li>span{font-size:.95rem;font-weight:600;display:flex;gap:10px;align-items:center}
-.next li>span::before{content:counter(n);display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:700}
+.copy.done,.ai-btn.done{color:#5fd197;border-color:#2f6b4c}
+.needs{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:.88rem}
+.ai{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-top:14px;padding:14px 16px;border-radius:14px;background:var(--accent-soft)}
+.ai p{margin:0;font-size:.92rem}
+.ai-btn{flex:none;padding:9px 16px;font-size:.9rem}
+.get-foot{margin:18px 0 0;font-size:.86rem;color:var(--muted)}
+.get-foot a{color:var(--muted)}
+.get-foot code{font-family:var(--mono);font-size:.86em}
 details{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:10px}
 summary{cursor:pointer;font-weight:650}
 details p{color:var(--muted);margin:10px 0 0}
@@ -158,8 +139,8 @@ footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
 footer a{color:var(--muted)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (max-width:900px){.install-body,.after{grid-template-columns:minmax(0,1fr)}.dl{border-left:0;border-top:1px solid var(--border)}.hero .wrap{grid-template-columns:minmax(0,1fr)}.two,.grid3{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}.harness{grid-template-columns:repeat(2,minmax(0,1fr))}.top nav a.hide-sm{display:none}}
-@media (max-width:520px){.cmd code{font-size:.8rem}.methods,.dl,.after .card{padding:18px}.install-head{padding:14px 16px}.install-head .seg{display:flex;width:100%}.install-head .seg button{flex:1;padding:8px 6px}.copy{min-width:0;padding:7px 10px}.agent{grid-template-columns:20px 1fr 54px}.agent .tool{display:none}.top nav{gap:10px}.harness{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.two,.grid3{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}.harness{grid-template-columns:repeat(2,minmax(0,1fr))}.top nav a.hide-sm{display:none}}
+@media (max-width:520px){.cmd code{font-size:.8rem}.install{padding:16px}.tabs{width:100%}.tabs button{flex:1;padding:7px 8px}.copy{min-width:0;padding:7px 10px}.ai{flex-direction:column;align-items:stretch}.dl-btn{width:100%;justify-content:center}.agent{grid-template-columns:20px 1fr 54px}.agent .tool{display:none}.top nav{gap:10px}.harness{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -184,7 +165,7 @@ footer a{color:var(--muted)}
       <h1>{{hero.title_html}}</h1>
       <p class="lead">{{hero.lead}}</p>
       <div class="ctas">
-        <a class="btn primary" href="#start">{{hero.cta}}</a>
+        <a class="btn primary" id="hero-dl" href="#start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 18h14"/></svg><span id="hero-dl-label">{{hero.cta}}</span></a>
         <a class="btn" href="https://github.com/Quost/crewreview">GitHub</a>
       </div>
       <ul class="facts"><li>{{hero.fact1}}</li><li>{{hero.fact2}}</li><li>{{hero.fact3}}</li></ul>
@@ -277,116 +258,49 @@ footer a{color:var(--muted)}
 
 <section id="start">
   <div class="wrap">
-    <h2>{{start.title}}</h2>
-    <p class="sub">{{start.sub}}</p>
-    <div class="install" data-detected="{{start.detected}}" data-likely="{{start.likely}}" data-phone="{{start.phone}}" data-copy="{{start.copy}}" data-copied="{{start.copied}}" data-download="{{start.download}}" data-apple="{{start.appleSilicon}}" data-intel="{{start.intel}}" data-x64="{{start.x64}}" data-arm64="{{start.arm64}}" data-notarized="{{start.notarized}}" data-winarm="{{start.winArm}}">
-      <div class="install-head">
-        <div class="seg" role="tablist" aria-label="{{start.os}}"><button type="button" role="tab" id="tab-macos" aria-controls="os-macos" aria-selected="true" data-os="macos">macOS</button><button type="button" role="tab" id="tab-linux" aria-controls="os-linux" aria-selected="false" data-os="linux">Linux</button><button type="button" role="tab" id="tab-windows" aria-controls="os-windows" aria-selected="false" data-os="windows">Windows</button></div>
-        <span class="detect" id="detect"></span>
+    <div class="get">
+      <h2>{{start.title}}</h2>
+      <p class="sub">{{start.sub}}</p>
+      <div class="get-cta">
+        <a class="btn primary dl-btn" id="dl-btn" href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-arm64.dmg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span><b id="dl-label">macOS</b><small id="dl-variant">{{start.appleSilicon}} · .dmg</small></span></a>
+        <a class="btn" href="https://github.com/Quost/crewreview">GitHub</a>
       </div>
-      <div class="install-body">
-        <div class="methods">
-          <div class="os-panel on" id="os-macos" role="tabpanel" aria-labelledby="tab-macos" data-os="macos">
-            <h3 class="os-name">macOS</h3>
-            <div class="method">
-              <div class="m-head"><b>{{start.script}}</b><span class="pill ok">{{start.recommended}}</span></div>
-              <div class="cmd"><code data-p="$">curl -fsSL https://crewreview.web.app/install.sh | sh</code><button class="copy" type="button">{{start.copy}}</button></div>
-              <small>{{start.scriptNote}}</small>
-            </div>
-            <div class="method">
-              <div class="m-head"><b>Homebrew</b></div>
-              <div class="cmd"><code data-p="$">brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
-              <small>{{start.brewNote}}</small>
-            </div>
-          </div>
-          <div class="os-panel" id="os-linux" role="tabpanel" aria-labelledby="tab-linux" data-os="linux">
-            <h3 class="os-name">Linux</h3>
-            <div class="method">
-              <div class="m-head"><b>{{start.script}}</b><span class="pill ok">{{start.recommended}}</span></div>
-              <div class="cmd"><code data-p="$">curl -fsSL https://crewreview.web.app/install.sh | sh</code><button class="copy" type="button">{{start.copy}}</button></div>
-              <small>{{start.scriptNote}}</small>
-            </div>
-            <div class="method">
-              <div class="m-head"><b>Homebrew</b></div>
-              <div class="cmd"><code data-p="$">brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
-              <small>{{start.brewNote}}</small>
-            </div>
-          </div>
-          <div class="os-panel" id="os-windows" role="tabpanel" aria-labelledby="tab-windows" data-os="windows">
-            <h3 class="os-name">Windows</h3>
-            <div class="method">
-              <div class="m-head"><b>{{start.script}} · PowerShell</b><span class="pill ok">{{start.recommended}}</span></div>
-              <div class="cmd"><code data-p="PS&gt;">irm https://crewreview.web.app/install.ps1 | iex</code><button class="copy" type="button">{{start.copy}}</button></div>
-              <small>{{start.scriptNoteWin}}</small>
-            </div>
-            <div class="method">
-              <div class="m-head"><b>Scoop</b></div>
-              <div class="cmd"><code data-p="PS&gt;">scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
-              <small>{{start.scoopNote}}</small>
-            </div>
-          </div>
+      <p class="get-other">{{start.otherSystems}} <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-arm64.dmg" data-os="macos" data-arch="arm64">macOS · {{start.appleSilicon}}</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-x64.dmg" data-os="macos" data-arch="x64">macOS · {{start.intel}}</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-windows-x64-setup.exe" data-os="windows" data-arch="x64">Windows</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.AppImage" data-os="linux" data-arch="x64">Linux · x64</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.AppImage" data-os="linux" data-arch="arm64">Linux · arm64</a></p>
+      <p class="get-phone" id="get-phone" hidden>{{start.phone}}</p>
+      <div class="install" data-copy="{{start.copy}}" data-copied="{{start.copied}}" data-download="{{start.download}}" data-apple="{{start.appleSilicon}}" data-intel="{{start.intel}}">
+        <div class="tabs" role="tablist" aria-label="{{start.tabs}}">
+          <button type="button" role="tab" id="tab-app" aria-controls="panel-app" aria-selected="true" data-tab="app">{{start.tabApp}}</button>
+          <button type="button" role="tab" id="tab-term" aria-controls="panel-term" aria-selected="false" data-tab="term">{{start.tabTerminal}}</button>
+          <button type="button" role="tab" id="tab-pkg" aria-controls="panel-pkg" aria-selected="false" data-tab="pkg"><span data-os-show="macos linux">Homebrew</span><span data-os-show="windows">Scoop</span></button>
         </div>
-        <aside class="dl" aria-labelledby="dl-title">
-          <b class="dl-title" id="dl-title">{{start.desktopTitle}}</b>
-          <small class="dl-sub">{{start.desktopNote}}</small>
-          <div class="dl-main">
-            <div class="seg small" id="arch" role="radiogroup" aria-label="{{start.variant}}"></div>
-            <a class="btn primary dl-btn" id="dl-btn" href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-arm64.dmg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><span><b id="dl-label">macOS</b><small id="dl-variant"></small></span></a>
-            <p class="dl-also" id="dl-also" hidden>{{start.alsoAs}} <a id="dl-deb" href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.deb">.deb</a> · <a id="dl-rpm" href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.rpm">.rpm</a></p>
-            <p class="dl-note" id="dl-note" hidden></p>
-            <div class="dl-cli">
-              <b class="dl-title">{{start.cliTitle}}</b>
-              <a class="btn cli-btn" id="cli-btn" href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-darwin-arm64"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg><code id="cli-file">crewreview-darwin-arm64</code></a>
-              <div class="dl-then" id="dl-then-unix"><small>{{start.then}}</small><div class="cmd"><code data-p="$" id="dl-cmd">sudo mkdir -p /usr/local/bin &amp;&amp; sudo install -m 755 ~/Downloads/crewreview-darwin-arm64 /usr/local/bin/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
-              <p class="dl-then" id="dl-then-win" hidden><small>{{start.thenWin}}</small></p>
-            </div>
-          </div>
-          <details class="builds" id="builds" open>
-            <summary>{{start.allBuilds}} · v{{version}}</summary>
-            <b class="builds-h">{{start.desktopTitle}}</b>
-            <ul>
-              <li>macOS · {{start.appleSilicon}}: <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-arm64.dmg">.dmg</a></li>
-              <li>macOS · {{start.intel}}: <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-x64.dmg">.dmg</a></li>
-              <li>Windows · x64: <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-windows-x64-setup.exe">setup.exe</a></li>
-              <li>Linux · x64: <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.AppImage">AppImage</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.deb">.deb</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.rpm">.rpm</a></li>
-              <li>Linux · arm64: <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.AppImage">AppImage</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.deb">.deb</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.rpm">.rpm</a></li>
-            </ul>
-            <b class="builds-h">{{start.cliTitle}}</b>
-            <ul>
-              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-darwin-arm64">macOS · {{start.appleSilicon}}</a> <code>crewreview-darwin-arm64</code></li>
-              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-darwin-x64">macOS · {{start.intel}}</a> <code>crewreview-darwin-x64</code></li>
-              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-linux-x64">Linux · x64</a> <code>crewreview-linux-x64</code></li>
-              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-linux-arm64">Linux · arm64</a> <code>crewreview-linux-arm64</code></li>
-              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/crewreview-windows-x64.exe">Windows · x64</a> <code>crewreview-windows-x64.exe</code></li>
-              <li><a href="https://github.com/Quost/crewreview/releases/latest/download/SHA256SUMS">SHA256SUMS</a> · <a href="https://github.com/Quost/crewreview/releases/latest/download/SHA256SUMS.minisig">SHA256SUMS.minisig</a></li>
-            </ul>
-            <small>{{start.verify_html}}</small>
-          </details>
-        </aside>
+        <div class="panel on" id="panel-app" role="tabpanel" aria-labelledby="tab-app" data-panel="app">
+          <ol class="isteps" data-os-show="macos"><li><span>{{start.mac1_html}}</span></li><li><span>{{start.mac2_html}}</span></li><li><span>{{start.mac3_html}}</span></li></ol>
+          <ol class="isteps" data-os-show="windows"><li><span>{{start.win1_html}}</span></li><li><span>{{start.win2_html}}</span></li><li><span>{{start.win3_html}}</span></li></ol>
+          <ol class="isteps" data-os-show="linux"><li><span>{{start.linux1_html}}</span></li><li><span>{{start.linux2_html}}</span></li><li><span>{{start.linux3_html}}</span></li></ol>
+          <p class="hint" data-os-show="macos">macOS 12+ · {{start.appleSilicon}} &amp; {{start.intel}} · {{start.notarized}}</p>
+          <p class="hint" data-os-show="windows">Windows 10+ · x64 · {{start.winArm}}</p>
+          <p class="hint" data-os-show="linux">x64 &amp; arm64 · AppImage, .deb, .rpm</p>
+        </div>
+        <div class="panel" id="panel-term" role="tabpanel" aria-labelledby="tab-term" data-panel="term">
+          <div data-os-show="macos linux"><div class="cmd"><code data-p="$">curl -fsSL https://crewreview.web.app/install.sh | sh</code><button class="copy" type="button">{{start.copy}}</button></div></div>
+          <div data-os-show="windows"><div class="cmd"><code data-p="PS&gt;">irm https://crewreview.web.app/install.ps1 | iex</code><button class="copy" type="button">{{start.copy}}</button></div></div>
+          <p class="hint">{{start.termHint_html}}</p>
+        </div>
+        <div class="panel" id="panel-pkg" role="tabpanel" aria-labelledby="tab-pkg" data-panel="pkg">
+          <div data-os-show="macos linux"><div class="cmd"><code data-p="$">brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
+          <div class="cmds" data-os-show="windows"><div class="cmd"><code data-p="PS&gt;">scoop bucket add crewreview https://github.com/Quost/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div><div class="cmd"><code data-p="PS&gt;">scoop install crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
+          <p class="hint">{{start.pkgHint}}</p>
+        </div>
+        <p class="needs">{{start.needs}}</p>
+        <div class="ai">
+          <p>{{start.ai_html}}</p>
+          <button class="btn ai-btn" type="button" id="ai-copy">{{start.aiButton}}</button>
+        </div>
+        <template id="ai-prompt">{{start.aiPrompt}}</template>
       </div>
+      <p class="get-foot"><a href="https://github.com/Quost/crewreview/releases/latest">{{start.allDownloads}}</a> · {{start.verify_html}}</p>
+      <span class="sr" id="copy-status" aria-live="polite"></span>
     </div>
-
-    <div class="after">
-      <div class="card">
-        <h3>{{start.next}}</h3>
-        <p>{{start.before}}</p>
-        <ol class="next">
-          <li><span>{{start.c1}}</span><div class="cmd"><code data-p="$">crewreview doctor --conformance</code><button class="copy" type="button">{{start.copy}}</button></div></li>
-          <li><span>{{start.c2}}</span><div class="cmd"><code data-p="$">crewreview local</code><button class="copy" type="button">{{start.copy}}</button></div></li>
-          <li><span>{{start.c3}}</span><div class="cmd"><code data-p="$">crewreview repo add https://github.com/acme/shop --attend inbox</code><button class="copy" type="button">{{start.copy}}</button></div></li>
-          <li><span>{{start.c4}}</span><div class="cmd"><code data-p="$">crewreview service install &amp;&amp; crewreview ui</code><button class="copy" type="button">{{start.copy}}</button></div></li>
-        </ol>
-      </div>
-      <div class="card">
-        <h3>{{start.agentsTitle}}</h3>
-        <p>{{start.claude}}</p>
-        <div class="cmd"><code>/plugin marketplace add Quost/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
-        <div class="cmd"><code>/plugin install crewreview@crewreview</code><button class="copy" type="button">{{start.copy}}</button></div>
-        <p>{{start.others}}</p>
-        <div class="cmd"><code data-p="$">crewreview mcp setup</code><button class="copy" type="button">{{start.copy}}</button></div>
-      </div>
-    </div>
-    <span class="sr" id="copy-status" aria-live="polite"></span>
   </div>
 </section>
 
@@ -432,64 +346,45 @@ function pick(lang) { try { localStorage.setItem("crewreview.lang", lang); } cat
   if (lang !== "en") location.replace(paths[lang] + location.hash);
 })();
 
-// Install: pick the visitor's system and processor, point the download at that build, copy buttons.
+// Install: the download button follows the visitor's system and processor; tabs, copy buttons, the AI prompt.
 (function () {
   const box = document.querySelector(".install");
   if (!box) return;
   const t = box.dataset, $ = (id) => document.getElementById(id);
   const BASE = "https://github.com/Quost/crewreview/releases/latest/download/";
   const NAMES = { macos: "macOS", linux: "Linux", windows: "Windows" };
-  const VARIANTS = { macos: [["arm64", t.apple], ["x64", t.intel]], linux: [["x64", t.x64], ["arm64", t.arm64]], windows: [["x64", "x64"]] };
-  const fileFor = (os, arch) => os === "windows" ? "crewreview-windows-x64.exe" : "crewreview-" + (os === "macos" ? "darwin" : "linux") + "-" + arch;
-  const tabs = [...box.querySelectorAll('[role="tab"]')], panels = [...box.querySelectorAll(".os-panel")];
+  const APP = { macos: (a) => ["Crewreview-macos-" + a + ".dmg", (a === "arm64" ? t.apple : t.intel) + " · .dmg"], windows: () => ["Crewreview-windows-x64-setup.exe", "x64 · .exe"], linux: (a) => ["Crewreview-linux-" + a + ".AppImage", a + " · AppImage"] };
   let os = "macos", arch = "arm64";
-  // Long paths wrap after a slash instead of mid-word; <wbr> adds no text, so copying is unchanged.
-  const breakable = (code) => { code.innerHTML = code.innerHTML.replace(/\/(?!\/)/g, "/<wbr>"); };
-  document.querySelectorAll(".cmd code").forEach(breakable);
 
   function render() {
-    for (const b of tabs) { const on = b.dataset.os === os; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }
-    for (const p of panels) p.classList.toggle("on", p.dataset.os === os);
-    const variants = VARIANTS[os];
-    if (!variants.some((v) => v[0] === arch)) arch = variants[0][0];
-    const seg = $("arch");
-    seg.replaceChildren(...variants.map(([a, label]) => {
-      const b = document.createElement("button");
-      b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(a === arch)); b.textContent = label;
-      b.addEventListener("click", () => { arch = a; render(); });
-      return b;
-    }));
-    seg.hidden = variants.length < 2;
-    const file = fileFor(os, arch), label = variants.find((v) => v[0] === arch)[1];
-    // The desktop app is the big button; the bare CLI binary sits below it.
-    const app = os === "macos" ? ["Crewreview-macos-" + arch + ".dmg", ".dmg"] : os === "windows" ? ["Crewreview-windows-x64-setup.exe", ".exe"] : ["Crewreview-linux-" + arch + ".AppImage", "AppImage"];
-    $("dl-btn").href = BASE + app[0];
-    $("dl-label").textContent = t.download.replace("{os}", NAMES[os]);
-    $("dl-variant").textContent = (os === "macos" ? label + " · " + arch : label) + " · " + app[1];
-    $("dl-also").hidden = os !== "linux";
-    $("dl-deb").href = BASE + "Crewreview-linux-" + arch + ".deb";
-    $("dl-rpm").href = BASE + "Crewreview-linux-" + arch + ".rpm";
-    $("cli-btn").href = BASE + file;
-    $("cli-file").textContent = file;
-    const note = $("dl-note");
-    note.textContent = os === "macos" ? "✓ " + t.notarized : os === "windows" ? t.winarm : "";
-    note.classList.toggle("ok", os === "macos");
-    note.hidden = !note.textContent;
-    $("dl-then-unix").hidden = os === "windows";
-    $("dl-then-win").hidden = os !== "windows";
-    const dlCmd = $("dl-cmd");
-    dlCmd.textContent = (os === "macos" ? "sudo mkdir -p /usr/local/bin && " : "") + "sudo install -m 755 ~/Downloads/" + file + " /usr/local/bin/crewreview";
-    breakable(dlCmd);
+    if (os === "windows") arch = "x64";
+    const [file, variant] = APP[os](arch);
+    const label = t.download.replace("{os}", NAMES[os]);
+    $("dl-btn").href = BASE + file;
+    $("dl-label").textContent = label;
+    $("dl-variant").textContent = variant;
+    $("hero-dl").href = BASE + file;
+    $("hero-dl-label").textContent = label;
+    for (const el of document.querySelectorAll("[data-os-show]")) el.classList.toggle("os-off", !el.dataset.osShow.split(" ").includes(os));
+    for (const a of document.querySelectorAll(".get-other a")) a.classList.toggle("on", a.dataset.os === os && a.dataset.arch === arch);
+  }
+  for (const a of document.querySelectorAll(".get-other a")) {
+    a.addEventListener("click", (e) => { e.preventDefault(); os = a.dataset.os; arch = a.dataset.arch; render(); });
   }
 
+  const tabs = [...box.querySelectorAll('[role="tab"]')];
+  function select(tab) {
+    for (const b of tabs) { const on = b === tab; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }
+    for (const p of box.querySelectorAll(".panel")) p.classList.toggle("on", p.dataset.panel === tab.dataset.tab);
+  }
   tabs.forEach((b, i) => {
-    b.addEventListener("click", () => { os = b.dataset.os; render(); });
+    b.addEventListener("click", () => select(b));
     b.addEventListener("keydown", (e) => {
       const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
       if (!d) return;
       e.preventDefault();
       const next = tabs[(i + d + tabs.length) % tabs.length];
-      os = next.dataset.os; render(); next.focus();
+      select(next); next.focus();
     });
   });
 
@@ -506,49 +401,45 @@ function pick(lang) { try { localStorage.setItem("crewreview.lang", lang); } cat
     if (/android|iphone|ipad|ipod/i.test(ua) || (/mac/.test(plat) && navigator.maxTouchPoints > 1)) return { phone: true };
     const sys = /win/.test(plat) || /windows/i.test(ua) ? "windows" : /mac/.test(plat) || /mac os x/i.test(ua) ? "macos" : /linux|x11|cros/i.test(plat + " " + ua) ? "linux" : null;
     if (!sys) return null;
-    let cpu = null, sure = false;
+    let cpu = null;
     if (uad && uad.getHighEntropyValues) {
-      try { const v = await uad.getHighEntropyValues(["architecture"]); if (v.architecture) { cpu = v.architecture === "arm" ? "arm64" : "x64"; sure = true; } } catch {}
+      try { const v = await uad.getHighEntropyValues(["architecture"]); if (v.architecture) cpu = v.architecture === "arm" ? "arm64" : "x64"; } catch {}
     }
-    if (!cpu && /aarch64|arm64/i.test(ua)) { cpu = "arm64"; sure = true; }
-    if (!cpu && /x86_64|amd64/i.test(ua) && sys === "linux") { cpu = "x64"; sure = true; }
-    if (!cpu && sys === "macos") {
-      const g = gpu();
-      if (/apple m\d/i.test(g)) { cpu = "arm64"; sure = true; }
-      else if (/intel|amd|radeon|nvidia/i.test(g)) { cpu = "x64"; sure = true; }
-      else cpu = "arm64";
-    }
-    return { os: sys, arch: cpu || "x64", sure };
+    if (!cpu && /aarch64|arm64/i.test(ua)) cpu = "arm64";
+    if (!cpu && sys === "macos") cpu = /intel|amd|radeon|nvidia/i.test(gpu()) ? "x64" : "arm64";
+    return { os: sys, arch: cpu || "x64" };
   }
 
-  $("builds").open = false;
   render();
   detect().then((d) => {
-    const el = $("detect");
     if (!d) return;
-    if (d.phone) { el.textContent = t.phone; el.classList.add("guess"); return; }
+    if (d.phone) { $("get-phone").hidden = false; return; }
     os = d.os; arch = d.arch; render();
-    const chip = d.os === "macos" ? (d.arch === "arm64" ? t.apple : t.intel) : d.arch;
-    el.textContent = (d.sure ? t.detected : t.likely).replace("{system}", NAMES[d.os] + " · " + chip);
-    el.classList.toggle("guess", !d.sure);
   });
 
+  // Long paths wrap after a slash instead of mid-word; <wbr> adds no text, so copying is unchanged.
+  document.querySelectorAll(".cmd code").forEach((code) => { code.innerHTML = code.innerHTML.replace(/\/(?!\/)/g, "/<wbr>"); });
+
   const status = $("copy-status");
+  async function copy(button, text, label) {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const area = document.createElement("textarea");
+      area.value = text; area.style.position = "fixed"; area.style.opacity = "0";
+      document.body.append(area); area.select();
+      try { document.execCommand("copy"); } catch {}
+      area.remove();
+    }
+    button.textContent = "✓ " + t.copied; button.classList.add("done"); status.textContent = t.copied;
+    clearTimeout(button._timer);
+    button._timer = setTimeout(() => { button.textContent = label; button.classList.remove("done"); status.textContent = ""; }, 1600);
+  }
   for (const c of document.querySelectorAll(".cmd")) {
     const b = c.querySelector(".copy"), code = c.querySelector("code");
-    b.addEventListener("click", async () => {
-      const text = code.textContent;
-      try { await navigator.clipboard.writeText(text); }
-      catch {
-        const r = document.createRange(); r.selectNodeContents(code);
-        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-        try { document.execCommand("copy"); } catch {}
-      }
-      b.textContent = "✓ " + t.copied; b.classList.add("done"); status.textContent = t.copied;
-      clearTimeout(b._timer);
-      b._timer = setTimeout(() => { b.textContent = t.copy; b.classList.remove("done"); status.textContent = ""; }, 1600);
-    });
+    b.addEventListener("click", () => copy(b, code.textContent, t.copy));
   }
+  const ai = $("ai-copy"), aiLabel = ai.textContent;
+  ai.addEventListener("click", () => copy(ai, $("ai-prompt").content.textContent.trim(), aiLabel));
 })();
 </script>
 </body>

@@ -104,6 +104,18 @@ Version ${pkg.version}. Free software (AGPL-3.0). Source: https://github.com/Quo
 ## Safety
 ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}`).join("\n")}
 
+## Install
+- Desktop app (macOS, Windows, Linux): ${SITE}/#start, or the latest release: https://github.com/Quost/crewreview/releases/latest (Crewreview-macos-arm64.dmg, Crewreview-macos-x64.dmg, Crewreview-windows-x64-setup.exe, Crewreview-linux-x64.AppImage and .deb/.rpm, the same for linux-arm64). It bundles the crew and keeps it running from the menu bar or tray.
+- Command line, macOS or Linux: curl -fsSL ${SITE}/install.sh | sh (Homebrew: brew install Quost/crewreview/crewreview)
+- Command line, Windows (PowerShell): irm ${SITE}/install.ps1 | iex (Scoop: scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview/crewreview)
+
+## Setting it up for someone (for AI agents)
+1. Install the command line tool (above). Explain each command before running it.
+2. Run crewreview doctor. It needs git, at least one coding agent signed in (Claude Code, Codex or Kiro) and gh (GitHub) or glab (GitLab) signed in. If something is missing, tell the user how to fix it and wait.
+3. Ask which repositories to watch. Link each one in inbox mode, so nothing is posted without approval: crewreview repo add <url> --attend inbox. Never switch a repository to auto unless the user asks.
+4. Keep it running and open the dashboard: crewreview service install, then crewreview ui.
+5. Connect it to the user's coding agents: crewreview mcp setup prints the steps for each. Claude Code: /plugin marketplace add Quost/crewreview, then /plugin install crewreview@crewreview.
+
 ## Commands
 - crewreview doctor --conformance: prove each harness's read-only and write-scope locks on this machine.
 - crewreview local: review the current branch; nothing is posted.
