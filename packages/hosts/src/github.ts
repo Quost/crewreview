@@ -177,6 +177,14 @@ export function githubHost(repo: RepoRef, t: Transport): HostAdapter {
       }
     },
 
+    async requestReReview(pr, users) {
+      const me = (await self.whoami()).toLowerCase();
+      const reviewers = [...new Set(users.filter((u) => u.toLowerCase() !== me && !/\[bot\]$/.test(u)))];
+      if (reviewers.length === 0) return false;
+      await t.request("POST", `${base}/pulls/${pr.number}/requested_reviewers`, { body: { reviewers } });
+      return true;
+    },
+
     headRefspec(number, local) {
       return `+refs/pull/${number}/head:${local}`;
     },

@@ -84,6 +84,8 @@ export interface HostAdapter {
   reply(pr: PullRequest, threadId: string, body: string): Promise<void>;
   resolve(pr: PullRequest, threadId: string): Promise<void>;
   permission(user: string): Promise<Permission>;
+  /** Ask these people to look again. Returns false where the host has no such call. */
+  requestReReview(pr: PullRequest, users: string[]): Promise<boolean>;
   /** Refspec that fetches the pull request's head into `local`. */
   headRefspec(number: number, local: string): string;
 }

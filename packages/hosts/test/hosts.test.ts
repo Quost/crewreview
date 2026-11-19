@@ -75,6 +75,7 @@ function github(overrides: Record<string, unknown> = {}): Scenario {
     "GET /repos/acme/shop/commits/h7/status": { statuses: [] },
     "POST /repos/acme/shop/pulls/7/reviews": { html_url: "https://github.com/acme/shop/pull/7#review-1" },
     "GET /repos/acme/shop/collaborators/bia/permission": { permission: "maintain" },
+    "POST /repos/acme/shop/pulls/7/requested_reviewers": {},
     "GET /repos/acme/shop/collaborators/eve/permission": { status: 404, data: { message: "Not Found" } },
     ...overrides,
   });
@@ -157,6 +158,16 @@ for (const make of [github, gitlab]) {
       const s = make();
       expect(await s.host.permission("bia")).toBe(s.name === "github" ? "write" : "admin");
       expect(await s.host.permission("eve")).toBe("none");
+    });
+
+    test("re-review requests skip you and bots", async () => {
+      const s = make();
+      const pr = await s.host.getPullRequest(7);
+      const asked = await s.host.requestReReview(pr, ["bia", "quost", "copilot[bot]"]);
+      if (s.name === "github") {
+        expect(asked).toBe(true);
+        expect(s.calls.find((c) => c.path.endsWith("/requested_reviewers"))?.body).toEqual({ reviewers: ["bia"] });
+      } else expect(asked).toBe(false);
     });
 
     test("head refspec", () => {

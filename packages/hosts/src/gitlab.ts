@@ -174,6 +174,11 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
       return level >= 40 ? "admin" : level >= 30 ? "write" : level >= 10 ? "read" : "none";
     },
 
+    async requestReReview() {
+      // The REST API has no re-request; the reply on each thread notifies the reviewer.
+      return false;
+    },
+
     headRefspec(number, local) {
       return `+refs/merge-requests/${number}/head:${local}`;
     },
