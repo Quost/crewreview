@@ -10,7 +10,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **M1** ✅ | Pure review rules, harness adapters (Claude Code, Codex, Kiro, ACP, custom), `doctor --conformance`, `crewreview local` | done |
 | **M2** 🟡 | GitHub and GitLab adapters, linked repositories, mirror, SQLite state, reviewer daemon, inbox, posting | GitHub verified live; GitLab by contract tests, live check pending |
 | **M3** 🟡 | The attendant: fix, reply, decline or leave to you; checks, signed commits, push without force, re-review; polish loop | GitHub verified live; GitLab live check pending |
-| **M4** ✅ | Dashboard, local API, `service install`, signed `update` → **v0.1.0** | released once the signing key is in the repository's secrets |
+| **M4** ✅ | Dashboard, local API, `service install`, signed `update` → **v0.1.0** | released 2026-11-19; a 0.0.9 binary updated itself to it, signature and checksum verified |
 | — | MCP server and skill for coding agents, website in five languages | done, unreleased |
 
 ## Still owed from the first plan
