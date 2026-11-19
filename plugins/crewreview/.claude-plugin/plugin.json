@@ -1,10 +1,20 @@
 {
   "name": "crewreview",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A local crew of AI agents that reviews your branch and pull requests, and answers the reviews on yours. Adds the Crewreview MCP server, a skill and the /crewreview command.",
-  "author": { "name": "Matheus Quost", "url": "https://github.com/Quost" },
+  "author": {
+    "name": "Matheus Quost",
+    "url": "https://github.com/Quost"
+  },
   "homepage": "https://crewreview.web.app",
   "repository": "https://github.com/Quost/crewreview",
   "license": "AGPL-3.0-only",
-  "keywords": ["code-review", "pull-requests", "github", "gitlab", "review", "mcp"]
+  "keywords": [
+    "code-review",
+    "pull-requests",
+    "github",
+    "gitlab",
+    "review",
+    "mcp"
+  ]
 }

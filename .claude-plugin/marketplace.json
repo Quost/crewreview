@@ -1,13 +1,18 @@
 {
   "name": "crewreview",
-  "owner": { "name": "Matheus Quost", "url": "https://github.com/Quost" },
-  "metadata": { "description": "Crewreview for Claude Code: a local crew of AI agents for your pull requests." },
+  "owner": {
+    "name": "Matheus Quost",
+    "url": "https://github.com/Quost"
+  },
+  "metadata": {
+    "description": "Crewreview for Claude Code: a local crew of AI agents for your pull requests."
+  },
   "plugins": [
     {
       "name": "crewreview",
       "source": "./plugins/crewreview",
       "description": "Review your branch and pull requests with a crew of read-only AI lenses and a verifier; answer the reviews on yours.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "development"
     }
   ]

@@ -2,7 +2,9 @@
 
 Notable changes to Crewreview. The format follows [Keep a Changelog](https://keepachangelog.com), and versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.2.0 — 2026-11-19
+
+The public launch: notarized macOS binaries, one-line installers, Homebrew and Scoop, a Claude Code plugin and an MCP server for coding agents, and the website.
 
 ### Added
 
