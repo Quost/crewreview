@@ -19,6 +19,7 @@
         "@crewreview/core": "workspace:*",
         "@crewreview/engine": "workspace:*",
         "@crewreview/harness": "workspace:*",
+        "@crewreview/hosts": "workspace:*",
         "@crewreview/i18n": "workspace:*",
       },
     },
@@ -35,6 +36,7 @@
       "dependencies": {
         "@crewreview/core": "workspace:*",
         "@crewreview/harness": "workspace:*",
+        "@crewreview/hosts": "workspace:*",
         "@crewreview/i18n": "workspace:*",
         "zod": "4.6.7",
       },
@@ -44,6 +46,13 @@
       "version": "0.1.0-dev",
       "dependencies": {
         "@agentclientprotocol/sdk": "2.4.0",
+        "@crewreview/core": "workspace:*",
+      },
+    },
+    "packages/hosts": {
+      "name": "@crewreview/hosts",
+      "version": "0.1.0-dev",
+      "dependencies": {
         "@crewreview/core": "workspace:*",
       },
     },
@@ -62,6 +71,8 @@
     "@crewreview/engine": ["@crewreview/engine@workspace:packages/engine"],
 
     "@crewreview/harness": ["@crewreview/harness@workspace:packages/harness"],
+
+    "@crewreview/hosts": ["@crewreview/hosts@workspace:packages/hosts"],
 
     "@crewreview/i18n": ["@crewreview/i18n@workspace:packages/i18n"],
 
