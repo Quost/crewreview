@@ -1,10 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2024",
-    "lib": ["es2024"],
+    "lib": [
+      "es2024"
+    ],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "types": ["bun"],
+    "types": [
+      "bun"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -15,5 +19,11 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["packages/*/src", "packages/*/test", "apps/*/src", "scripts", "*.d.ts"]
+  "include": [
+    "packages/*/src",
+    "packages/*/test",
+    "apps/cli/src",
+    "scripts",
+    "*.d.ts"
+  ]
 }

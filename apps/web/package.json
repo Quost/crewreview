@@ -1,0 +1,16 @@
+{
+  "name": "@crewreview/web",
+  "version": "0.1.0-dev",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "@crewreview/i18n": "workspace:*",
+    "react": "19.2.9",
+    "react-dom": "19.2.9"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7"
+  }
+}
