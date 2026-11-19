@@ -9,6 +9,8 @@ export interface RepoArgs {
   clone?: string;
   lang?: string;
   id?: string;
+  attend?: string;
+  polish?: string;
 }
 
 const AUTHORS = ["others", "all", "mine"] as const;
@@ -40,14 +42,23 @@ export async function findRepo(c: Ctx, idOrUrl: string): Promise<LinkedRepo | st
 export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: RepoArgs): Promise<number> {
   const { t } = c;
   const file = reposFile(c.dirs);
-  const bad = check(c, "--mode", a.mode, REVIEW_MODES) ?? check(c, "--authors", a.authors, AUTHORS) ?? check(c, "--kind", a.kind, ["github", "gitlab"]);
+  const bad =
+    check(c, "--mode", a.mode, REVIEW_MODES) ??
+    check(c, "--authors", a.authors, AUTHORS) ??
+    check(c, "--kind", a.kind, ["github", "gitlab"]) ??
+    check(c, "--attend", a.attend, REVIEW_MODES) ??
+    check(c, "--polish", a.polish, ["on", "off"]);
   if (bad) return (c.err(bad), 2);
   const repos = await loadRepos(file);
   const entries = (): RepoEntry[] => repos.map(({ ref: _ref, ...e }) => e);
 
   if (sub === undefined || sub === "list") {
     if (repos.length === 0) return (c.out(t.t("repo.none")), 0);
-    table(c, [t.t("repo.col.id"), t.t("repo.col.url"), t.t("repo.col.mode"), t.t("repo.col.authors")], repos.map((r) => [r.id, r.ref.webUrl, r.review.mode, r.review.authors]));
+    table(
+      c,
+      [t.t("repo.col.id"), t.t("repo.col.url"), t.t("repo.col.mode"), t.t("repo.col.authors"), t.t("repo.col.attend")],
+      repos.map((r) => [r.id, r.ref.webUrl, r.review.mode, r.review.authors, `${r.attend.mode}${r.attend.fromCrew ? " + polish" : ""}`]),
+    );
     return 0;
   }
 
@@ -65,6 +76,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       id: a.id,
       clone: a.clone,
       review: { mode: (a.mode as RepoEntry["review"]["mode"]) ?? "inbox", authors: (a.authors as RepoEntry["review"]["authors"]) ?? "others", commentLanguage: a.lang },
+      attend: { mode: (a.attend as RepoEntry["attend"]["mode"]) ?? "off", fromCrew: a.polish === "on" },
     });
     if (repos.some((r) => r.id === entry.id || r.ref.webUrl === ref.webUrl)) return (c.err(t.t("error.repoExists", { id: entry.id })), 2);
     const target = await connect({ ...entry, ref }, c.version);
@@ -101,6 +113,11 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       mode: (a.mode as RepoEntry["review"]["mode"]) ?? e.review.mode,
       authors: (a.authors as RepoEntry["review"]["authors"]) ?? e.review.authors,
       commentLanguage: a.lang ?? e.review.commentLanguage,
+    },
+    attend: {
+      ...e.attend,
+      mode: (a.attend as RepoEntry["attend"]["mode"]) ?? e.attend.mode,
+      fromCrew: a.polish === undefined ? e.attend.fromCrew : a.polish === "on",
     },
   };
   await saveRepos(file, list);

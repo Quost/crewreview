@@ -31,10 +31,10 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
     for (const h of registry.values()) {
       if (!(await h.detect()).installed || h.capabilities.readOnly !== "enforced") continue;
       c.err(c.errStyle.dim(t.t("doctor.conformanceRunning", { name: h.id })));
-      const r = await runConformance(h);
+      const r = await runConformance(h, { write: h.capabilities.write });
       await store.put(r);
       const detail = r.error ? c.errStyle.dim(` — ${r.failure ?? ""} ${r.error.split("\n")[0]}`) : "";
-      c.err(t.t("doctor.conformanceResult", { name: h.id, structured: t.t(`check.${r.structured}`), readOnly: t.t(`check.${r.readOnly}`), seconds: Math.round(r.durationMs / 1000) }) + detail);
+      c.err(t.t("doctor.conformanceResult", { name: h.id, structured: t.t(`check.${r.structured}`), readOnly: t.t(`check.${r.readOnly}`), seconds: Math.round(r.durationMs / 1000) }) + ` · ${t.t("doctor.col.write")} ${t.t(`check.${r.writeScope ?? "skipped"}`)}` + detail);
     }
     c.err();
   }
@@ -52,7 +52,7 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
       det.installed ? t.t("doctor.installed") : t.t("doctor.notInstalled"),
       det.installed ? (det.version ?? "?").replace(/\s*\(.*\)$/, "").replace(/^[a-z-]+ /i, "") : "—",
       det.installed ? ro : "—",
-      h.capabilities.write ? t.t("doctor.yes") : t.t("doctor.no"),
+      !h.capabilities.write ? t.t("doctor.no") : !det.installed ? "—" : conf?.writeScope === "pass" ? t.t("doctor.verified") : conf?.writeScope === "fail" ? t.t("doctor.failedCheck") : t.t("doctor.untested"),
       h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no"),
     ]);
     if (!ready && det.installed && (await reviewable(h, store)) === "ok") ready = h.id;

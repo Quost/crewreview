@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 import { ConfigError, configFile, loadConfig } from "@crewreview/engine";
 import { createTranslator, detectLocale, type Translator } from "@crewreview/i18n";
 import pkg from "../../../package.json";
+import { attendOne } from "./commands/attend.ts";
 import { doctor } from "./commands/doctor.ts";
 import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
@@ -31,6 +32,7 @@ function help(t: Translator): string {
     row("local", t.t("cli.cmd.local")),
     row("repo [list|add|set|remove]", t.t("cli.cmd.repo")),
     row("review <repo> <number>", t.t("cli.cmd.review")),
+    row("attend <repo> <number>", t.t("cli.cmd.attend")),
     row("inbox [show|approve|discard]", t.t("cli.cmd.inbox")),
     row("once", t.t("cli.cmd.once")),
     row("run", t.t("cli.cmd.run")),
@@ -54,9 +56,11 @@ function help(t: Translator): string {
     row("--kind github|gitlab", t.t("cli.opt.kind")),
     row("--clone <path>", t.t("cli.opt.clone")),
     row("--id <id>", t.t("cli.opt.id")),
+    row("--attend off|inbox|auto", t.t("cli.opt.attend")),
+    row("--polish on|off", t.t("cli.opt.polish")),
     row("--lang <code>", t.t("cli.opt.lang")),
     "",
-    `${t.t("cli.options")} (review):`,
+    `${t.t("cli.options")} (review, attend):`,
     row("--post", t.t("cli.opt.post")),
     row("--dry-run", t.t("cli.opt.dryRun")),
     row("--force", t.t("cli.opt.force")),
@@ -86,6 +90,8 @@ async function main(argv: string[]): Promise<number> {
       kind: { type: "string" },
       clone: { type: "string" },
       id: { type: "string" },
+      attend: { type: "string" },
+      polish: { type: "string" },
       post: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
@@ -129,9 +135,11 @@ async function main(argv: string[]): Promise<number> {
           json: v.json,
         });
       case "repo":
-        return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id });
+        return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id, attend: v.attend, polish: v.polish });
       case "review":
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
+      case "attend":
+        return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"] });
       case "inbox":
         return await inbox(c, rest[0], rest.slice(1));
       case "once":

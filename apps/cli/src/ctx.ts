@@ -45,6 +45,9 @@ export function pickErrorText(c: Ctx, e: PickError): string {
   if (e.error === "unknown-harness") return c.t.t("error.unknownHarness", { name: e.name });
   if (e.error === "no-harness") return c.t.t("error.noHarness");
   if (e.error === "needs-conformance") return c.t.t("error.needsConformance", { name: e.name });
+  if (e.error === "cannot-write") return c.t.t("error.cannotWrite", { name: e.name });
+  if (e.error === "needs-write-check") return c.t.t("error.needsWriteCheck", { name: e.name });
+  if (e.error === "write-escapes") return c.t.t("error.writeEscapes", { name: e.name });
   return c.t.t("error.harnessNotReadOnly", { name: e.name });
 }
 

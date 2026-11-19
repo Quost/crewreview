@@ -1,9 +1,10 @@
-import { acquireLock, connect, LockedError, loadRepos, nextInterval, registryFor, renderTerminal, reposFile, reviewPullRequest, runCycle, sleep, type DaemonEvent, type PrDeps, type PrOutcome } from "@crewreview/engine";
+import { acquireLock, connect, LockedError, loadRepos, nextInterval, registryFor, renderTerminal, reposFile, reviewPullRequest, runCycle, sleep, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
 import { HostError } from "@crewreview/hosts";
 import { conformanceStore, openStore, pickErrorText, progress, type Ctx } from "../ctx.ts";
+import { attendText } from "./attend.ts";
 import { findRepo, noTokenText } from "./repo.ts";
 
-function deps(c: Ctx, signal?: AbortSignal, quiet = false): PrDeps & { close(): void } {
+export function deps(c: Ctx, signal?: AbortSignal, quiet = false): AttendDeps & { close(): void } {
   const store = openStore(c);
   store.recoverInterrupted();
   return {
@@ -87,6 +88,7 @@ function logEvent(c: Ctx, e: DaemonEvent): void {
   else if (e.type === "skip") c.err(`${time} ${st.dim(t.t("review.skipped", { repo: e.repo, number: e.number, reason: t.t(`skip.${e.reason}`) }))}`);
   else if (e.type === "start") c.err(`${time} ${t.t("review.started", { repo: e.repo, number: e.number, title: e.title, sha: e.sha.slice(0, 7) })}`);
   else if (e.type === "outcome") c.err(`${time} ${outcomeText(c, e.repo, e.number, e.outcome)}`);
+  else if (e.type === "attend-outcome") c.err(`${time} ${attendText(c, e.repo, e.number, e.outcome)}`);
   else if (e.type === "cycle") c.err(`${time} ${st.dim(t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting }))}`);
 }
 
@@ -94,7 +96,8 @@ function logEvent(c: Ctx, e: DaemonEvent): void {
 export async function watch(c: Ctx, loop: boolean): Promise<number> {
   const { t } = c;
   const repos = await loadRepos(reposFile(c.dirs));
-  if (repos.filter((r) => r.review.mode !== "off").length === 0) return (c.out(t.t("repo.none")), 0);
+  const watched = (list: typeof repos) => list.filter((r) => r.review.mode !== "off" || r.attend.mode !== "off");
+  if (watched(repos).length === 0) return (c.out(t.t("repo.none")), 0);
   let release: () => Promise<void>;
   try {
     release = await acquireLock(c.dirs.state);
@@ -112,7 +115,7 @@ export async function watch(c: Ctx, loop: boolean): Promise<number> {
   process.on("SIGTERM", onSignal);
   const d = deps(c, stop.signal, true);
   try {
-    if (loop) c.err(t.t("run.started", { count: repos.filter((r) => r.review.mode !== "off").length }));
+    if (loop) c.err(t.t("run.started", { count: watched(repos).length }));
     do {
       // Re-read the list each pass: `repo add` or the dashboard may have changed it.
       const current = await loadRepos(reposFile(c.dirs));
