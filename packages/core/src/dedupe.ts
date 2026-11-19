@@ -21,6 +21,14 @@ export function jaccard(a: Set<string>, b: Set<string>): number {
   return inter / (a.size + b.size - inter);
 }
 
+/** Share of `part`'s tokens that also appear in `whole`. */
+export function containment(part: Set<string>, whole: Set<string>): number {
+  if (part.size === 0) return 0;
+  let n = 0;
+  for (const t of part) if (whole.has(t)) n++;
+  return n / part.size;
+}
+
 function text(f: Pick<Finding, "title" | "body">): Set<string> {
   return tokens(`${f.title} ${f.title} ${f.body.slice(0, 400)}`);
 }
@@ -103,13 +111,21 @@ export function dedupeAgainstThreads(
   const covered: { finding: Finding; thread: ExistingComment }[] = [];
   for (const f of findings) {
     const ft = text(f);
+    const title = tokens(f.title);
+    const names = identifiers(f.title);
     const hit = threads.find((t) => {
       if (t.path !== undefined && t.path !== f.path) return false;
+      // A thread is long and the finding short, so similarity of whole texts runs low. How much of the finding's
+      // title shows up where the thread starts says more: a repeat of our own earlier finding scores near 1.
+      const head = tokens(t.body.slice(0, 600));
+      const contained = containment(title, head);
+      const sameName = [...identifiers(t.body.slice(0, 600))].some((n) => names.has(n));
       const dist = t.line === undefined ? Infinity : Math.abs(t.line - f.line);
       if (t.path === undefined || dist > o.lineWindow) {
         // Review-level comment: only a strong textual match counts.
-        return jaccard(ft, tokens(t.body)) >= 0.5;
+        return contained >= 0.8 || jaccard(ft, tokens(t.body)) >= 0.5;
       }
+      if (contained >= 0.6 || (sameName && contained >= 0.4)) return true;
       return jaccard(ft, tokens(t.body)) >= (dist <= 1 ? o.sameLineThreshold : o.nearThreshold);
     });
     if (hit) covered.push({ finding: f, thread: hit });

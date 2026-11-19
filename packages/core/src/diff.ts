@@ -107,7 +107,20 @@ export function totalChangedLines(files: readonly DiffFile[]): number {
   return files.reduce((n, f) => n + f.additions + f.deletions, 0);
 }
 
-/** Per-file "+a/-d" signature. Two pushes with the same signature changed the same lines: only the base moved. */
+/**
+ * Fingerprint of what a change adds and removes, ignoring line numbers, context lines and blob ids (like
+ * `git patch-id`). Two pushes with the same fingerprint carry the same change: only the base moved under it.
+ */
+export function patchFingerprint(diff: string): string {
+  const kept: string[] = [];
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("diff --git ") || line.startsWith("rename ") || line.startsWith("new file") || line.startsWith("deleted file")) kept.push(line);
+    else if ((line.startsWith("+") && !line.startsWith("+++ ")) || (line.startsWith("-") && !line.startsWith("--- "))) kept.push(line.replace(/\s+$/, ""));
+  }
+  return new Bun.CryptoHasher("sha256").update(kept.join("\n")).digest("hex");
+}
+
+/** Per-file "+a/-d" counts: a quick summary of a change's size. */
 export function changeSignature(files: readonly DiffFile[]): Record<string, string> {
   const sig: Record<string, string> = {};
   for (const f of files) sig[f.path] = `+${f.additions}/-${f.deletions}`;

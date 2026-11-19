@@ -16,6 +16,7 @@ import {
   parseMarker,
   parseUnifiedDiff,
   parseVerifierOutput,
+  patchFingerprint,
   redactSecrets,
   sameSignature,
   totalChangedLines,
@@ -104,6 +105,14 @@ describe("diff", () => {
     expect(sameSignature(a, { ...a, "src/app.ts": "+4/-2" })).toBe(false);
   });
 
+  test("fingerprint ignores line numbers and context, not content", () => {
+    const a = "diff --git a/x b/x\nindex 1..2\n--- a/x\n+++ b/x\n@@ -1,2 +1,3 @@\n ctx\n+new line\n ctx2\n";
+    const moved = "diff --git a/x b/x\nindex 7..9\n--- a/x\n+++ b/x\n@@ -40,2 +40,3 @@\n other ctx\n+new line\n more\n";
+    const changed = a.replace("+new line", "+new line!");
+    expect(patchFingerprint(a)).toBe(patchFingerprint(moved));
+    expect(patchFingerprint(a)).not.toBe(patchFingerprint(changed));
+  });
+
   test("unquotes octal escapes", () => {
     expect(unquoteGitPath('"caf\\303\\251.txt"')).toBe("café.txt");
     expect(unquoteGitPath("plain.txt")).toBe("plain.txt");
@@ -167,6 +176,34 @@ describe("dedupe", () => {
     ]);
     expect(r.fresh).toEqual([]);
     expect(r.covered).toHaveLength(1);
+  });
+});
+
+describe("dedupe against our own earlier comment (seen live)", () => {
+  test("a repeat of a posted finding, in other words and other lenses, is covered", () => {
+    const earlier = [
+      "🔴 **bloqueador** · security — **SQL injection em findUserByEmail por interpolação direta do e-mail na query**",
+      "",
+      "A função monta a query com template string e coloca o `email` entre aspas simples, sem escape nem parâmetro.",
+      "<sub>Crewreview · confiança alta · verificado</sub>",
+      "<!-- crewreview:kind=finding;v=0.1.0-dev;ref=F1@b687f0c4dfd8 -->",
+    ].join("\n");
+    const again = finding({
+      lens: "security",
+      lenses: ["security", "architecture", "correctness"],
+      line: 15,
+      severity: "blocker",
+      title: "SQL injection em findUserByEmail por interpolação direta do e-mail na query",
+      body: "Ainda sem correção: o e-mail continua concatenado na string SQL. Um atacante envia ' OR '1'='1 e lê outros usuários. Use $1 como em findUserById.",
+    });
+    const r = dedupeAgainstThreads([again], [{ path: "src/app.ts", line: 15, body: earlier, resolved: false }]);
+    expect(r.fresh).toEqual([]);
+  });
+
+  test("a different problem on the same line still gets through", () => {
+    const earlier = "🟠 **importante** · correctness — **findUserByEmail falha com emails que contêm apóstrofo**\n\nO apóstrofo quebra a query.";
+    const other = finding({ line: 15, title: "findUserByEmail ignora maiúsculas no e-mail", body: "Comparação deveria usar lower() dos dois lados." });
+    expect(dedupeAgainstThreads([other], [{ path: "src/app.ts", line: 15, body: earlier, resolved: false }]).fresh).toHaveLength(1);
   });
 });
 
