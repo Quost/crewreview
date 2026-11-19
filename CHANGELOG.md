@@ -2,7 +2,9 @@
 
 Notable changes to Crewreview. The format follows [Keep a Changelog](https://keepachangelog.com), and versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.1.0 — 2026-11-19
+
+The first release: a crew of AI agents that reviews pull requests and answers the reviews on yours, locally, with the harnesses you already use.
 
 ### Added
 

@@ -42,7 +42,14 @@ bun /path/to/crewreview/apps/cli/src/main.ts local
 
 Useful options: `--base origin/develop`, `--uncommitted`, `--harness codex`, `--verifier-harness claude` (a second vendor checks the first), `--lens security`, `--lang pt-BR`, `--json`.
 
-Signed binaries for macOS, Linux and Windows come with the first release.
+Or download a binary from [Releases](https://github.com/Quost/crewreview/releases) (macOS, Linux and Windows). Each release's `SHA256SUMS` is signed with the [release key](docs/release-key.pub):
+
+```bash
+minisign -Vm SHA256SUMS -P RWTk8l0TkAFZQOxVkYWEHrU6Nj+j1UTCGOMps627c4qsvaX3fvRFzhpx
+shasum -a 256 -c SHA256SUMS --ignore-missing
+```
+
+The binaries aren't notarized or code-signed yet (that comes with the desktop app), so macOS and Windows may warn the first time you open one.
 
 ### Review pull requests
 

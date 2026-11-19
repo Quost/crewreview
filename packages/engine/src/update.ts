@@ -5,10 +5,11 @@ import { parsePublicKey, verifySignature, type PublicKey } from "./minisign.ts";
 
 /**
  * The release key. Its secret half signs SHA256SUMS in the release workflow; this half is built into every binary,
- * so an update is installed only when it comes from the same signer. Empty until the first release key is made
- * (`bun scripts/release-key.ts init`): until then `update` refuses to install anything.
+ * so an update is installed only when it comes from the same signer. Also verifiable with the minisign tool:
+ * `minisign -Vm SHA256SUMS -P RWTk8l0TkAFZQOxVkYWEHrU6Nj+j1UTCGOMps627c4qsvaX3fvRFzhpx`
  */
-export const RELEASE_PUBLIC_KEY = "";
+export const RELEASE_PUBLIC_KEY = `untrusted comment: Crewreview release key E4F25D1390015940
+RWTk8l0TkAFZQOxVkYWEHrU6Nj+j1UTCGOMps627c4qsvaX3fvRFzhpx`;
 
 export const RELEASE_REPO = "Quost/crewreview";
 
