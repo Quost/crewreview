@@ -1,0 +1,14 @@
+{
+  "name": "@crewreview/cli",
+  "version": "0.1.0-dev",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "bin": { "crewreview": "./src/main.ts" },
+  "dependencies": {
+    "@crewreview/core": "workspace:*",
+    "@crewreview/engine": "workspace:*",
+    "@crewreview/harness": "workspace:*",
+    "@crewreview/i18n": "workspace:*"
+  }
+}
