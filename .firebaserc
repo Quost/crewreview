@@ -1,0 +1,6 @@
+{
+  "projects": { "default": "crewreview-prd" },
+  "targets": {
+    "crewreview-prd": { "hosting": { "crewreview": ["crewreview"] } }
+  }
+}
