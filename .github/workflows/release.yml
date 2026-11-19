@@ -57,6 +57,12 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
           set -euo pipefail
+          for v in MACOS_CERT_P12 MACOS_CERT_PASSWORD APPLE_ID APPLE_APP_PASSWORD; do
+            [ -n "${!v}" ] || { echo "::error::the $v secret is empty; set it again (see the top of this file)"; exit 1; }
+          done
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/check.p12" || { echo "::error::MACOS_CERT_P12 isn't base64"; exit 1; }
+          [ "$(wc -c < "$RUNNER_TEMP/check.p12")" -gt 1000 ] || { echo "::error::MACOS_CERT_P12 is too small to be a certificate"; exit 1; }
+          rm -f "$RUNNER_TEMP/check.p12"
           keychain="$RUNNER_TEMP/signing.keychain-db"
           kpass="$(openssl rand -base64 24)"
           printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
