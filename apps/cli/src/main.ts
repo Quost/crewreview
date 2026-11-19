@@ -8,7 +8,8 @@ import { doctor } from "./commands/doctor.ts";
 import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
 import { repo } from "./commands/repo.ts";
-import { reviewOne, watch } from "./commands/review.ts";
+import { daemon, ui } from "./commands/daemon.ts";
+import { reviewOne } from "./commands/review.ts";
 import { makeCtx } from "./ctx.ts";
 
 const VERSION: string = pkg.version;
@@ -35,7 +36,8 @@ function help(t: Translator): string {
     row("attend <repo> <number>", t.t("cli.cmd.attend")),
     row("inbox [show|approve|discard]", t.t("cli.cmd.inbox")),
     row("once", t.t("cli.cmd.once")),
-    row("run", t.t("cli.cmd.run")),
+    row("run [--open] [--no-ui]", t.t("cli.cmd.run")),
+    row("ui", t.t("cli.cmd.ui")),
     row("doctor", t.t("cli.cmd.doctor")),
     row("version", t.t("cli.cmd.version")),
     row("help", t.t("cli.cmd.help")),
@@ -64,6 +66,7 @@ function help(t: Translator): string {
     row("--post", t.t("cli.opt.post")),
     row("--dry-run", t.t("cli.opt.dryRun")),
     row("--force", t.t("cli.opt.force")),
+    row("--retry", t.t("cli.opt.retry")),
     "",
     `${t.t("cli.options")} (doctor):`,
     row("--conformance", t.t("cli.opt.conformance")),
@@ -95,6 +98,10 @@ async function main(argv: string[]): Promise<number> {
       post: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
+      "no-ui": { type: "boolean", default: false },
+      retry: { type: "boolean", default: false },
+      open: { type: "boolean", default: false },
+      port: { type: "string" },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
@@ -139,13 +146,15 @@ async function main(argv: string[]): Promise<number> {
       case "review":
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
       case "attend":
-        return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"] });
+        return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], retry: v.retry });
       case "inbox":
         return await inbox(c, rest[0], rest.slice(1));
       case "once":
-        return await watch(c, false);
+        return await daemon(c, { loop: false, ui: false, open: false });
       case "run":
-        return await watch(c, true);
+        return await daemon(c, { loop: true, ui: !v["no-ui"], open: v.open, port: v.port ? Number(v.port) : undefined });
+      case "ui":
+        return await ui(c, v.port ? Number(v.port) : undefined);
       default:
         c.err(t.t("cli.unknownCommand", { name: command }));
         c.err();

@@ -12,6 +12,7 @@
     "@crewreview/engine": "workspace:*",
     "@crewreview/harness": "workspace:*",
     "@crewreview/hosts": "workspace:*",
-    "@crewreview/i18n": "workspace:*"
+    "@crewreview/i18n": "workspace:*",
+    "@crewreview/web": "workspace:*"
   }
 }

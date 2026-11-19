@@ -1,4 +1,4 @@
-import { acquireLock, connect, LockedError, loadRepos, nextInterval, registryFor, renderTerminal, reposFile, reviewPullRequest, runCycle, sleep, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
+import { connect, registryFor, renderTerminal, reviewPullRequest, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
 import { HostError } from "@crewreview/hosts";
 import { conformanceStore, openStore, pickErrorText, progress, type Ctx } from "../ctx.ts";
 import { attendText } from "./attend.ts";
@@ -81,7 +81,7 @@ export async function reviewOne(c: Ctx, repoArg: string | undefined, numberArg: 
   }
 }
 
-function logEvent(c: Ctx, e: DaemonEvent): void {
+export function logEvent(c: Ctx, e: DaemonEvent): void {
   const { t, style: st } = c;
   const time = st.dim(new Date().toLocaleTimeString(t.locale, { hour: "2-digit", minute: "2-digit" }));
   if (e.type === "repo-error") c.err(`${time} ${st.red(`${e.repo}: ${e.code === "no-token" ? t.t("error.noToken", { host: e.repo, cli: "gh/glab", env: "GH_TOKEN/GITLAB_TOKEN" }) : t.t("error.host", { message: e.error })}`)}`);
@@ -90,46 +90,4 @@ function logEvent(c: Ctx, e: DaemonEvent): void {
   else if (e.type === "outcome") c.err(`${time} ${outcomeText(c, e.repo, e.number, e.outcome)}`);
   else if (e.type === "attend-outcome") c.err(`${time} ${attendText(c, e.repo, e.number, e.outcome)}`);
   else if (e.type === "cycle") c.err(`${time} ${st.dim(t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting }))}`);
-}
-
-/** `once`: one pass. `run`: keep going until Ctrl+C, finishing the review in progress. */
-export async function watch(c: Ctx, loop: boolean): Promise<number> {
-  const { t } = c;
-  const repos = await loadRepos(reposFile(c.dirs));
-  const watched = (list: typeof repos) => list.filter((r) => r.review.mode !== "off" || r.attend.mode !== "off");
-  if (watched(repos).length === 0) return (c.out(t.t("repo.none")), 0);
-  let release: () => Promise<void>;
-  try {
-    release = await acquireLock(c.dirs.state);
-  } catch (e) {
-    if (e instanceof LockedError) return (c.err(t.t("error.locked", { pid: e.pid })), 2);
-    throw e;
-  }
-  const stop = new AbortController();
-  const onSignal = () => {
-    if (stop.signal.aborted) process.exit(130);
-    c.err(t.t("run.stopping"));
-    stop.abort();
-  };
-  process.on("SIGINT", onSignal);
-  process.on("SIGTERM", onSignal);
-  const d = deps(c, stop.signal, true);
-  try {
-    if (loop) c.err(t.t("run.started", { count: watched(repos).length }));
-    do {
-      // Re-read the list each pass: `repo add` or the dashboard may have changed it.
-      const current = await loadRepos(reposFile(c.dirs));
-      await runCycle(d, current, (e) => logEvent(c, e));
-      if (!loop || stop.signal.aborted) break;
-      const wait = nextInterval(c.config);
-      c.err(c.errStyle.dim(t.t("run.next", { minutes: Math.round(wait / 60_000) })));
-      await sleep(wait, stop.signal);
-    } while (!stop.signal.aborted);
-    return 0;
-  } finally {
-    d.close();
-    await release();
-    process.off("SIGINT", onSignal);
-    process.off("SIGTERM", onSignal);
-  }
 }

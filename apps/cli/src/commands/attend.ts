@@ -10,7 +10,15 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
     case "nothing":
       return st.dim(t.t("attend.nothing", { repo, number }));
     case "waiting":
-      return st.dim(o.reason === "fork" ? t.t("attend.fork", { repo, number }) : o.reason === "settling" ? t.t("attend.settling", { repo, number }) : t.t("attend.notYours", { repo, number }));
+      return st.dim(
+        o.reason === "fork"
+          ? t.t("attend.fork", { repo, number })
+          : o.reason === "settling"
+            ? t.t("attend.settling", { repo, number })
+            : o.reason === "busy"
+              ? t.t("attend.busy", { repo, number })
+              : t.t("attend.notYours", { repo, number }),
+      );
     case "pending": {
       const line = t.t("attend.pending", { repo, number, id: `f${o.attendId}`, fixed: o.fixed, replies: o.replies });
       return o.forced ? `${line}\n${st.yellow(t.t(`attend.forced.${o.forced}`))}` : line;
@@ -55,6 +63,8 @@ export function renderPayload(c: Ctx, p: AttendPayload): string {
 export interface AttendArgs {
   post: boolean;
   dryRun: boolean;
+  /** Give up-on items another chance first. */
+  retry: boolean;
 }
 
 export async function attendOne(c: Ctx, repoArg: string | undefined, numberArg: string | undefined, a: AttendArgs): Promise<number> {
@@ -68,6 +78,10 @@ export async function attendOne(c: Ctx, repoArg: string | undefined, numberArg: 
   if ("error" in target) return (c.err(noTokenText(c, repo)), 2);
   const d = deps(c);
   try {
+    if (a.retry) {
+      const n = d.store.resetItems(repo.id, number);
+      if (n) c.err(c.style.dim(t.tp("attend.retrying", n)));
+    }
     const o = await attendPullRequest(d, target, number, a.dryRun ? "dry-run" : a.post ? "auto" : "inbox");
     if (o.kind === "dry-run") {
       c.out(renderPayload(c, o.payload));
