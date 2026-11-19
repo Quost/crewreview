@@ -106,6 +106,15 @@ crewreview update              # install the newest signed release; --check only
 - A service runs without your terminal's environment. Make sure each harness is signed in for unattended use (for Claude Code, `claude setup-token`; Codex and Kiro keep their own login), and that `gh`/`glab` are signed in. On Linux, `loginctl enable-linger $USER` keeps it running after you log out.
 - `update` installs a release only when its `SHA256SUMS` carries a valid signature from the release key built into your binary, and the binary matches its checksum. With `[updates] auto = true` the daemon installs new releases when idle and restarts through the service manager.
 
+### Let your coding agent use it
+
+```bash
+crewreview mcp setup          # prints how to add the MCP server to Claude Code, Codex, Gemini CLI, Kiro, Cursor, OpenCode
+claude mcp add --scope user crewreview -- crewreview mcp
+```
+
+The agent can then review your branch before committing, check what the crew is doing, read the inbox, link a repository or explain a setting, when you ask. It can't approve, post or push: that stays with you. A matching skill lives in [`skills/crewreview/SKILL.md`](skills/crewreview/SKILL.md); copy it to `~/.claude/skills/crewreview/` (or your harness's skills folder).
+
 ## Harnesses
 
 | Harness | How it runs | Read-only lock |

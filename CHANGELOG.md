@@ -2,6 +2,14 @@
 
 Notable changes to Crewreview. The format follows [Keep a Changelog](https://keepachangelog.com), and versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- `crewreview mcp`: a Model Context Protocol server, so coding agents can check a branch with Crewreview, see what it watches, read the inbox, link repositories and explain settings. It never approves, posts or pushes. `crewreview mcp setup` shows how to add it to Claude Code, Codex, Gemini CLI, Kiro, Cursor and OpenCode.
+- A skill (`skills/crewreview/SKILL.md`) that teaches agents when and how to use Crewreview.
+- The website, in five languages, built from `site/` with `bun run site`.
+
 ## 0.1.0 — 2026-11-19
 
 The first release: a crew of AI agents that reviews pull requests and answers the reviews on yours, locally, with the harnesses you already use.
