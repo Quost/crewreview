@@ -33,7 +33,9 @@ export type ReviewEvent =
   | { type: "agent"; role: string; event: HarnessEvent }
   | { type: "lens-done"; result: LensResult }
   | { type: "verifier-start"; harness: string }
-  | { type: "verifier-done"; ok: boolean; dropped: number; downgraded: number; error?: string };
+  | { type: "verifier-done"; ok: boolean; dropped: number; downgraded: number; error?: string }
+  | { type: "attendant-start"; harness: string }
+  | { type: "attendant-done"; ok: boolean; error?: string };
 
 export interface ReviewTarget {
   root: string;
@@ -184,7 +186,10 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     s.status === "fulfilled" ? s.value : failedLens(lenses[i]!.id, o.harness.id, 0, "crash", String(s.reason)),
   );
   for (const r of results) o.onEvent?.({ type: "lens-done", result: r });
-  if (results.length > 0 && results.every((r) => r.status === "failed")) throw new ReviewError("all-lenses-failed");
+  if (results.length > 0 && results.every((r) => r.status === "failed")) {
+    const kinds = new Set(results.map((r) => r.error?.split(":")[0] ?? "crash"));
+    throw new ReviewError("all-lenses-failed", { failure: kinds.size === 1 ? [...kinds][0]! : "crash" });
+  }
 
   // Ids are stable across the whole review: F1 is the most severe before verification.
   let findings = sortFindings(dedupeFindings(results.flatMap((r) => r.findings))).map((f, i) => ({ ...f, id: `F${i + 1}` }));

@@ -17,3 +17,5 @@ export * from "./harnesses.ts";
 export * from "./conformance-store.ts";
 export * from "./worktree.ts";
 export * from "./attend.ts";
+export * from "./crew.ts";
+export * from "./api.ts";

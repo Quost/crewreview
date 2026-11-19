@@ -117,7 +117,10 @@ export class Store {
   }
 
   failures(repo: string, number: number, sha: string): number {
-    const r = this.db.query("SELECT COUNT(*) AS n FROM reviews WHERE repo = ? AND number = ? AND head_sha = ? AND status = 'failed'").get(repo, number, sha) as { n: number };
+    // Login and quota failures say nothing about the pull request: they don't count.
+    const r = this.db
+      .query("SELECT COUNT(*) AS n FROM reviews WHERE repo = ? AND number = ? AND head_sha = ? AND status = 'failed' AND COALESCE(error, '') NOT LIKE 'auth:%' AND COALESCE(error, '') NOT LIKE 'quota:%'")
+      .get(repo, number, sha) as { n: number };
     return r.n;
   }
 
@@ -191,6 +194,17 @@ export class Store {
     return gaveUp;
   }
 
+  /** Give items that were given up (or half-tried) another chance. Returns how many. */
+  resetItems(repo: string, number: number): number {
+    return this.db.query("DELETE FROM attend_items WHERE repo = ? AND number = ? AND status IN ('gave-up', 'trying')").run(repo, number).changes;
+  }
+
+  /** An answer for this pull request is being prepared right now (in this or another process). */
+  attending(repo: string, number: number, staleAfterMs = 60 * 60_000, now = Date.now()): boolean {
+    const r = this.db.query("SELECT COUNT(*) AS n FROM attends WHERE repo = ? AND number = ? AND status = 'running' AND updated_at > ?").get(repo, number, now - staleAfterMs) as { n: number };
+    return r.n > 0;
+  }
+
   /** Published answers on this pull request that took findings from Crewreview's own reviewer. */
   polishRounds(repo: string, number: number): number {
     const rows = this.db.query("SELECT payload FROM attends WHERE repo = ? AND number = ? AND status = 'done' AND payload IS NOT NULL").all(repo, number) as { payload: string }[];
@@ -213,6 +227,10 @@ export class Store {
 
   getAttend(id: number): AttendRow | undefined {
     return (this.db.query(`SELECT ${ATTEND_COLS} FROM attends WHERE id = ?`).get(id) ?? undefined) as AttendRow | undefined;
+  }
+
+  recentAttends(limit = 20): AttendRow[] {
+    return this.db.query(`SELECT ${ATTEND_COLS} FROM attends ORDER BY id DESC LIMIT ?`).all(limit) as AttendRow[];
   }
 
   attendInbox(): AttendRow[] {

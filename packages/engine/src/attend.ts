@@ -45,7 +45,7 @@ export interface AttendPayload {
 
 export type AttendOutcome =
   | { kind: "nothing" }
-  | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" }
+  | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" | "busy" }
   | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"] }
   | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; reReview: boolean; needsHuman: number }
   | { kind: "stale"; attendId: number; error?: string }
@@ -107,7 +107,19 @@ async function discardChanges(dir: string): Promise<void> {
 
 async function runAgent(h: Harness, d: AttendDeps, cwd: string, access: "read" | "write", prompt: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   const s = (d.config.harness as Record<string, { model?: string; effort?: string } | undefined>)[h.id] ?? {};
-  const r = await h.run({ prompt, cwd, access, timeoutMs: d.config.limits.agentTimeout, stallMs: d.config.limits.stallTimeout, model: s.model, effort: s.effort, signal: d.signal });
+  d.onEvent?.({ type: "attendant-start", harness: h.id });
+  const r = await h.run({
+    prompt,
+    cwd,
+    access,
+    timeoutMs: d.config.limits.agentTimeout,
+    stallMs: d.config.limits.stallTimeout,
+    model: s.model,
+    effort: s.effort,
+    signal: d.signal,
+    onEvent: (event) => d.onEvent?.({ type: "agent", role: "attendant", event }),
+  });
+  d.onEvent?.({ type: "attendant-done", ok: r.ok, error: r.ok ? undefined : r.error });
   return r.ok ? { ok: true, text: r.text } : { ok: false, error: `${r.failure}: ${r.error ?? ""}` };
 }
 
@@ -123,6 +135,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   const me = await host.whoami();
   if (pr.author.toLowerCase() !== me.toLowerCase()) return { kind: "waiting", reason: "not-yours" };
   if (pr.fromFork) return { kind: "waiting", reason: "fork" };
+  // The daemon and a manual run must not answer the same pull request twice.
+  if (mode !== "dry-run" && d.store.attending(repo.id, number)) return { kind: "waiting", reason: "busy" };
 
   const [threads, reviews] = await Promise.all([host.listThreads(number), host.listReviews(number)]);
   // The polish loop stops after a few rounds: a reviewer can always find one more nit.
@@ -245,7 +259,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     if (attendId !== undefined) {
-      d.store.failItems(repo.id, number, items.map((i) => i.key), s.maxAttempts);
+      // A login or quota problem isn't the comment's fault: it doesn't use up the item's attempts.
+      if (!/^(auth|quota):/.test(error)) d.store.failItems(repo.id, number, items.map((i) => i.key), s.maxAttempts);
       d.store.updateAttend(attendId, { status: "failed", error: error.slice(0, 2000) });
     }
     if (worktree && mirror) await removeWorktree(mirror, worktree).catch(() => {});

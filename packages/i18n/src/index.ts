@@ -36,7 +36,7 @@ export function matchLocale(raw: string | undefined): Locale | undefined {
   return undefined;
 }
 
-export function detectLocale(preferred?: string, env: Record<string, string | undefined> = process.env): Locale {
+export function detectLocale(preferred?: string, env: Record<string, string | undefined> = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}): Locale {
   return (
     matchLocale(preferred) ??
     matchLocale(env.CREWREVIEW_LANG) ??

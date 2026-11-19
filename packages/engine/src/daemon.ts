@@ -74,7 +74,8 @@ export async function runCycle(
       for (const pr of await target.host.listOpenPullRequests()) {
         if (attended >= d.config.attend.maxPerCycle || d.signal?.aborted) break;
         if (pr.author.toLowerCase() !== me || pr.draft) continue;
-        const outcome = await attendPullRequest(d as AttendDeps, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox");
+        const job = { repo: repo.id, number: pr.number, title: pr.title, kind: "attend" as const };
+        const outcome = await attendPullRequest({ ...(d as AttendDeps), onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox");
         if (outcome.kind === "nothing" || (outcome.kind === "waiting" && outcome.reason === "not-yours")) continue;
         log({ type: "attend-outcome", repo: repo.id, number: pr.number, outcome });
         if (outcome.kind !== "waiting") attended++;
@@ -126,7 +127,8 @@ export async function runCycle(
     if (d.signal?.aborted) break;
     log({ type: "start", repo: item.target.repo.id, number: item.pr.number, title: item.pr.title, sha: item.pr.headSha });
     const mode = item.target.repo.review.mode === "auto" ? "auto" : "inbox";
-    const outcome = await reviewPullRequest(d, item.target, item.pr.number, mode);
+    const job = { repo: item.target.repo.id, number: item.pr.number, title: item.pr.title, kind: "review" as const };
+    const outcome = await reviewPullRequest({ ...d, onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, item.target, item.pr.number, mode);
     log({ type: "outcome", repo: item.target.repo.id, number: item.pr.number, outcome });
     if (outcome.kind === "harness") break; // no reviewer available: no point trying the rest
     reviewed++;

@@ -14,7 +14,7 @@ import type { AppDirs } from "./paths.ts";
 import { renderHostReview, reviewedHeadsOnHost } from "./publish.ts";
 import { renderMarkdown } from "./report.ts";
 import type { LinkedRepo } from "./repos.ts";
-import { runReview, type ReviewEvent, type ReviewReport } from "./review.ts";
+import { ReviewError, runReview, type ReviewEvent, type ReviewReport } from "./review.ts";
 import type { Store } from "./state.ts";
 
 export interface PrDeps {
@@ -28,6 +28,15 @@ export interface PrDeps {
   ui: Translator;
   signal?: AbortSignal;
   onEvent?: (e: ReviewEvent) => void;
+  /** Like onEvent, with the job it belongs to (the daemon uses it for the live board). */
+  onJobEvent?: (job: JobRef, e: ReviewEvent) => void;
+}
+
+export interface JobRef {
+  repo: string;
+  number: number;
+  title: string;
+  kind: "review" | "attend";
 }
 
 export interface PrTarget {
@@ -180,7 +189,7 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
     }
     return await postReview(d, x, reviewId!);
   } catch (e) {
-    const error = e instanceof Error ? e.message : String(e);
+    const error = e instanceof ReviewError && e.code === "all-lenses-failed" ? `${e.details.failure}: every lens failed` : e instanceof Error ? e.message : String(e);
     if (reviewId !== undefined) d.store.update(reviewId, { status: "failed", error: error.slice(0, 2000) });
     return { kind: "failed", reviewId, error };
   }
