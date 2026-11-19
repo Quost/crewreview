@@ -126,7 +126,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev build-essential file patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev build-essential file patchelf rpm2cpio cpio
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -150,16 +150,33 @@ jobs:
             unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD
           fi
           cd apps/desktop
-          bunx tauri build --target "$TARGET" --bundles "$BUNDLES"
+          extra=()
+          # linuxdeploy hides its errors unless the build is verbose.
+          case "$TARGET" in *linux*) extra=(--verbose --config "$(bun scripts/linux-config.ts "$TARGET")");; esac
+          bunx tauri build --target "$TARGET" --bundles "$BUNDLES" ${extra[@]+"${extra[@]}"}
+          # Tauri notarizes the app but only signs the disk image around it. Gatekeeper checks the image a
+          # browser downloaded too, so it gets its own ticket.
+          if [ "$SIGN" = true ]; then
+            dmg="$(ls src-tauri/target/"$TARGET"/release/bundle/dmg/*.dmg)"
+            xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --team-id 9527N6XKKW --password "$APPLE_PASSWORD" --wait
+            xcrun stapler staple "$dmg"
+          fi
       - name: The bundled CLI starts inside the app
         if: matrix.target == 'aarch64-apple-darwin'
         run: |
           set -euo pipefail
-          app="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/Crewreview.app"
+          b="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          app="$b/macos/Crewreview.app"
           codesign --verify --deep --strict --verbose=1 "$app"
           codesign -d --entitlements - "$app/Contents/MacOS/crewreview" 2>/dev/null | grep -q allow-jit
           "$app/Contents/MacOS/crewreview" --version
-          if [ "${{ vars.MACOS_SIGNING }}" = true ]; then spctl -a -vv "$app"; fi
+          if [ "${{ vars.MACOS_SIGNING }}" = true ]; then
+            spctl -a -vv "$app"
+            spctl -a -t open --context context:primary-signature -vv "$b"/dmg/*.dmg
+          fi
+      - name: The bundled CLI starts inside the Linux packages
+        if: runner.os == 'Linux'
+        run: bash apps/desktop/scripts/check-linux.sh apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle
       - name: Collect the installers under stable names
         run: |
           set -euo pipefail

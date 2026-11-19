@@ -51,7 +51,13 @@ On Linux, Tauri needs WebKitGTK and an app indicator library: see the "Linux lib
 
 The release workflow builds the app on each system around the CLI binaries of the same release: a notarized `.dmg`
 for Apple silicon and Intel, an NSIS installer for Windows, and `.AppImage`, `.deb` and `.rpm` for Linux on x64 and
-arm64. The update packages (`.app.tar.gz`, `-setup.exe`, `.AppImage`) are signed with the release key, and their
+arm64. The `.dmg` is notarized too, not only the app inside it.
+
+The Linux packages carry the CLI in `usr/libexec/crewreview/` rather than next to the app (`scripts/linux-config.ts`):
+linuxdeploy rewrites every binary under `usr/bin` and `usr/lib` of an AppImage, and a Bun-compiled binary crashes after
+that. `scripts/check-linux.sh` starts the CLI from each package, in CI and in the release.
+
+The update packages (`.app.tar.gz`, `-setup.exe`, `.AppImage`) are signed with the release key, and their
 signatures go into `latest.json`. Each signature names its version (`version:` in the trusted comment), and the app
 refuses an update whose signature names another one.
 

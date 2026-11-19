@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
@@ -310,11 +310,22 @@ fn notify_new(app: &AppHandle, items: &Value) {
     }
 }
 
-/// The CLI bundled next to the app's executable (Tauri strips the target triple when it bundles a sidecar).
+/// The CLI the app runs.
 fn sidecar() -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let dir = exe.parent().ok_or("the app has no folder")?;
-    Ok(dir.join(if cfg!(windows) { "crewreview.exe" } else { "crewreview" }))
+    Ok(sidecar_in(dir, Path::is_file))
+}
+
+/// Tauri bundles the CLI next to the app's executable and strips the target triple. The Linux packages carry it in
+/// `../libexec/crewreview` instead: linuxdeploy rewrites every binary under `usr/bin` and `usr/lib` of an AppImage,
+/// and a Bun-compiled binary doesn't survive that.
+fn sidecar_in(dir: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
+    let packaged = dir.join("../libexec/crewreview/crewreview");
+    if exists(&packaged) {
+        return packaged;
+    }
+    dir.join(if cfg!(windows) { "crewreview.exe" } else { "crewreview" })
 }
 
 /// The crew's stderr goes to crew.log in the app's log folder, replaced at each start.
@@ -322,4 +333,18 @@ fn log_file(app: &AppHandle) -> Option<PathBuf> {
     let dir = app.path().app_log_dir().ok()?;
     fs::create_dir_all(&dir).ok()?;
     Some(dir.join("crew.log"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_cli_sits_next_to_the_app_unless_a_linux_package_put_it_in_libexec() {
+        let bin = Path::new("/usr/bin");
+        let next = bin.join(if cfg!(windows) { "crewreview.exe" } else { "crewreview" });
+        assert_eq!(sidecar_in(bin, |_| false), next);
+        let packaged = bin.join("../libexec/crewreview/crewreview");
+        assert_eq!(sidecar_in(bin, |p| p == packaged), packaged);
+    }
 }
