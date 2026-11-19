@@ -335,5 +335,6 @@
   "update.noRelease": "Noch keine Version veröffentlicht.",
   "update.failed": "Aktualisierung fehlgeschlagen: {error}",
   "web.log.updateAvailable": "Crewreview {version} ist verfügbar. Führe crewreview update aus.",
-  "web.log.updateInstalled": "Auf {version} aktualisiert; Neustart."
+  "web.log.updateInstalled": "Auf {version} aktualisiert; Neustart.",
+  "cli.cmd.mcp": "Stellt Crewreview Coding-Agenten per MCP bereit (setup zeigt, wie man es hinzufügt)."
 }

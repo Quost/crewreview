@@ -5,6 +5,7 @@ import { createTranslator, detectLocale, type Translator } from "@crewreview/i18
 import pkg from "../../../package.json";
 import { attendOne } from "./commands/attend.ts";
 import { doctor } from "./commands/doctor.ts";
+import { mcp, mcpSetup } from "./commands/mcp.ts";
 import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
 import { repo } from "./commands/repo.ts";
@@ -41,6 +42,7 @@ function help(t: Translator): string {
     row("ui", t.t("cli.cmd.ui")),
     row("service [install|uninstall]", t.t("cli.cmd.service")),
     row("update [--check]", t.t("cli.cmd.update")),
+    row("mcp [setup]", t.t("cli.cmd.mcp")),
     row("doctor", t.t("cli.cmd.doctor")),
     row("version", t.t("cli.cmd.version")),
     row("help", t.t("cli.cmd.help")),
@@ -152,6 +154,8 @@ async function main(argv: string[]): Promise<number> {
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
       case "attend":
         return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], retry: v.retry });
+      case "mcp":
+        return rest[0] === "setup" ? mcpSetup(c) : await mcp(c);
       case "service":
         return await service(c, rest[0]);
       case "update":

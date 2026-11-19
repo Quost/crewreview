@@ -11,7 +11,7 @@
     },
     "apps/cli": {
       "name": "@crewreview/cli",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
       "bin": {
         "crewreview": "./src/main.ts",
       },
@@ -26,7 +26,7 @@
     },
     "apps/web": {
       "name": "@crewreview/web",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
       "dependencies": {
         "@crewreview/i18n": "workspace:*",
         "react": "19.2.9",
@@ -39,14 +39,14 @@
     },
     "packages/core": {
       "name": "@crewreview/core",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
       "dependencies": {
         "zod": "4.6.7",
       },
     },
     "packages/engine": {
       "name": "@crewreview/engine",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
       "dependencies": {
         "@crewreview/core": "workspace:*",
         "@crewreview/harness": "workspace:*",
@@ -57,7 +57,7 @@
     },
     "packages/harness": {
       "name": "@crewreview/harness",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
       "dependencies": {
         "@agentclientprotocol/sdk": "2.4.0",
         "@crewreview/core": "workspace:*",
@@ -65,14 +65,14 @@
     },
     "packages/hosts": {
       "name": "@crewreview/hosts",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
       "dependencies": {
         "@crewreview/core": "workspace:*",
       },
     },
     "packages/i18n": {
       "name": "@crewreview/i18n",
-      "version": "0.1.0-dev",
+      "version": "0.1.0",
     },
   },
   "packages": {

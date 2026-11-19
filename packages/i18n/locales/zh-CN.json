@@ -326,5 +326,6 @@
   "update.noRelease": "尚未发布任何版本。",
   "update.failed": "更新失败：{error}",
   "web.log.updateAvailable": "Crewreview {version} 可用。请运行 crewreview update。",
-  "web.log.updateInstalled": "已更新到 {version}，正在重启。"
+  "web.log.updateInstalled": "已更新到 {version}，正在重启。",
+  "cli.cmd.mcp": "通过 MCP 为编程代理提供 Crewreview（setup 显示如何添加）。"
 }
