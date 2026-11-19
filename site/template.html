@@ -12,7 +12,9 @@
 <meta property="og:description" content="{{meta.description}}">
 <meta property="og:url" content="{{url}}">
 <meta property="og:site_name" content="Crewreview">
+<meta property="og:image" content="https://crewreview.web.app/icon.png">
 <meta name="twitter:card" content="summary">
+<link rel="apple-touch-icon" href="/icon.png">
 <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e1017" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -222,7 +224,11 @@ footer a{color:var(--muted)}
   <div class="wrap">
     <h2>{{start.title}}</h2>
     <p class="sub">{{start.sub}}</p>
-<pre class="term"><span class="c"># {{start.c1}}</span>
+<pre class="term"><span class="c"># {{start.c0}}</span>
+<span class="p">$ </span>curl -fsSL https://crewreview.web.app/install.sh | sh
+<span class="c"># {{start.c0b}}</span>
+<span class="p">$ </span>brew install Quost/crewreview/crewreview
+<span class="c"># {{start.c1}}</span>
 <span class="p">$ </span>crewreview doctor --conformance
 <span class="c"># {{start.c2}}</span>
 <span class="p">$ </span>crewreview local
@@ -231,6 +237,7 @@ footer a{color:var(--muted)}
 <span class="c"># {{start.c4}}</span>
 <span class="p">$ </span>crewreview service install &amp;&amp; crewreview ui</pre>
     <p class="sub" style="margin-top:20px">{{start.download_html}}</p>
+    <p class="sub">{{start.agents_html}}</p>
   </div>
 </section>
 

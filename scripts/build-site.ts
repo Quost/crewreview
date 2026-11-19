@@ -2,7 +2,7 @@
 // Build the website into site/public from site/template.html and site/i18n/*.json: English at /, the others at
 // /pt/, /es/, /de/, /zh/, with hreflang links, a sitemap, robots.txt and llms.txt. Edit the template and the texts,
 // never the generated pages.
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import pkg from "../package.json";
 
@@ -72,6 +72,9 @@ for (const [loc, info] of Object.entries(LOCALES)) {
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "index.html"), html);
 }
+
+// install.sh, install.ps1 and the icon are served as they are.
+await cp(join(ROOT, "site", "static"), out, { recursive: true });
 
 const today = new Date().toISOString().slice(0, 10);
 await writeFile(

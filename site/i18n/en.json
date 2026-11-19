@@ -104,5 +104,8 @@
   "sponsor.title": "Keep the crew working",
   "sponsor.text": "Crewreview is free and open source, made by one developer. If it saves your team review time, sponsoring it pays for new hosts, harnesses and the desktop app.",
   "sponsor.button": "♥ Sponsor on GitHub",
-  "sponsor.short": "Sponsor"
+  "sponsor.short": "Sponsor",
+  "start.c0": "install on macOS or Linux (Windows: irm https://crewreview.web.app/install.ps1 | iex)",
+  "start.c0b": "or with Homebrew (Scoop on Windows: scoop bucket add crewreview https://github.com/Quost/crewreview)",
+  "start.agents_html": "In Claude Code: <code>/plugin marketplace add Quost/crewreview</code>, then <code>/plugin install crewreview@crewreview</code>. Other agents: <code>crewreview mcp setup</code>."
 }

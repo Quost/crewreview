@@ -104,5 +104,8 @@
   "sponsor.title": "支持团队继续工作",
   "sponsor.text": "Crewreview 免费且开源，由一名开发者制作。如果它为你的团队节省了审查时间，赞助将用于支持新的平台、harness 和桌面应用。",
   "sponsor.button": "♥ 在 GitHub 上赞助",
-  "sponsor.short": "赞助"
+  "sponsor.short": "赞助",
+  "start.c0": "在 macOS 或 Linux 上安装（Windows：irm https://crewreview.web.app/install.ps1 | iex）",
+  "start.c0b": "或使用 Homebrew（Windows 上用 Scoop：scoop bucket add crewreview https://github.com/Quost/crewreview）",
+  "start.agents_html": "在 Claude Code 中：<code>/plugin marketplace add Quost/crewreview</code>，然后 <code>/plugin install crewreview@crewreview</code>。其他代理：<code>crewreview mcp setup</code>。"
 }
