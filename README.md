@@ -12,12 +12,12 @@ Runs on your machine, with the coding agents you already use: Claude Code, Codex
 
 </div>
 
-> **Status: pre-alpha.** Local review (`crewreview local`) and pull request review on GitHub and GitLab (`crewreview repo`, `review`, `inbox`, `run`) work today. The attendant that fixes and answers review comments, the dashboard and the desktop app are being built; see the [roadmap](docs/ROADMAP.md).
+> **Status: pre-alpha.** Local review (`crewreview local`), pull request review and the attendant that answers the reviews on your own pull requests work today, on GitHub and GitLab. The dashboard and the desktop app are being built; see the [roadmap](docs/ROADMAP.md).
 
 ## What it does
 
 - **Reviewer.** Several read-only lenses look at a change in parallel: correctness, security, architecture, tests and UI. A verifier then tries to refute each finding, and a fixed rule (not a model) decides the verdict. Findings that don't point at a real `file:line` are dropped.
-- **Attendant** *(coming in v0.1)*. On your own pull requests, it reads new review comments, fixes what it should in an isolated worktree, replies, resolves the thread and asks for a re-review. The agent never holds your git host token: Crewreview does the posting.
+- **Attendant.** On your own pull requests, it reads new review comments, fixes what it should in an isolated worktree, replies, resolves the thread and asks for a re-review. The agent never holds your git host token: Crewreview does the committing, pushing and posting.
 - **Crew view** *(coming in v0.1)*. A dashboard to watch every agent live, approve what waits in the inbox, link repositories and switch automations on or off, and see limits and costs.
 
 Everything runs locally. No server, no account, no telemetry.
@@ -65,6 +65,27 @@ What it does for each pull request:
 - Posts one review: inline comments on lines the diff shows, everything else in the summary. Hidden markers let it recognize its own comments later; points already made in the discussion aren't repeated.
 - An approval needs `allowApprove = true`, no serious findings, green CI and a change under the size limit. On your own pull requests it only comments.
 
+### Answer the reviews on your pull requests
+
+```bash
+crewreview repo set acme-shop --attend inbox      # or auto; off by default
+crewreview attend acme-shop 42 --dry-run          # see what it would do, nothing saved or pushed
+crewreview attend acme-shop 42                    # fix and draft the replies, wait in the inbox
+crewreview inbox show f3                          # decisions, replies, diff, checks
+crewreview inbox approve f3                       # push, reply, resolve, ask for a re-review
+```
+
+- Only comments from people who can push to the repository (and bots you list, like Copilot) steer the agent.
+- It waits until a review stops arriving, then works in a worktree of Crewreview's mirror, never in your clone.
+- For each comment it decides: fixed, replied, declined, or needs you. "Fixed" with nothing changed counts as needs you.
+- `validate = ["bun install", "bun test"]` in `[repo.attend]` runs your checks before anything is pushed; if they fail, the agent gets one more try, then it waits for you.
+- Changes to CI, secrets, deployment files or the crew's own rules always wait for your approval, even in auto mode.
+- Commits use your git identity and signing settings, and say `Assisted-by: Crewreview`. Pushes never force; if the branch moved, the answer is redone.
+- Replies say they were answered by Crewreview.
+- `--polish on` also takes the findings Crewreview's reviewer left on your pull request: review, fix, review again, for up to `maxPolishRounds` (3) rounds.
+
+The attendant edits files, so its harness must prove on your machine that it can write in its worktree and can't write outside it: run `crewreview doctor --conformance` once per harness version.
+
 ## Harnesses
 
 | Harness | How it runs | Read-only lock |
@@ -74,6 +95,8 @@ What it does for each pull request:
 | Kiro CLI | `kiro-cli chat --no-interactive`, only read tools trusted | flags + conformance test |
 | Any ACP agent | Agent Client Protocol over stdio; Crewreview answers every permission request | enforced by Crewreview, must pass conformance |
 | Custom | Any CLI described in your config | must pass conformance |
+
+Write scope for the attendant, tested on 2026-11-19: Claude Code and Codex (with `/tmp` and `$TMPDIR` closed) pass; Kiro CLI's `fs_write` wrote outside its folder, so Kiro can review but not attend.
 
 Flags that switch a harness's safety off (`--dangerously-*`, `--yolo`, `--trust-all-tools`, `danger-full-access`…) are refused by a test on every command line Crewreview builds.
 

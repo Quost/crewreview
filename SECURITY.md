@@ -23,6 +23,10 @@ What follows from them:
 | A pull request rewriting the rules it is judged by | For pull requests, project guidelines and `.crewreview/lenses/` are read from the base branch, never from the head. |
 | Your files being touched | Agents work on an exported copy of the tree in Crewreview's own folder, made with a throwaway git index: your work tree, index, HEAD and worktree list stay as they are. |
 | Secrets in logs going to a model | CI logs and commit messages go through a redaction pass for common token formats. It's a safety net, not a scanner. |
+| The attendant being steered by a stranger | Only comments from accounts with write access to the repository (checked with the host), bots you list, and, with the polish loop, Crewreview's own findings become work for the agent. Everyone else is ignored. |
+| The attendant writing outside its worktree | Its harness must pass a write-scope canary on your machine (a file inside the folder appears, one outside doesn't) for its exact version. Codex runs with `/tmp`, `$TMPDIR` and network closed. |
+| A fix sneaking in a workflow, a secret or a rule change | Changes to CI configuration, secret files, deployment folders, `CODEOWNERS`, `AGENTS.md`/`CLAUDE.md` or `.crewreview/` always wait for your approval, even in auto mode. |
+| An agent pushing or force-pushing | The agent never gets the token. Crewreview commits with your identity and signing settings and pushes without force; a moved branch makes the answer stale instead of overwriting anything. |
 | Hooks and plugins from your harness setup running inside a review | Claude Code runs with `--safe-mode`, `--restricted` and `--strict-mcp-config`; Codex with `--ignore-user-config --ignore-rules`; Kiro never gets `--trust-workspace`. |
 
 ### Out of scope
