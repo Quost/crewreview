@@ -100,5 +100,9 @@
   "faq.a4": "除非你把仓库设为自动。新仓库默认是收件箱模式，敏感改动总会等你确认。",
   "faq.q5": "为什么用 AGPL？",
   "faq.a5": "为了保持开放：任何发布修改版本或将其作为服务提供给他人的人，都必须公开源代码。",
-  "footer.license_html": "基于 <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a> 的自由软件。由 Matheus Quost 制作。"
+  "footer.license_html": "基于 <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a> 的自由软件。由 Matheus Quost 制作。",
+  "sponsor.title": "支持团队继续工作",
+  "sponsor.text": "Crewreview 免费且开源，由一名开发者制作。如果它为你的团队节省了审查时间，赞助将用于支持新的平台、harness 和桌面应用。",
+  "sponsor.button": "♥ 在 GitHub 上赞助",
+  "sponsor.short": "赞助"
 }

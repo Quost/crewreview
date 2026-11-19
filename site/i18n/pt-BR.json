@@ -100,5 +100,9 @@
   "faq.a4": "Só se você colocar um repositório em auto. Repositórios novos começam no modo inbox, e mudanças sensíveis sempre esperam por você.",
   "faq.q5": "Por que AGPL?",
   "faq.a5": "Para continuar aberto: quem distribuir uma versão modificada, ou rodar uma como serviço para outros, precisa publicar o código.",
-  "footer.license_html": "Software livre sob a <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>. Feito por Matheus Quost."
+  "footer.license_html": "Software livre sob a <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>. Feito por Matheus Quost.",
+  "sponsor.title": "Mantenha a equipe trabalhando",
+  "sponsor.text": "O Crewreview é gratuito e open source, feito por um desenvolvedor. Se ele poupa tempo de revisão do seu time, patrocinar paga novos hosts, harnesses e o app desktop.",
+  "sponsor.button": "♥ Patrocinar no GitHub",
+  "sponsor.short": "Patrocinar"
 }

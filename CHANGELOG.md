@@ -8,7 +8,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 - `crewreview mcp`: a Model Context Protocol server, so coding agents can check a branch with Crewreview, see what it watches, read the inbox, link repositories and explain settings. It never approves, posts or pushes. `crewreview mcp setup` shows how to add it to Claude Code, Codex, Gemini CLI, Kiro, Cursor and OpenCode.
 - A skill (`skills/crewreview/SKILL.md`) that teaches agents when and how to use Crewreview.
-- The website, in five languages, built from `site/` with `bun run site`.
+- The website, in five languages, built from `site/` with `bun run site`, with a sponsor section.
+- Sponsor links (GitHub Sponsors, Buy Me a Coffee) in `.github/FUNDING.yml`.
 
 ## 0.1.0 — 2026-11-19
 

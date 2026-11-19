@@ -37,6 +37,9 @@ header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg
 .btn{display:inline-flex;align-items:center;gap:8px;font-weight:650;border-radius:12px;padding:12px 20px;text-decoration:none;border:1px solid var(--border);color:var(--text);background:var(--surface)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn:hover{filter:brightness(1.06)}
+.btn.sponsor{background:#ea4aaa;border-color:#ea4aaa;color:#fff}
+.support{display:flex;gap:24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.support p{margin:0;max-width:640px;color:var(--muted)}
 .hero{padding:72px 0 40px}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center}
 .eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:.85rem;font-weight:650;color:var(--accent);background:var(--accent-soft);padding:4px 12px;border-radius:999px}
@@ -231,6 +234,18 @@ footer a{color:var(--muted)}
   </div>
 </section>
 
+<section id="support">
+  <div class="wrap">
+    <div class="card support">
+      <div>
+        <h2>{{sponsor.title}}</h2>
+        <p>{{sponsor.text}}</p>
+      </div>
+      <a class="btn sponsor" href="https://github.com/sponsors/Quost" target="_blank" rel="noopener">{{sponsor.button}}</a>
+    </div>
+  </div>
+</section>
+
 <section id="faq">
   <div class="wrap">
     <h2>{{faq.title}}</h2>
@@ -246,7 +261,7 @@ footer a{color:var(--muted)}
 <footer>
   <div class="wrap">
     <span>{{footer.license_html}}</span>
-    <span>v{{version}} · <a href="https://github.com/Quost/crewreview">GitHub</a> · <a href="/llms.txt">llms.txt</a></span>
+    <span>v{{version}} · <a href="https://github.com/Quost/crewreview">GitHub</a> · <a href="https://github.com/sponsors/Quost">{{sponsor.short}}</a> · <a href="/llms.txt">llms.txt</a></span>
   </div>
 </footer>
 <script>
