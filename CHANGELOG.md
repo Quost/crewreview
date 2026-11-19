@@ -7,7 +7,9 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Added
 
 - `crewreview mcp`: a Model Context Protocol server, so coding agents can check a branch with Crewreview, see what it watches, read the inbox, link repositories and explain settings. It never approves, posts or pushes. `crewreview mcp setup` shows how to add it to Claude Code, Codex, Gemini CLI, Kiro, Cursor and OpenCode.
-- A skill (`skills/crewreview/SKILL.md`) that teaches agents when and how to use Crewreview.
+- A Claude Code plugin and marketplace in this repository (`/plugin marketplace add Quost/crewreview`): the MCP server, a skill that teaches agents when and how to use Crewreview, and the `/crewreview` command.
+- One-line installers (`install.sh`, `install.ps1`) that check the checksum and, with minisign, the signature; a Homebrew formula and a Scoop manifest in this repository, updated by each release.
+- The release workflow signs and notarizes the macOS binaries with a Developer ID when `MACOS_SIGNING` is on.
 - The website, in five languages, built from `site/` with `bun run site`, with a sponsor section.
 - Sponsor links (GitHub Sponsors, Buy Me a Coffee) in `.github/FUNDING.yml`.
 

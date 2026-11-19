@@ -22,6 +22,16 @@ Runs on your machine, with the coding agents you already use: Claude Code, Codex
 
 Everything runs locally. No server, no account, no telemetry.
 
+## Install
+
+```bash
+curl -fsSL https://crewreview.web.app/install.sh | sh          # macOS, Linux
+brew install Quost/crewreview/crewreview                       # or Homebrew
+irm https://crewreview.web.app/install.ps1 | iex               # Windows (or: scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview)
+```
+
+The installers check the binary against the release's `SHA256SUMS`, and its signature too when `minisign` is installed. Builds are reproducible: the same commit and Bun version give the same bytes.
+
 ## Try it
 
 You need [Bun](https://bun.sh) 1.3+, git, and at least one harness: [Claude Code](https://claude.com/claude-code), [Codex CLI](https://github.com/openai/codex) or [Kiro CLI](https://kiro.dev).
@@ -113,7 +123,16 @@ crewreview mcp setup          # prints how to add the MCP server to Claude Code,
 claude mcp add --scope user crewreview -- crewreview mcp
 ```
 
-The agent can then review your branch before committing, check what the crew is doing, read the inbox, link a repository or explain a setting, when you ask. It can't approve, post or push: that stays with you. A matching skill lives in [`skills/crewreview/SKILL.md`](skills/crewreview/SKILL.md); copy it to `~/.claude/skills/crewreview/` (or your harness's skills folder).
+The agent can then review your branch before committing, check what the crew is doing, read the inbox, link a repository or explain a setting, when you ask. It can't approve, post or push: that stays with you.
+
+In Claude Code, the plugin brings the MCP server, a skill and the `/crewreview` command:
+
+```text
+/plugin marketplace add Quost/crewreview
+/plugin install crewreview@crewreview
+```
+
+For other agents, the skill is in [`plugins/crewreview/skills/crewreview/SKILL.md`](plugins/crewreview/skills/crewreview/SKILL.md).
 
 ## Harnesses
 
