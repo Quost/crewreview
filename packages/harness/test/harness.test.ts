@@ -118,6 +118,16 @@ describe("ACP permissions", () => {
   });
 });
 
+describe("failure classification", () => {
+  test("expired sessions are a login problem, not a crash", async () => {
+    const { classifyFailure } = await import("../src/failure.ts");
+    const r = { exitCode: 1, stdout: "", stderr: "", timedOut: false, stalled: false, aborted: false, durationMs: 1 };
+    expect(classifyFailure(r, "Failed to authenticate: OAuth session expired and could not be refreshed")).toBe("auth");
+    expect(classifyFailure(r, "Claude AI usage limit reached")).toBe("quota");
+    expect(classifyFailure(r, "segfault")).toBe("crash");
+  });
+});
+
 describe("output parsers", () => {
   test("claude stream-json: final result, usage, cost and tool events", async () => {
     const p = claudeParser();

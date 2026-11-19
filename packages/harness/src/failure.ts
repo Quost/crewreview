@@ -2,7 +2,7 @@ import type { FailureKind } from "./types.ts";
 import type { ProcessResult } from "./process.ts";
 
 const QUOTA = /(usage limit|rate.?limit|quota|too many requests|\b429\b|credit balance|out of credits|limit reached|insufficient_quota|overloaded)/i;
-const AUTH = /(not logged in|log ?in required|please (run )?\/?login|authentication (is )?required|unauthori[sz]ed|invalid api key|oauth token (has )?expired|\b401\b|sign in)/i;
+const AUTH = /(not logged in|log ?in required|please (run )?\/?login|authentication (is )?required|failed to authenticate|not authenticated|unauthori[sz]ed|invalid api key|oauth (token|session) (has )?expired|session (has )?expired|\b401\b|sign in)/i;
 
 /** Classify why a run failed from its exit and output. Patterns are broad on purpose. */
 export function classifyFailure(r: ProcessResult, text = ""): FailureKind | undefined {
