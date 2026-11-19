@@ -1,7 +1,7 @@
 name: Release
 
-# A tag vX.Y.Z builds the five binaries on one machine, writes SHA256SUMS and publishes a GitHub Release with the
-# matching CHANGELOG section as notes. Tags with a dash (v0.1.0-beta.1) become pre-releases.
+# A tag vX.Y.Z builds the five binaries on one machine, writes and signs SHA256SUMS, and publishes a GitHub Release
+# with the matching CHANGELOG section as notes. Tags with a dash (v0.1.0-beta.1) become pre-releases.
 on:
   push:
     tags: ["v*"]
@@ -25,6 +25,11 @@ jobs:
           v="$(bun -e 'console.log(require("./package.json").version)')"
           [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::package.json is $v but the tag is $GITHUB_REF_NAME"; exit 1; }
       - run: bun run build:all
+      # Updates install only binaries whose SHA256SUMS carries this signature.
+      - name: Sign SHA256SUMS
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: bun scripts/release-key.ts sign dist/SHA256SUMS
       - name: Notes from the changelog
         run: |
           v="${GITHUB_REF_NAME#v}"

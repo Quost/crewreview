@@ -59,6 +59,8 @@ export interface CrewOptions {
   registry: Map<string, Harness>;
   signing?: AttendDeps["signing"];
   configPath?: string;
+  /** Checks for a newer release; returns its version, installs it when asked. Wired by the CLI. */
+  updater?: { check(): Promise<string | undefined>; install(): Promise<void> };
 }
 
 const KEEP_FINISHED_MS = 60_000;
@@ -175,11 +177,35 @@ export class CrewDaemon {
     }
   }
 
-  /** Cycle, sleep, repeat until the signal aborts. `wake()` cuts the sleep short. */
-  async loop(signal: AbortSignal): Promise<void> {
+  private lastUpdateCheck = 0;
+
+  /** Once a day: tell about a new release, or install it (then the caller restarts). Returns true to restart. */
+  private async maybeUpdate(): Promise<boolean> {
+    const u = this.o.updater;
+    if (!u || !this.o.config.updates.check || Date.now() - this.lastUpdateCheck < 24 * 3_600_000) return false;
+    this.lastUpdateCheck = Date.now();
+    try {
+      const version = await u.check();
+      if (!version) return false;
+      if (!this.o.config.updates.auto) {
+        this.record({ type: "update", version, installed: false });
+        return false;
+      }
+      await u.install();
+      this.record({ type: "update", version, installed: true });
+      return true;
+    } catch (e) {
+      this.record({ type: "update", version: "?", installed: false, error: e instanceof Error ? e.message : String(e) });
+      return false;
+    }
+  }
+
+  /** Cycle, sleep, repeat until the signal aborts. `wake()` cuts the sleep short. Resolves "restart" after an update. */
+  async loop(signal: AbortSignal): Promise<"stopped" | "restart"> {
     while (!signal.aborted) {
       await this.cycle(signal);
       if (signal.aborted) break;
+      if (await this.maybeUpdate()) return "restart";
       const wait = nextInterval(this.o.config);
       this.nextCycleAt = Date.now() + wait;
       this.emit({ type: "status", status: this.status() });
@@ -187,6 +213,7 @@ export class CrewDaemon {
       await sleep(wait, AbortSignal.any([signal, this.wakeUp.signal]));
       this.nextCycleAt = undefined;
     }
+    return "stopped";
   }
 
   // ---- actions for the dashboard ----

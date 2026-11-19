@@ -15,7 +15,8 @@ export type DaemonEvent =
   | { type: "outcome"; repo: string; number: number; outcome: PrOutcome }
   | { type: "attend-start"; repo: string; number: number; title: string }
   | { type: "attend-outcome"; repo: string; number: number; outcome: AttendOutcome }
-  | { type: "cycle"; repos: number; reviewed: number; waiting: number };
+  | { type: "cycle"; repos: number; reviewed: number; waiting: number }
+  | { type: "update"; version: string; installed: boolean; error?: string };
 
 export function rulesFor(repo: LinkedRepo, config: Config): ReviewRules {
   return {

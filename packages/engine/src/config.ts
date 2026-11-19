@@ -94,6 +94,16 @@ export const ConfigSchema = z
       })
       .strict()
       .prefault({}),
+    updates: z
+      .object({
+        /** Look for a new release once a day while the daemon runs. */
+        check: z.boolean().default(true),
+        /** Install it when idle, then exit so the service manager restarts the new binary. */
+        auto: z.boolean().default(false),
+        channel: z.enum(["stable", "beta"]).default("stable"),
+      })
+      .strict()
+      .prefault({}),
     attend: z
       .object({
         /** Wait until the newest comment is this old, so a whole review lands first. */
