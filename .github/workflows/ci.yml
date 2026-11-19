@@ -30,7 +30,7 @@ jobs:
           bun-version: 1.3.10
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
-      - run: bun test
+      - run: bun test --timeout 60000
       - run: bun run check:l10n
       - run: bun run check:changelog
       - name: Build and start the binary

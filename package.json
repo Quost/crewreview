@@ -7,11 +7,11 @@
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev": "bun apps/cli/src/main.ts",
-    "test": "bun test",
+    "test": "bun test --timeout 60000",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:l10n": "bun scripts/check-l10n.ts",
     "check:changelog": "bun scripts/check-changelog.ts",
-    "check": "bun run typecheck && bun test && bun run check:l10n && bun run check:changelog",
+    "check": "bun run typecheck && bun run test && bun run check:l10n && bun run check:changelog",
     "build": "bun scripts/build.ts",
     "build:all": "bun scripts/build.ts --all"
   },

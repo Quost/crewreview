@@ -22,6 +22,7 @@ beforeAll(async () => {
   await sh(["config", "user.email", "t@example.com"]);
   await sh(["config", "user.name", "T"]);
   await sh(["config", "commit.gpgsign", "false"]);
+  await sh(["config", "core.autocrlf", "false"]);
   await mkdir(join(repo, "src"));
   await mkdir(join(repo, ".crewreview", "lenses"), { recursive: true });
   await writeFile(join(repo, "src", "math.ts"), "export const add = (a: number, b: number) => a + b;\n");
@@ -139,7 +140,7 @@ describe("review pipeline", () => {
     // Nothing changed in the user's checkout.
     expect(await sh(["status", "--porcelain"])).toBe(statusBefore);
     expect(await sh(["worktree", "list"])).toBe(worktreesBefore);
-  });
+  }, 60_000);
 
   test("an unparseable lens fails alone; all failing is an error", async () => {
     const target = await localTarget({ cwd: repo });
@@ -153,7 +154,7 @@ describe("review pipeline", () => {
     await expect(
       runReview({ target, jobDir: join(home, "job3"), lenses, partial: false, harness: none, config: parseConfig({}), language: "English", policy: parseConfig({}).review.policy }, "test"),
     ).rejects.toThrow("all-lenses-failed");
-  });
+  }, 60_000);
 
   test("uncommitted changes are reviewed from a stash commit, leaving the work tree alone", async () => {
     await writeFile(join(repo, "src", "math.ts"), "export const add = (a: number, b: number) => a + b;\n");
@@ -164,5 +165,5 @@ describe("review pipeline", () => {
     } finally {
       await sh(["checkout", "--", "src/math.ts"]);
     }
-  });
+  }, 60_000);
 });

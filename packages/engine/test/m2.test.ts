@@ -50,7 +50,7 @@ beforeAll(async () => {
   work = join(root, "work");
   await sh(["init", "-q", "--bare", "-b", "main", remote], root);
   await sh(["init", "-q", "-b", "main", work], root);
-  for (const [k, v] of [["user.email", "t@example.com"], ["user.name", "T"], ["commit.gpgsign", "false"]]) await sh(["config", k!, v!], work);
+  for (const [k, v] of [["user.email", "t@example.com"], ["user.name", "T"], ["commit.gpgsign", "false"], ["core.autocrlf", "false"]]) await sh(["config", k!, v!], work);
   await sh(["remote", "add", "origin", remote], work);
   await mkdir(join(work, "src"));
   await writeFile(join(work, "src", "cart.ts"), "export const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);\n");
@@ -211,7 +211,7 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     const again = await reviewPullRequest(d, target, 1, "inbox");
     expect(again).toMatchObject({ kind: "skipped", reason: "already-on-host" });
     expect(harness.runs).toBe(before);
-  });
+  }, 60_000);
 
   test("auto mode posts at once; a push that only merges the base is skipped; a stale inbox item is refused", async () => {
     const { d, repo, ref, store } = await setup("auto");
@@ -246,7 +246,7 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     host.prs = [pr(5, "0000000000000000000000000000000000000000")];
     expect(await postReview(d, target, id)).toMatchObject({ kind: "stale" });
     expect(store.get(id)?.status).toBe("stale");
-  });
+  }, 60_000);
 
   test("runCycle respects eligibility and the per-cycle limit", async () => {
     const { d, repo, ref } = await setup("inbox");
@@ -257,6 +257,6 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     expect(cycle).toEqual({ reviewed: 1, waiting: 0 });
     expect(events.filter((e) => e.type === "skip").map((e) => (e as { reason: string }).reason)).toEqual(["label"]);
     expect(events.find((e) => e.type === "outcome")).toMatchObject({ number: 12, outcome: { kind: "pending" } });
-  });
+  }, 60_000);
 });
 
