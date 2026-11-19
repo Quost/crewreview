@@ -122,6 +122,10 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           awk -v v="$v" '$0 ~ "^## "v"( |$)" {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notes.md
+          # A pre-release (v0.2.0-rc.1) without its own section shows what's under Unreleased.
+          if [ ! -s notes.md ] && [ "${v#*-}" != "$v" ]; then
+            awk '/^## Unreleased/ {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notes.md
+          fi
           [ -s notes.md ] || { echo "::error::CHANGELOG.md has no section for $v"; exit 1; }
       - name: Publish
         env:
