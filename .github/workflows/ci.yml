@@ -1,0 +1,40 @@
+name: CI
+
+# Every pull request and every push to main: typecheck, tests, translations and changelog on the three systems,
+# then a compiled binary that has to start.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run check:l10n
+      - run: bun run check:changelog
+      - name: Build and start the binary
+        shell: bash
+        run: |
+          bun run build
+          ./dist/crewreview-* --version
