@@ -106,6 +106,9 @@ class FakeHost implements HostAdapter {
   async permission() {
     return "write" as const;
   }
+  async requestReReview() {
+    return true;
+  }
   headRefspec(n: number, local: string) {
     return `+refs/pull/${n}/head:${local}`;
   }

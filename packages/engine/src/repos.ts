@@ -26,6 +26,28 @@ const ReviewSettings = z
   })
   .strict();
 
+const AttendSettings = z
+  .object({
+    /** off: nothing. inbox: fix and draft replies, wait for your approval. auto: push and reply. */
+    mode: z.enum(REVIEW_MODES).default("off"),
+    /** false: only answer, never change code. */
+    fix: z.boolean().default(true),
+    /** The polish loop: also act on findings Crewreview's reviewer left on your pull request. */
+    fromCrew: z.boolean().default(false),
+    /** How many published polish rounds per pull request before the loop stops. */
+    maxPolishRounds: z.number().int().min(0).default(3),
+    /** Bots whose comments count (substring of the login). */
+    trustedBots: z.array(z.string()).default(["copilot"]),
+    /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
+    validate: z.array(z.string()).default([]),
+    harness: z.string().optional(),
+    resolve: z.boolean().default(true),
+    reReview: z.boolean().default(true),
+    maxAttempts: z.number().int().min(1).default(3),
+    commentLanguage: z.string().optional(),
+  })
+  .strict();
+
 const RepoEntry = z
   .object({
     id: z.string().regex(/^[a-z0-9][a-z0-9._-]*$/),
@@ -34,6 +56,7 @@ const RepoEntry = z
     /** An existing clone on this machine: the mirror borrows its objects so the first fetch is fast. */
     clone: z.string().optional(),
     review: ReviewSettings.prefault({}),
+    attend: AttendSettings.prefault({}),
   })
   .strict();
 
@@ -41,6 +64,7 @@ const ReposFile = z.object({ repo: z.array(RepoEntry).default([]) }).strict();
 
 export type RepoEntry = z.output<typeof RepoEntry>;
 export type ReviewSettings = z.output<typeof ReviewSettings>;
+export type AttendSettings = z.output<typeof AttendSettings>;
 
 export interface LinkedRepo extends RepoEntry {
   ref: RepoRef;
@@ -98,6 +122,8 @@ export function serializeRepos(repos: readonly RepoEntry[]): string {
     for (const k of ["id", "url", "kind", "clone"] as const) if (r[k] !== undefined) out.push(`${k} = ${tomlValue(r[k])}`);
     out.push("", "[repo.review]");
     for (const [k, v] of Object.entries(r.review)) if (v !== undefined) out.push(`${k} = ${tomlValue(v)}`);
+    out.push("", "[repo.attend]");
+    for (const [k, v] of Object.entries(r.attend)) if (v !== undefined) out.push(`${k} = ${tomlValue(v)}`);
     out.push("");
   }
   return out.join("\n");
@@ -110,9 +136,13 @@ export async function saveRepos(path: string, repos: readonly RepoEntry[]): Prom
   await rename(tmp, path);
 }
 
-export function newRepoEntry(ref: RepoRef, overrides: Omit<Partial<RepoEntry>, "review"> & { review?: Partial<ReviewSettings> } = {}): RepoEntry {
+export function newRepoEntry(
+  ref: RepoRef,
+  overrides: Omit<Partial<RepoEntry>, "review" | "attend"> & { review?: Partial<ReviewSettings>; attend?: Partial<AttendSettings> } = {},
+): RepoEntry {
   const review = ReviewSettings.parse(overrides.review ?? {});
-  return RepoEntry.parse({ id: overrides.id ?? repoIdFor(ref), url: ref.webUrl, kind: ref.kind, clone: overrides.clone, review });
+  const attend = AttendSettings.parse(overrides.attend ?? {});
+  return RepoEntry.parse({ id: overrides.id ?? repoIdFor(ref), url: ref.webUrl, kind: ref.kind, clone: overrides.clone, review, attend });
 }
 
 export { parseDuration };

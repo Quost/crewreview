@@ -94,6 +94,16 @@ export const ConfigSchema = z
       })
       .strict()
       .prefault({}),
+    attend: z
+      .object({
+        /** Wait until the newest comment is this old, so a whole review lands first. */
+        quiet: Duration.default(45_000),
+        /** Time limit for each validation command. */
+        validateTimeout: Duration.default(10 * 60_000),
+        maxPerCycle: z.number().int().min(1).max(50).default(2),
+      })
+      .strict()
+      .prefault({}),
     review: z
       .object({
         /** Wait after a new head appears before reviewing it. */

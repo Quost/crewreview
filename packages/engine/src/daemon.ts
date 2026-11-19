@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { DEFAULT_RULES, reviewEligibility, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
 import { createHost, hostTransport, resolveToken, type HostAdapter } from "@crewreview/hosts";
 import type { Config } from "./config.ts";
+import { attendPullRequest, type AttendDeps, type AttendOutcome } from "./attend.ts";
 import { reviewPullRequest, type PrDeps, type PrOutcome, type PrTarget } from "./pr.ts";
 import type { LinkedRepo } from "./repos.ts";
 
@@ -12,6 +13,8 @@ export type DaemonEvent =
   | { type: "skip"; repo: string; number: number; reason: SkipReason }
   | { type: "start"; repo: string; number: number; title: string; sha: string }
   | { type: "outcome"; repo: string; number: number; outcome: PrOutcome }
+  | { type: "attend-start"; repo: string; number: number; title: string }
+  | { type: "attend-outcome"; repo: string; number: number; outcome: AttendOutcome }
   | { type: "cycle"; repos: number; reviewed: number; waiting: number };
 
 export function rulesFor(repo: LinkedRepo, config: Config): ReviewRules {
@@ -52,9 +55,39 @@ export async function runCycle(
   connectTo: (repo: LinkedRepo) => Promise<PrTarget | { error: "no-token" }> = (r) => connect(r, d.version),
 ): Promise<{ reviewed: number; waiting: number }> {
   const due: Due[] = [];
+  const targets = new Map<string, PrTarget | { error: "no-token" }>();
+  const reach = async (repo: LinkedRepo) => {
+    if (!targets.has(repo.id)) targets.set(repo.id, await connectTo(repo));
+    return targets.get(repo.id)!;
+  };
+
+  // Answer reviews on your own pull requests first: people are waiting on those.
+  let attended = 0;
+  for (const repo of repos.filter((r) => r.attend.mode !== "off")) {
+    const target = await reach(repo);
+    if ("error" in target) {
+      log({ type: "repo-error", repo: repo.id, error: "no-token", code: "no-token" });
+      continue;
+    }
+    try {
+      const me = (await target.host.whoami()).toLowerCase();
+      for (const pr of await target.host.listOpenPullRequests()) {
+        if (attended >= d.config.attend.maxPerCycle || d.signal?.aborted) break;
+        if (pr.author.toLowerCase() !== me || pr.draft) continue;
+        const outcome = await attendPullRequest(d as AttendDeps, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox");
+        if (outcome.kind === "nothing" || (outcome.kind === "waiting" && outcome.reason === "not-yours")) continue;
+        log({ type: "attend-outcome", repo: repo.id, number: pr.number, outcome });
+        if (outcome.kind !== "waiting") attended++;
+        if (outcome.kind === "harness") break;
+      }
+    } catch (err) {
+      log({ type: "repo-error", repo: repo.id, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
   const active = repos.filter((r) => r.review.mode !== "off");
   for (const repo of active) {
-    const target = await connectTo(repo);
+    const target = await reach(repo);
     if ("error" in target) {
       log({ type: "repo-error", repo: repo.id, error: "no-token", code: "no-token" });
       continue;
@@ -99,7 +132,7 @@ export async function runCycle(
     reviewed++;
   }
   const waiting = Math.max(0, due.length - reviewed);
-  log({ type: "cycle", repos: active.length, reviewed, waiting });
+  log({ type: "cycle", repos: new Set([...active, ...repos.filter((r) => r.attend.mode !== "off")].map((r) => r.id)).size, reviewed, waiting });
   return { reviewed, waiting };
 }
 
