@@ -9,3 +9,4 @@ export * from "./untrusted.ts";
 export * from "./markers.ts";
 export * from "./concurrency.ts";
 export * from "./eligibility.ts";
+export * from "./attend.ts";
