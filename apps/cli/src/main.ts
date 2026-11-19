@@ -9,6 +9,7 @@ import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
 import { repo } from "./commands/repo.ts";
 import { daemon, ui } from "./commands/daemon.ts";
+import { service, update } from "./commands/system.ts";
 import { reviewOne } from "./commands/review.ts";
 import { makeCtx } from "./ctx.ts";
 
@@ -38,6 +39,8 @@ function help(t: Translator): string {
     row("once", t.t("cli.cmd.once")),
     row("run [--open] [--no-ui]", t.t("cli.cmd.run")),
     row("ui", t.t("cli.cmd.ui")),
+    row("service [install|uninstall]", t.t("cli.cmd.service")),
+    row("update [--check]", t.t("cli.cmd.update")),
     row("doctor", t.t("cli.cmd.doctor")),
     row("version", t.t("cli.cmd.version")),
     row("help", t.t("cli.cmd.help")),
@@ -100,6 +103,8 @@ async function main(argv: string[]): Promise<number> {
       force: { type: "boolean", default: false },
       "no-ui": { type: "boolean", default: false },
       retry: { type: "boolean", default: false },
+      check: { type: "boolean", default: false },
+      channel: { type: "string" },
       open: { type: "boolean", default: false },
       port: { type: "string" },
       help: { type: "boolean", short: "h", default: false },
@@ -147,6 +152,10 @@ async function main(argv: string[]): Promise<number> {
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
       case "attend":
         return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], retry: v.retry });
+      case "service":
+        return await service(c, rest[0]);
+      case "update":
+        return await update(c, v.check, v.channel);
       case "inbox":
         return await inbox(c, rest[0], rest.slice(1));
       case "once":

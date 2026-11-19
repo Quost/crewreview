@@ -30,6 +30,10 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       if (o.kind === "harness") return { text: t.t("web.log.noHarness", ref(e)), tone: "bad" };
       return { text: t.t("attend.failed", { ...ref(e), error: String(o.error ?? "").split("\n")[0]!.slice(0, 200) }), tone: "bad" };
     }
+    case "update":
+      return e.error
+        ? { text: t.t("update.failed", { error: e.error }), tone: "bad" }
+        : { text: e.installed ? t.t("web.log.updateInstalled", { version: e.version }) : t.t("web.log.updateAvailable", { version: e.version }), tone: e.installed ? "ok" : "warn" };
     default:
       return { text: JSON.stringify(e), tone: "neutral" };
   }

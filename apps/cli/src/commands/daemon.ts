@@ -1,4 +1,5 @@
-import { acquireLock, ConformanceStore, CrewDaemon, dashboardUrl, LockedError, loadRepos, readApiInfo, registryFor, reposFile, startApi } from "@crewreview/engine";
+import { acquireLock, compareVersions, ConformanceStore, CrewDaemon, dashboardUrl, fetchVerified, isCompiledBinary, latestRelease, LockedError, loadRepos, readApiInfo, registryFor, replaceBinary, reposFile, startApi } from "@crewreview/engine";
+import { repoRef, resolveToken } from "@crewreview/hosts";
 import dashboard from "../../../web/index.html";
 import { openStore, type Ctx } from "../ctx.ts";
 import { logEvent } from "./review.ts";
@@ -38,7 +39,21 @@ export async function daemon(c: Ctx, a: DaemonArgs): Promise<number> {
   }
   const store = openStore(c);
   store.recoverInterrupted();
-  const crew = new CrewDaemon({ dirs: c.dirs, config: c.config, version: c.version, ui: t, store, conformance: ConformanceStore.in(c.dirs.state), registry: registryFor(c.config), configPath: c.configPath });
+  const source = async () => ({ token: (await resolveToken(repoRef("github", "github.com", "Quost/crewreview")))?.token, channel: c.config.updates.channel });
+  const updater = isCompiledBinary()
+    ? {
+        async check() {
+          const r = await latestRelease(await source());
+          return r && compareVersions(r.version, c.version) > 0 ? r.version : undefined;
+        },
+        async install() {
+          const s = await source();
+          const r = await latestRelease(s);
+          if (r) await replaceBinary(process.execPath, await fetchVerified(r, s));
+        },
+      }
+    : undefined;
+  const crew = new CrewDaemon({ dirs: c.dirs, config: c.config, version: c.version, ui: t, store, conformance: ConformanceStore.in(c.dirs.state), registry: registryFor(c.config), configPath: c.configPath, updater });
   const off = crew.subscribe((e) => {
     if (e.type === "log") logEvent(c, e.entry.event);
   });
@@ -59,7 +74,8 @@ export async function daemon(c: Ctx, a: DaemonArgs): Promise<number> {
     }
     if (a.loop) {
       c.err(t.t("run.started", { count: watched.length }));
-      await crew.loop(stop.signal);
+      // After a self-update, exit non-zero so launchd/systemd start the new binary.
+      if ((await crew.loop(stop.signal)) === "restart") return 75;
     } else {
       await crew.cycle(stop.signal);
     }
