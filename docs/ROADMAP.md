@@ -8,7 +8,7 @@ Crewreview is a crew of AI agents for pull requests: reviewers that look at othe
 |---|---|---|
 | **M0** ✅ | Repository, license, CI on three systems, release pipeline, translations | CI is green everywhere; the binary builds for five targets |
 | **M1** ✅ | Pure review rules, harness adapters (Claude Code, Codex, Kiro, ACP, custom), `doctor` with a real conformance test, `crewreview local` | A local review of a real branch runs with two different harnesses; the canary proves the read-only lock |
-| **M2** | GitHub and GitLab adapters, linked repositories, a mirror and a worktree per job, state in SQLite, the reviewer as a daemon, an inbox for approvals, posting reviews | Pull requests on test repositories are reviewed on both hosts, in inbox mode and automatically |
+| **M2** 🟡 | GitHub and GitLab adapters, linked repositories, a mirror and a worktree per job, state in SQLite, the reviewer as a daemon, an inbox for approvals, posting reviews | Pull requests on test repositories are reviewed on both hosts, in inbox mode and automatically (GitHub verified live; GitLab covered by contract tests, live check pending) |
 | **M3** | The attendant: pending items, debounce, safe write mode, validation, signed commits, push, replies, resolved threads, re-review requests, loop guard | A seeded review is fixed and answered on both hosts |
 | **M4** | Dashboard (live agents, inbox, history, repositories, limits), `service install` on three systems, `update` → **v0.1** | Automations switch on and off from the UI; the daemon starts with the system; updates replace the binary after checking it |
 | **M5** | Desktop app (Tauri: tray, auto-update, installers, signed builds), the website in five languages → **v0.2** | Installs and updates itself on three systems |

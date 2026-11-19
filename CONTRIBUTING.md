@@ -20,7 +20,8 @@ bun run dev help   # run the CLI from source
 |---|---|
 | `packages/core` | Pure rules: the data model, diff parsing, evidence checks, dedupe, the verdict, agent output parsing. No I/O. |
 | `packages/harness` | Adapters for each harness, the ACP client, the flag deny-list, the conformance test. |
-| `packages/engine` | Config, git, the review pipeline, prompts, lens rubrics, reports. |
+| `packages/hosts` | GitHub and GitLab adapters over one normalized model, the HTTP transport, token lookup. Contract tests run on recorded answers. |
+| `packages/engine` | Config, linked repositories, state (SQLite), the git mirror, the review pipeline, prompts, lens rubrics, posting, the daemon cycle. |
 | `packages/i18n` | Interface strings in every language. |
 | `apps/cli` | The `crewreview` command. |
 | `scripts` | Build, translation and changelog checks. |

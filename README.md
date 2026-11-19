@@ -12,7 +12,7 @@ Runs on your machine, with the coding agents you already use: Claude Code, Codex
 
 </div>
 
-> **Status: pre-alpha.** Local review works today (`crewreview local`). Pull request review, the attendant that fixes and answers review comments, the dashboard and the desktop app are being built; see the [roadmap](docs/ROADMAP.md).
+> **Status: pre-alpha.** Local review (`crewreview local`) and pull request review on GitHub and GitLab (`crewreview repo`, `review`, `inbox`, `run`) work today. The attendant that fixes and answers review comments, the dashboard and the desktop app are being built; see the [roadmap](docs/ROADMAP.md).
 
 ## What it does
 
@@ -44,6 +44,27 @@ Useful options: `--base origin/develop`, `--uncommitted`, `--harness codex`, `--
 
 Binaries for macOS, Linux and Windows will come with the first release.
 
+### Review pull requests
+
+Link a repository. Crewreview uses the login you already have in `gh` or `glab` (or `GH_TOKEN` / `GITLAB_TOKEN`):
+
+```bash
+crewreview repo add https://github.com/acme/shop            # new repositories start in inbox mode
+crewreview repo add https://gitlab.com/acme/api --mode auto  # or post reviews right away
+crewreview review acme-shop 42                               # review one pull request now
+crewreview inbox                                             # what's waiting for you
+crewreview inbox approve 3                                   # post it
+crewreview run                                               # keep watching every linked repository
+```
+
+What it does for each pull request:
+
+- Skips drafts, bots, your own pull requests (`--authors all` reviews them too), a `no-ai-review` label, commits it already reviewed, and pushes that only merged the base branch.
+- Waits a few minutes for a series of pushes to settle, and for CI to finish.
+- Fetches into its own mirror (your clones are never touched), reads the project rules from the base branch, the description, the discussion so far, CI, and what changed since its last review.
+- Posts one review: inline comments on lines the diff shows, everything else in the summary. Hidden markers let it recognize its own comments later; points already made in the discussion aren't repeated.
+- An approval needs `allowApprove = true`, no serious findings, green CI and a change under the size limit. On your own pull requests it only comments.
+
 ## Harnesses
 
 | Harness | How it runs | Read-only lock |
@@ -74,12 +95,20 @@ model = "opus"
 id = "gemini"
 command = ["gemini", "--experimental-acp"]
 
+[schedule]
+interval = "3m"               # how often `crewreview run` checks, during peak hours
+offHoursInterval = "20m"
+peakHours = "8-19"
+maxReviewsPerCycle = 2
+
 [limits]
 maxConcurrentAgents = 3
 agentTimeout = "20m"
 maxDiffLines = 4000
 
 [review]
+settle = "3m"                 # wait after a new push
+ciMaxWait = "45m"             # wait for running CI up to this long
 lenses = ["correctness", "security", "architecture", "tests", "ui"]
 commentLanguage = "en"        # language the agents write findings in
 
