@@ -38,9 +38,11 @@ People search for a pain, not for a name. Every page answers one:
 - **For AI assistants**: `llms.txt` and `llms-full.txt`, FAQ and HowTo structured data, a stable feature list, plain answers near the top of each page. Bing Webmaster Tools (ChatGPT search), Google Search Console, IndexNow on deploy.
 - **Proof**: a public benchmark of findings on seeded bugs per harness, with cost and time, rerun each release.
 
-## M5: desktop app
+## M5: desktop app 🟡
 
-Tauri 2 shell around the dashboard: tray icon with inbox count, notifications, starts the daemon, updates itself (signed). Notarized on macOS with Developer ID; installers for Windows and Linux. Needs the Rust toolchain.
+Built, released with v0.3: a Tauri 2 window around the dashboard; menu bar or tray icon with the inbox count; notifications for new inbox items; check now, open at login, quit; runs the crew it bundles (`crewreview run --desktop`) or shows the service's; restarts a crew that stops; signed updates with the release key, bound to the version. Notarized `.dmg` for macOS, NSIS for Windows, AppImage, `.deb` and `.rpm` for Linux, x64 and arm64.
+
+Next: a download page on the site, Windows code signing (Azure Trusted Signing), and a first-run screen that links a repository.
 
 ## M6: breadth
 

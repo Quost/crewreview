@@ -2,6 +2,18 @@
 
 Notable changes to Crewreview. The format follows [Keep a Changelog](https://keepachangelog.com), and versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- The desktop app for macOS, Windows and Linux: the dashboard in its own window, the inbox count in the menu bar or tray, a notification when a review or an answer waits for your approval, check now, open at login, and signed updates. It runs the crew it bundles, or shows the one already running as a service.
+- `crewreview run --desktop`, how the desktop app runs the crew (documented in `apps/desktop/README.md`).
+
+### Changed
+
+- Release signatures name their file and version in the trusted comment (`timestamp:…`, `file:…`, `version:…`), the format the desktop app's updater checks. `SHA256SUMS` also lists the desktop installers.
+- `crewreview update` refuses to replace the copy inside the desktop app, which updates it itself.
+
 ## 0.2.0 — 2026-11-19
 
 The public launch: notarized macOS binaries, one-line installers, Homebrew and Scoop, a Claude Code plugin and an MCP server for coding agents, and the website.

@@ -109,6 +109,8 @@ async function main(argv: string[]): Promise<number> {
       channel: { type: "string" },
       open: { type: "boolean", default: false },
       port: { type: "string" },
+      // Used by the desktop app, not listed in help.
+      desktop: { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
     },
@@ -165,7 +167,7 @@ async function main(argv: string[]): Promise<number> {
       case "once":
         return await daemon(c, { loop: false, ui: false, open: false });
       case "run":
-        return await daemon(c, { loop: true, ui: !v["no-ui"], open: v.open, port: v.port ? Number(v.port) : undefined });
+        return await daemon(c, { loop: true, ui: !v["no-ui"], open: v.open, port: v.port ? Number(v.port) : undefined, desktop: v.desktop });
       case "ui":
         return await ui(c, v.port ? Number(v.port) : undefined);
       default:

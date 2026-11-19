@@ -156,3 +156,42 @@ export async function replaceBinary(target: string, bytes: Uint8Array): Promise<
 export function isCompiledBinary(execPath = process.execPath): boolean {
   return !/(^|[\\/])bun(\.exe)?$/i.test(execPath);
 }
+
+/** The desktop app's update package per updater platform, as release assets (stable names, no version). */
+export const DESKTOP_UPDATE_PACKAGES: Record<string, string> = {
+  "darwin-aarch64": "Crewreview-macos-arm64.app.tar.gz",
+  "darwin-x86_64": "Crewreview-macos-x64.app.tar.gz",
+  "windows-x86_64": "Crewreview-windows-x64-setup.exe",
+  "linux-x86_64": "Crewreview-linux-x64.AppImage",
+  "linux-aarch64": "Crewreview-linux-arm64.AppImage",
+};
+
+/**
+ * latest.json for the desktop app's updater: per platform, where the package is and its signature (the .minisig
+ * file, base64, the way the Tauri updater reads it). Every platform must be there, so no user is left behind.
+ */
+export function desktopManifest(version: string, signatures: Record<string, string>, notes: string, date: Date, repo = RELEASE_REPO) {
+  const platforms: Record<string, { signature: string; url: string }> = {};
+  const missing: string[] = [];
+  for (const [platform, file] of Object.entries(DESKTOP_UPDATE_PACKAGES)) {
+    const minisig = signatures[file];
+    if (!minisig) {
+      missing.push(file);
+      continue;
+    }
+    platforms[platform] = {
+      signature: Buffer.from(minisig).toString("base64"),
+      url: `https://github.com/${repo}/releases/download/v${version}/${file}`,
+    };
+  }
+  if (missing.length > 0) throw new Error(`no signature for ${missing.join(", ")}`);
+  return { version, notes, pub_date: date.toISOString(), platforms };
+}
+
+/**
+ * Does this binary ship inside the desktop app? Then the app updates it: replacing it in place would break the app's
+ * code signature, and the next app update would put the old one back anyway.
+ */
+export function managedByDesktop(execPath = process.execPath, env: Record<string, string | undefined> = process.env): boolean {
+  return env.CREWREVIEW_DESKTOP === "1" || /\.app\/Contents\/MacOS\/[^/]+$/.test(execPath);
+}

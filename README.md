@@ -32,6 +32,8 @@ irm https://crewreview.web.app/install.ps1 | iex               # Windows (or: sc
 
 The installers check the binary against the release's `SHA256SUMS`, and its signature too when `minisign` is installed. Builds are reproducible: the same commit and Bun version give the same bytes.
 
+**Desktop app** (from 0.3): download it from the [site](https://crewreview.web.app/#start) or the [latest release](https://github.com/Quost/crewreview/releases/latest): a notarized `.dmg` for macOS (Apple silicon or Intel), an installer for Windows, and an AppImage, `.deb` or `.rpm` for Linux. It shows the dashboard in a window, the inbox count in the menu bar or tray, notifies you when something waits for your approval and updates itself. It runs the crew it carries, or shows the one your service already runs. See [apps/desktop](apps/desktop/README.md).
+
 ## Try it
 
 You need [Bun](https://bun.sh) 1.3+, git, and at least one harness: [Claude Code](https://claude.com/claude-code), [Codex CLI](https://github.com/openai/codex) or [Kiro CLI](https://kiro.dev).

@@ -114,7 +114,6 @@
   "start.scriptNoteWin": "Comprueba el checksum, instala en %LOCALAPPDATA%\\Crewreview\\bin y añade esa carpeta a tu PATH.",
   "start.brewNote": "Actualiza con brew upgrade. Ejecútalo como servicio con brew services start crewreview.",
   "start.scoopNote": "Actualiza con scoop update crewreview.",
-  "start.downloadTitle": "O descarga el binario",
   "start.variant": "Procesador",
   "start.download": "Descargar para {os}",
   "start.appleSilicon": "Apple silicon",
@@ -133,5 +132,9 @@
   "start.before": "Primero instala un harness (Claude Code, Codex o Kiro) e inicia sesión en gh o glab.",
   "start.agentsTitle": "Desde tu agente de código",
   "start.claude": "En Claude Code, añade el plugin:",
-  "start.others": "En otros agentes, añade el servidor MCP:"
+  "start.others": "En otros agentes, añade el servidor MCP:",
+  "start.desktopTitle": "App de escritorio",
+  "start.desktopNote": "El panel en una ventana, la inbox en la barra de menús o la bandeja, notificaciones y actualizaciones firmadas.",
+  "start.cliTitle": "Solo la línea de comandos",
+  "start.alsoAs": "También en"
 }

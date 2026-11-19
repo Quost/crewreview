@@ -90,3 +90,15 @@ export function languageName(code: string): string {
 }
 
 export const catalogs = CATALOGS;
+
+/**
+ * Every message under a prefix as raw templates, placeholders kept, for a client that fills them itself (the desktop
+ * app). Keys lose the prefix; missing translations fall back to English.
+ */
+export function templates(locale: Locale, prefix: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(en as Catalog)) {
+    if (key.startsWith(prefix)) out[key.slice(prefix.length)] = CATALOGS[locale][key] ?? value;
+  }
+  return out;
+}

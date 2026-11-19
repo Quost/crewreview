@@ -114,7 +114,6 @@
   "start.scriptNoteWin": "校验 checksum，安装到 %LOCALAPPDATA%\\Crewreview\\bin，并把该文件夹加入 PATH。",
   "start.brewNote": "用 brew upgrade 更新；用 brew services start crewreview 作为服务运行。",
   "start.scoopNote": "用 scoop update crewreview 更新。",
-  "start.downloadTitle": "或直接下载程序",
   "start.variant": "处理器",
   "start.download": "下载 {os} 版",
   "start.appleSilicon": "Apple 芯片",
@@ -133,5 +132,9 @@
   "start.before": "先安装一个 harness（Claude Code、Codex 或 Kiro），并登录 gh 或 glab。",
   "start.agentsTitle": "在你的编程智能体中",
   "start.claude": "在 Claude Code 中添加插件：",
-  "start.others": "在其他智能体中添加 MCP 服务器："
+  "start.others": "在其他智能体中添加 MCP 服务器：",
+  "start.desktopTitle": "桌面应用",
+  "start.desktopNote": "面板在独立窗口中，收件箱在菜单栏或托盘里，并提供通知和签名更新。",
+  "start.cliTitle": "仅命令行",
+  "start.alsoAs": "其他格式"
 }

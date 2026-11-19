@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Crewreview",
+  "version": "../package.json",
+  "identifier": "app.web.crewreview",
+  "build": {
+    "frontendDist": "../src",
+    "beforeDevCommand": "bun scripts/sidecar.ts --if-missing",
+    "beforeBuildCommand": "bun scripts/sidecar.ts --if-missing"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis", "deb", "rpm", "appimage"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "externalBin": ["binaries/crewreview"],
+    "category": "DeveloperTool",
+    "publisher": "Matheus Quost",
+    "copyright": "© 2026 Matheus Quost. Free software under the AGPL-3.0.",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://crewreview.web.app",
+    "shortDescription": "A crew of AI agents that reviews pull requests and answers the reviews on yours",
+    "longDescription": "Crewreview runs on your machine with the coding agents you already use. It reviews other people's pull requests and answers the reviews on yours: fixes, replies, resolves and asks for another look. This app keeps the crew running in the menu bar or tray, shows its dashboard and tells you when something waits for your approval.",
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "hardenedRuntime": true,
+      "entitlements": "../../../packaging/macos/entitlements.plist"
+    },
+    "windows": {
+      "nsis": { "installMode": "currentUser" }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IENyZXdyZXZpZXcgcmVsZWFzZSBrZXkgRTRGMjVEMTM5MDAxNTk0MApSV1RrOGwwVGtBRlpRT3hWa1lXRUhyVTZOaitqMVVUQ0dPTXBzNjI3YzRxc3ZhWDNmdlJGemhweAo=",
+      "endpoints": ["https://github.com/Quost/crewreview/releases/latest/download/latest.json"],
+      "requireSignedVersion": true,
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

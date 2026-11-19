@@ -1,10 +1,11 @@
 name: Release
 
-# A tag vX.Y.Z builds the five binaries, signs and notarizes the macOS ones (when MACOS_SIGNING is on), writes and
-# signs SHA256SUMS, publishes a GitHub Release with the matching CHANGELOG section, and updates the Homebrew
+# A tag vX.Y.Z builds the five CLI binaries, signs and notarizes the macOS ones (when MACOS_SIGNING is on), builds the
+# desktop app on each system around those same binaries, writes and signs SHA256SUMS, signs the desktop update
+# packages into latest.json, publishes a GitHub Release with the matching CHANGELOG section, and updates the Homebrew
 # formula and the Scoop manifest on main. Tags with a dash (v0.2.0-beta.1) become pre-releases.
 #
-# macOS signing needs the repository variable MACOS_SIGNING=true and these secrets:
+# macOS signing (CLI and desktop app) needs the repository variable MACOS_SIGNING=true and these secrets:
 #   MACOS_CERT_P12       the "Developer ID Application" certificate with its key, exported as .p12, base64
 #   MACOS_CERT_PASSWORD  the .p12 password
 #   APPLE_ID             the Apple ID of the developer account
@@ -29,8 +30,10 @@ jobs:
       - run: bun run check
       - name: Version matches the tag
         run: |
-          v="$(bun -e 'console.log(require("./package.json").version)')"
-          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::package.json is $v but the tag is $GITHUB_REF_NAME"; exit 1; }
+          for f in package.json apps/*/package.json packages/*/package.json plugins/crewreview/.claude-plugin/plugin.json; do
+            v="$(bun -e "console.log(require('./$f').version)")"
+            [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::$f is $v but the tag is $GITHUB_REF_NAME"; exit 1; }
+          done
       - run: bun run build:all
       - uses: actions/upload-artifact@v4
         with:
@@ -89,9 +92,101 @@ jobs:
           path: dist/crewreview-darwin-*
           retention-days: 3
 
+  desktop:
+    name: Desktop (${{ matrix.name }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin, cli: crewreview-darwin-arm64, bundles: "app,dmg" }
+          - { name: macos-x64, os: macos-latest, target: x86_64-apple-darwin, cli: crewreview-darwin-x64, bundles: "app,dmg" }
+          - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc, cli: crewreview-windows-x64.exe, bundles: nsis }
+          - { name: linux-x64, os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, cli: crewreview-linux-x64, bundles: "deb,rpm,appimage" }
+          - { name: linux-arm64, os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, cli: crewreview-linux-arm64, bundles: "deb,rpm,appimage" }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - run: bun install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: ${{ matrix.target }}
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev build-essential file patchelf
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      # The app carries the same CLI binary as the release, not a second build of it.
+      - run: bun apps/desktop/scripts/sidecar.ts --target ${{ matrix.target }} --from dist/${{ matrix.cli }}
+      - name: Build (signed and notarized on macOS)
+        env:
+          TARGET: ${{ matrix.target }}
+          BUNDLES: ${{ matrix.bundles }}
+          SIGN: ${{ runner.os == 'macOS' && vars.MACOS_SIGNING == 'true' }}
+          APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.MACOS_CERT_P12 || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.MACOS_CERT_PASSWORD || '' }}
+          APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_APP_PASSWORD || '' }}
+        run: |
+          set -euo pipefail
+          if [ "$SIGN" = true ]; then
+            export APPLE_SIGNING_IDENTITY="Developer ID Application: Matheus Quost (9527N6XKKW)" APPLE_TEAM_ID=9527N6XKKW
+          else
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD
+          fi
+          cd apps/desktop
+          bunx tauri build --target "$TARGET" --bundles "$BUNDLES"
+      - name: The bundled CLI starts inside the app
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: |
+          set -euo pipefail
+          app="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/Crewreview.app"
+          codesign --verify --deep --strict --verbose=1 "$app"
+          codesign -d --entitlements - "$app/Contents/MacOS/crewreview" 2>/dev/null | grep -q allow-jit
+          "$app/Contents/MacOS/crewreview" --version
+          if [ "${{ vars.MACOS_SIGNING }}" = true ]; then spctl -a -vv "$app"; fi
+      - name: Collect the installers under stable names
+        run: |
+          set -euo pipefail
+          b="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          n="Crewreview-${{ matrix.name }}"
+          mkdir -p out
+          case "${{ matrix.target }}" in
+            *apple-darwin)
+              tar -czf "out/$n.app.tar.gz" -C "$b/macos" Crewreview.app
+              cp "$b"/dmg/*.dmg "out/$n.dmg" ;;
+            *windows*)
+              cp "$b"/nsis/*-setup.exe "out/$n-setup.exe" ;;
+            *linux*)
+              cp "$b"/appimage/*.AppImage "out/$n.AppImage"
+              cp "$b"/deb/*.deb "out/$n.deb"
+              cp "$b"/rpm/*.rpm "out/$n.rpm" ;;
+          esac
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          path: out/*
+          retention-days: 3
+
   publish:
-    needs: [build, macos-sign]
-    if: always() && needs.build.result == 'success' && (needs.macos-sign.result == 'success' || needs.macos-sign.result == 'skipped')
+    needs: [build, macos-sign, desktop]
+    if: always() && needs.build.result == 'success' && needs.desktop.result == 'success' && (needs.macos-sign.result == 'success' || needs.macos-sign.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -112,6 +207,12 @@ jobs:
         with:
           name: dist-macos
           path: dist
+      - name: Desktop installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: dist
+          merge-multiple: true
       - run: bun scripts/checksums.ts dist
       # Updates install only binaries whose SHA256SUMS carries this signature.
       - name: Sign SHA256SUMS
@@ -127,6 +228,13 @@ jobs:
             awk '/^## Unreleased/ {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notes.md
           fi
           [ -s notes.md ] || { echo "::error::CHANGELOG.md has no section for $v"; exit 1; }
+      # The desktop app installs an update only with this signature, and only for the version it names.
+      - name: Sign the desktop update packages into latest.json
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          for f in dist/*.app.tar.gz dist/*-setup.exe dist/*.AppImage; do bun scripts/release-key.ts sign "$f"; done
+          bun scripts/updater-manifest.ts "${GITHUB_REF_NAME#v}" dist notes.md
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}

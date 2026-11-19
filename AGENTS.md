@@ -9,6 +9,7 @@ You are working on Crewreview, an open source (AGPL-3.0) orchestrator of AI code
 - `bun test packages/core`: one package's tests.
 - `bun run dev <command>`: the CLI from source, e.g. `bun run dev doctor`.
 - `bun run build`: compile the binary for this machine into `dist/`.
+- Desktop app (`apps/desktop`, Rust): `bun run --cwd apps/desktop sidecar`, then `cargo clippy --all-targets -- -D warnings && cargo test` in `apps/desktop/src-tauri`. See its README for how it talks to the CLI.
 
 Set `CREWREVIEW_HOME` to a temporary folder when you run the CLI in tests, so nothing lands in the user's real config or state.
 

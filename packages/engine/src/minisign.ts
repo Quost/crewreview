@@ -76,6 +76,14 @@ export function parseSecretKey(secret: string): SecretKey {
 }
 
 /** A pre-hashed minisign signature for `file`. */
+/**
+ * The signed comment of a release file, in the Tauri updater's format (tab-separated key:value). The desktop app's
+ * updater requires `version` to match the release it was offered, so an old signed build can't pass as an update.
+ */
+export function trustedComment(file: string, version: string, timestamp: number): string {
+  return `timestamp:${timestamp}\tfile:${file}\tversion:${version}`;
+}
+
 export function signFile(file: Uint8Array, secret: SecretKey, trustedComment: string, untrustedComment = "signature from Crewreview release key"): string {
   const signature = sign(null, blake2b512(file), secret.key);
   const global = sign(null, Buffer.concat([signature, Buffer.from(trustedComment)]), secret.key);

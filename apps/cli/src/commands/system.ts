@@ -1,4 +1,4 @@
-import { compareVersions, fetchVerified, installService, isCompiledBinary, latestRelease, replaceBinary, serviceSpec, serviceStatus, uninstallService, UpdateError } from "@crewreview/engine";
+import { compareVersions, fetchVerified, installService, isCompiledBinary, latestRelease, managedByDesktop, replaceBinary, serviceSpec, serviceStatus, uninstallService, UpdateError } from "@crewreview/engine";
 import { resolveToken, repoRef } from "@crewreview/hosts";
 import type { Ctx } from "../ctx.ts";
 
@@ -49,6 +49,7 @@ export async function update(c: Ctx, checkOnly: boolean, channel: string | undef
   c.out(t.t("update.available", { version: release.version, current: c.version }));
   if (checkOnly) return 0;
   if (!isCompiledBinary()) return (c.err(st.yellow(t.t("update.notCompiled"))), 1);
+  if (managedByDesktop()) return (c.err(st.yellow(t.t("desktop.managedUpdate"))), 1);
   try {
     const bytes = await fetchVerified(release, source);
     await replaceBinary(process.execPath, bytes);

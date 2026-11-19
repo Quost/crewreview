@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crewreview</title>
+<style>
+:root{--bg:#f7f8fc;--text:#141729;--muted:#5b6278;--accent:#4f46e5;--accent-2:#7c3aed;--soft:#e2e5ef;--bad:#b42318;--panel:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0c0e15;--text:#e9ebf4;--muted:#9aa1b8;--accent:#8b8cf6;--accent-2:#b18cf6;--soft:#272c3f;--bad:#ff8a7d;--panel:#151823;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:grid;place-items:center;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;cursor:default}
+main{display:grid;justify-items:center;gap:18px;padding:24px;max-width:640px;width:100%;text-align:center}
+.logo{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;box-shadow:0 10px 30px rgb(79 70 229/30%)}
+h1{margin:0;font-size:1.35rem;letter-spacing:-.01em}
+#text{margin:0;color:var(--muted);min-height:1.5em;display:flex;gap:10px;align-items:center}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--soft);border-top-color:var(--accent);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.error #text{color:var(--bad);font-weight:600}
+.error .spin{display:none}
+#detail{display:none;margin:0;width:100%;max-height:40vh;overflow:auto;text-align:left;background:var(--panel);border:1px solid var(--soft);border-radius:12px;padding:12px 14px;font:12px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace;white-space:pre-wrap;color:var(--muted);-webkit-user-select:text;user-select:text}
+.error #detail:not(:empty){display:block}
+</style>
+</head>
+<body>
+<main id="main">
+  <div class="logo" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h1>Crewreview</h1>
+  <p id="text" role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span><span id="label"></span></p>
+  <pre id="detail"></pre>
+</main>
+<script src="loading.js"></script>
+</body>
+</html>
