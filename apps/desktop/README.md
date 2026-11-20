@@ -53,6 +53,14 @@ The release workflow builds the app on each system around the CLI binaries of th
 for Apple silicon and Intel, an NSIS installer for Windows, and `.AppImage`, `.deb` and `.rpm` for Linux on x64 and
 arm64. The `.dmg` is notarized too, not only the app inside it.
 
+The `.dmg` comes from `scripts/make-dmg.sh`, not from Tauri: Tauri skips the window layout of its disk image on CI,
+because it drives Finder to do it. The script uses [dmgbuild](https://github.com/dmgbuild/dmgbuild), pinned by hash in
+`packaging/macos/dmg/requirements.txt`, which writes the layout into the image itself: a background that says what to
+do (`bun scripts/dmg-background.ts` draws it), the app and Applications in place, hidden files out of view.
+
+The app icon comes from `bun scripts/app-icon.ts --install`: a macOS version on Apple's grid (with margins and a
+shadow) for the `.icns`, and one with transparent corners for Windows and Linux.
+
 The Linux packages carry the CLI in `usr/libexec/crewreview/` rather than next to the app (`scripts/linux-config.ts`):
 linuxdeploy rewrites every binary under `usr/bin` and `usr/lib` of an AppImage, and a Bun-compiled binary crashes after
 that. `scripts/check-linux.sh` starts the CLI from each package, in CI and in the release.

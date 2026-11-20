@@ -101,8 +101,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin, cli: crewreview-darwin-arm64, bundles: "app,dmg" }
-          - { name: macos-x64, os: macos-latest, target: x86_64-apple-darwin, cli: crewreview-darwin-x64, bundles: "app,dmg" }
+          # The disk image comes from apps/desktop/scripts/make-dmg.sh, after the build: Tauri's skips its layout on CI.
+          - { name: macos-arm64, os: macos-latest, target: aarch64-apple-darwin, cli: crewreview-darwin-arm64, bundles: app }
+          - { name: macos-x64, os: macos-latest, target: x86_64-apple-darwin, cli: crewreview-darwin-x64, bundles: app }
           - { name: windows-x64, os: windows-latest, target: x86_64-pc-windows-msvc, cli: crewreview-windows-x64.exe, bundles: nsis }
           - { name: linux-x64, os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, cli: crewreview-linux-x64, bundles: "deb,rpm,appimage" }
           - { name: linux-arm64, os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, cli: crewreview-linux-arm64, bundles: "deb,rpm,appimage" }
@@ -155,10 +156,34 @@ jobs:
           # linuxdeploy hides its errors unless the build is verbose.
           case "$TARGET" in *linux*) extra=(--verbose --config "$(bun scripts/linux-config.ts "$TARGET")");; esac
           bunx tauri build --target "$TARGET" --bundles "$BUNDLES" ${extra[@]+"${extra[@]}"}
-          # Tauri notarizes the app but only signs the disk image around it. Gatekeeper checks the image a
-          # browser downloaded too, so it gets its own ticket.
+      - name: Disk image, signed and notarized
+        if: runner.os == 'macOS'
+        env:
+          TARGET: ${{ matrix.target }}
+          MACOS_SIGN: ${{ vars.MACOS_SIGNING == 'true' }}
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Tauri signed and notarized the app with a keychain it has removed since: the image gets its own.
           if [ "$MACOS_SIGN" = true ]; then
-            dmg="$(ls src-tauri/target/"$TARGET"/release/bundle/dmg/*.dmg)"
+            keychain="$RUNNER_TEMP/dmg.keychain-db"
+            kpass="$(openssl rand -base64 24)"
+            printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/dmg.p12"
+            security create-keychain -p "$kpass" "$keychain"
+            security set-keychain-settings -lut 21600 "$keychain"
+            security unlock-keychain -p "$kpass" "$keychain"
+            security import "$RUNNER_TEMP/dmg.p12" -k "$keychain" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$kpass" "$keychain" >/dev/null
+            security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+            rm -f "$RUNNER_TEMP/dmg.p12"
+            export APPLE_SIGNING_IDENTITY="Developer ID Application: Matheus Quost (9527N6XKKW)"
+          fi
+          dmg="$(bash apps/desktop/scripts/make-dmg.sh "$TARGET" | tail -1)"
+          # Gatekeeper checks the image a browser downloaded too, so it gets its own ticket.
+          if [ "$MACOS_SIGN" = true ]; then
             xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --team-id 9527N6XKKW --password "$APPLE_PASSWORD" --wait
             xcrun stapler staple "$dmg"
           fi

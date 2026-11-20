@@ -43,7 +43,7 @@ jobs:
   desktop:
     name: Desktop app (macos-latest)
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -62,6 +62,12 @@ jobs:
         run: |
           cargo clippy --all-targets -- -D warnings
           cargo test
+      # The disk image the release ships, unsigned: its layout, background and contents.
+      - name: App and disk image
+        run: |
+          set -euo pipefail
+          (cd apps/desktop && bunx tauri build --target aarch64-apple-darwin --bundles app)
+          bash apps/desktop/scripts/make-dmg.sh aarch64-apple-darwin
 
   # The release builds these packages for each system; this catches a packaging break before a tag does.
   linux-packages:
