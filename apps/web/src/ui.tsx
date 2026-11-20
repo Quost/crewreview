@@ -56,3 +56,14 @@ const SEV_TONE = { blocker: "bad", major: "warn", minor: "accent", nit: "neutral
 export function SeverityPill({ severity, label }: { severity: keyof typeof SEV_TONE; label: string }) {
   return <Pill tone={SEV_TONE[severity]}>{label}</Pill>;
 }
+
+/** Text from a finding or a reply: `code` spans as code, everything else as plain text (never as HTML). */
+export function Inline({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(`[^`\n]+`)/g).map((part, i) =>
+        part.length > 2 && part.startsWith("`") && part.endsWith("`") ? <code key={i}>{part.slice(1, -1)}</code> : part,
+      )}
+    </>
+  );
+}

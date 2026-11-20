@@ -22,6 +22,13 @@ export const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", "pt-BR": 
 export const I18n = createContext<Translator>(createTranslator("en"));
 export const useT = () => useContext(I18n);
 
+/** A built-in lens's name in the reader's language; a repository's own lens keeps its file name. */
+export function lensName(t: Translator, id: string): string {
+  const key = `lens.${id}`;
+  const name = t.t(key as never);
+  return name === key ? id : name;
+}
+
 export function relative(t: Translator, at: number, now = Date.now()): string {
   const rtf = new Intl.RelativeTimeFormat(t.locale, { numeric: "auto" });
   const s = Math.round((at - now) / 1000);

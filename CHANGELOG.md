@@ -4,6 +4,14 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Changed
+
+- The dashboard shows the built-in lenses' names in your language, and code in findings and replies as code.
+
+### Fixed
+
+- Counts read naturally in every language: no more "1 replies", "1 revisados" or "0 achado".
+
 ## 0.3.0 — 2026-11-19
 
 The desktop app, and a simpler way to install.

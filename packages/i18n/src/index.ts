@@ -13,7 +13,7 @@ const CATALOGS: Record<Locale, Catalog> = { en, "pt-BR": ptBR, es, de, "zh-CN": 
 /** Every key of the English catalog, with plural suffixes folded into their base key. */
 type RawKey = keyof typeof en;
 type PluralBase<K> = K extends `${infer B}.other` ? B : never;
-export type MessageKey = Exclude<RawKey, `${string}.one` | `${string}.other`>;
+export type MessageKey = Exclude<RawKey, `${string}.zero` | `${string}.one` | `${string}.other`>;
 export type PluralKey = PluralBase<RawKey>;
 
 export type Vars = Record<string, string | number>;
@@ -62,7 +62,8 @@ export function createTranslator(locale: Locale): Translator {
     locale,
     t: (key, vars) => fill(get(key), vars),
     tp: (key, count, vars) => {
-      const rule = plural.select(count);
+      // An optional ".zero" reads better than the plural rules allow ("0 achado" in Portuguese).
+      const rule = count === 0 && `${key}.zero` in cat ? "zero" : plural.select(count);
       const k = `${key}.${rule}` in cat ? `${key}.${rule}` : `${key}.other`;
       return fill(get(k), { count, ...vars });
     },

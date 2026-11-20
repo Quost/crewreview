@@ -108,7 +108,7 @@ export async function daemon(c: Ctx, a: DaemonArgs): Promise<number> {
       else if (a.open) await openBrowser(dashboardUrl(server));
     }
     if (a.loop) {
-      c.err(t.t("run.started", { count: watched.length }));
+      c.err(t.t("run.started", { repos: t.tp("run.repoCount", watched.length) }));
       // After a self-update, exit non-zero so launchd/systemd start the new binary.
       if ((await crew.loop(stop.signal)) === "restart") return 75;
     } else {

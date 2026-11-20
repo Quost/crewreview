@@ -1,13 +1,13 @@
 import type { LiveAgent } from "../api.ts";
 import type { Live } from "../app.tsx";
 import { describe } from "../describe.ts";
-import { clock, duration, useT } from "../i18n.ts";
+import { clock, duration, lensName, useT } from "../i18n.ts";
 import { Card, Empty, Pill } from "../ui.tsx";
 
 function roleLabel(t: ReturnType<typeof useT>, role: string): string {
   if (role === "verifier") return t.t("local.verifier");
   if (role === "attendant") return t.t("web.role.attendant");
-  return role;
+  return lensName(t, role);
 }
 
 export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => void }) {

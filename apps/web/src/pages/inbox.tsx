@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type InboxDetail, type InboxItem } from "../api.ts";
-import { relative, useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Pill, SeverityPill } from "../ui.tsx";
+import { lensName, relative, useT } from "../i18n.ts";
+import { Card, Empty, ExternalLink, Inline, Pill, SeverityPill } from "../ui.tsx";
 
 /** The first line of a comment, without the author prefix, markdown or hidden markers. */
 function plain(text: string): string {
@@ -44,10 +44,10 @@ function ReviewDetail({ d }: { d: Extract<InboxDetail, { kind: "review" }> }) {
               <span className="mono">
                 {f.path}:{f.line}
               </span>
-              <span className="muted small">{f.lenses.join(", ")}</span>
+              <span className="muted small">{f.lenses.map((l) => lensName(t, l)).join(", ")}</span>
             </div>
             <strong>{f.title}</strong>
-            <p className="body">{f.body}</p>
+            <p className="body"><Inline text={f.body} /></p>
           </li>
         ))}
       </ul>
@@ -74,7 +74,7 @@ function FixDetail({ d }: { d: Extract<InboxDetail, { kind: "fix" }> }) {
                 <span className="muted small">{it?.author}</span>
               </div>
               <p className="muted small quote">{plain(it?.text ?? "")}</p>
-              {dec.reply && <p className="body reply">{dec.reply}</p>}
+              {dec.reply && <p className="body reply"><Inline text={dec.reply} /></p>}
             </li>
           );
         })}
