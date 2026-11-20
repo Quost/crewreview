@@ -14,7 +14,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.2** ✅ | Public launch: notarized macOS binaries, installers, Homebrew and Scoop, Claude Code plugin, MCP server and skill, website in five languages | released 2026-11-19 |
 | **M5** ✅ | Desktop app for macOS, Windows and Linux, signed updates, simpler install on the site → **v0.3.0** | released 2026-11-19; installers checked on macOS and Linux, Windows not yet run |
 | **v0.4** ✅ | Organizations and groups, limits that act, "what would run now", keep-awake, login checks, the attendant on conflicts and red CI | released 2026-11-20 |
-| **v0.5** ✅ | First-run setup in the dashboard and the desktop app; a Docker image for a shared team machine | released 2026-11-20 |
+| **v0.5** ✅ | First-run setup in the dashboard and the desktop app; a Docker image for a shared team machine | released 2026-11-20; 0.5.1 the same day with fixes to the setup |
 
 ## Owed from the first plan ✅ (v0.4.0)
 

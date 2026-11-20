@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.5.1 — 2026-11-20
+
+Fixes for the first-run setup, found by using it against a real crew.
+
 ### Fixed
 
 - The setup page said the agent for reviews wasn't ready when `harness.default` is `auto`, the default. It now names the agent `auto` picks; `/api/harnesses` marks it as `chosen`.
