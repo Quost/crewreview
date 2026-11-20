@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.11.0 — 2026-11-20
+
+A second account on GitLab with one pasted token, and every first-run flow walked through and fixed.
+
 ### Fixed
 
 - `doctor` and the setup said glab wasn't signed in, or hid a company GitLab, whenever another configured host didn't answer: `glab auth status` checks hosts one after another and gave up after the first slow one. Each host in glab's config is now checked on its own, at the same time, for 8 seconds at most.

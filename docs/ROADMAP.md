@@ -20,6 +20,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.8** ✅ | A macOS disk image that says what to do, a native app icon, the next steps on the website after a download | released 2026-11-20 |
 | **v0.9** ✅ | Settings, open at login and paused repositories in the app; approvals from the menu bar | released 2026-11-20 |
 | **v0.10** ✅ | Antigravity, OpenCode and Gemini CLI built in over ACP, proven from the app; company GitLab hosts and nested groups in the setup | released 2026-11-20; Antigravity proven for real |
+| **v0.11** ✅ | A second account on GitLab from one access token, kept in the system keychain; no dead end in the setup; `crewreview status`; every first-run flow reviewed | released 2026-11-20 |
 
 ## Owed from the first plan ✅ (v0.4.0)
 
@@ -79,6 +80,8 @@ Give the crew a task (a sentence, an issue, a Jira or GitHub issue link) and it 
 6. **Hand over**: merging stays with a person.
 
 Multi-agent by design: planner, builder and reviewers can be different harnesses and vendors, each with the lock its role needs (read-only for review, worktree-only for building).
+
+The design, with seats and roles (a harness, model and effort per job, shared across your plans), the task ledger and handoffs, and terminal runners: [plans/crew-mode.md](plans/crew-mode.md).
 
 ## Principles
 
