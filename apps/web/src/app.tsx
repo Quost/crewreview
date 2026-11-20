@@ -5,11 +5,12 @@ import { AccountPage } from "./pages/account.tsx";
 import { HistoryPage } from "./pages/history.tsx";
 import { InboxPage } from "./pages/inbox.tsx";
 import { LimitsPage } from "./pages/limits.tsx";
+import { TeamPage } from "./pages/team.tsx";
 import { NowPage } from "./pages/now.tsx";
 import { ReposPage } from "./pages/repos.tsx";
 import { SetupPage } from "./pages/setup.tsx";
 
-const PAGES = ["setup", "now", "inbox", "history", "repos", "limits", "account"] as const;
+const PAGES = ["setup", "now", "inbox", "history", "repos", "team", "limits", "account"] as const;
 type Page = (typeof PAGES)[number];
 
 function pageFromHash(): Page {
@@ -116,6 +117,7 @@ export function App() {
     { id: "inbox", label: t.t("web.nav.inbox"), badge: st?.inbox || undefined },
     { id: "history", label: t.t("web.nav.history") },
     { id: "repos", label: t.t("web.nav.repos") },
+    { id: "team", label: t.t("web.nav.team") },
     { id: "limits", label: t.t("web.nav.limits") },
     ...(page === "account" ? [{ id: "account" as const, label: t.t("web.account.title") }] : []),
   ];
@@ -169,6 +171,7 @@ export function App() {
           {page === "repos" && <ReposPage version={live.version.repos} />}
           {page === "limits" && <LimitsPage version={live.version.settings} agentsVersion={live.version.harnesses} />}
           {page === "account" && <AccountPage />}
+          {page === "team" && <TeamPage agentsVersion={live.agents.length + live.version.settings + live.version.harnesses} />}
         </main>
       </div>
     </I18n.Provider>

@@ -81,7 +81,7 @@ export async function pickReviewer(registry: Map<string, Harness>, id: string, s
   return withLimits(registry, id, limits, (x) => reviewerOnce(registry, x, store));
 }
 
-async function reviewerOnce(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
+export async function reviewerOnce(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
   if (id !== "auto" && !registry.has(id)) return { error: "unknown-harness", name: id };
   const h = await resolveHarness(registry, id);
   if (!h || !(await h.detect()).installed) return { error: "no-harness" };
@@ -99,7 +99,7 @@ export async function pickWriter(registry: Map<string, Harness>, id: string, sto
   return withLimits(registry, id, limits, (x) => writerOnce(registry, x, store));
 }
 
-async function writerOnce(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
+export async function writerOnce(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
   if (id !== "auto" && !registry.has(id)) return { error: "unknown-harness", name: id };
   const h = await resolveHarness(registry, id);
   if (!h || !(await h.detect()).installed) return { error: "no-harness" };
@@ -110,6 +110,6 @@ async function writerOnce(registry: Map<string, Harness>, id: string, store: Con
   return (await signedOut(h)) ?? h;
 }
 
-export function isPickError(x: Harness | PickError): x is PickError {
+export function isPickError<T extends object = Harness>(x: T | PickError): x is PickError {
   return "error" in x;
 }

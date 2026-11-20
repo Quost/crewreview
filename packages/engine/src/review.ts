@@ -25,16 +25,21 @@ import type { FailureKind, Harness, HarnessEvent } from "@crewreview/harness";
 import { defaultConcurrency, type Config } from "./config.ts";
 import { buildContext, treeOracle, type ChangeContext } from "./context.ts";
 import type { Lens } from "./lenses.ts";
+import { isPickError } from "./harnesses.ts";
 import { lensPrompt, PROMPT_VERSION, verifierPrompt } from "./prompts.ts";
+import { fixedSeat, type SeatChoice, type SeatPicker } from "./seats.ts";
+
+/** How many seats one lens or the verifier tries when each hits its usage limit. */
+const MAX_SEAT_TRIES = 4;
 
 export type ReviewEvent =
   | { type: "context"; context: ChangeContext }
-  | { type: "lens-start"; lens: string; harness: string }
+  | { type: "lens-start"; lens: string; harness: string; seat?: string }
   | { type: "agent"; role: string; event: HarnessEvent }
   | { type: "lens-done"; result: LensResult }
-  | { type: "verifier-start"; harness: string }
+  | { type: "verifier-start"; harness: string; seat?: string }
   | { type: "verifier-done"; ok: boolean; dropped: number; downgraded: number; error?: string }
-  | { type: "attendant-start"; harness: string }
+  | { type: "attendant-start"; harness: string; seat?: string }
   | { type: "attendant-done"; ok: boolean; error?: string };
 
 export interface ReviewTarget {
@@ -55,6 +60,13 @@ export interface ReviewOptions {
   partial: boolean;
   harness: Harness;
   verifier?: Harness;
+  /**
+   * Seats for the lenses and the verifier, when [roles] routes them (docs/plans/crew-mode.md): each run takes a seat,
+   * and a run that hits its usage limit goes on the next seat. Unset: every lens on `harness`, the verifier on
+   * `verifier`.
+   */
+  lensSeats?: SeatPicker;
+  verifySeats?: SeatPicker;
   config: Config;
   /** English name of the language findings are written in. */
   language: string;
@@ -72,6 +84,9 @@ export interface ReviewOptions {
 export interface VerifierSummary {
   ran: boolean;
   harness?: string;
+  /** The seat that ran it, when [roles] routes the verifier. */
+  seat?: string;
+  model?: string;
   ok?: boolean;
   dropped: Finding[];
   downgraded: number;
@@ -151,36 +166,54 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   const oracle = treeOracle(ctx.headDir);
   const concurrency = o.config.limits.maxConcurrentAgents ?? defaultConcurrency(cpus().length);
   const run = { cwd: o.jobDir, access: "read" as const, timeoutMs: o.config.limits.agentTimeout, stallMs: o.config.limits.stallTimeout, signal: o.signal };
-  const settingsOf = (h: Harness) => (o.config.harness as Record<string, { model?: string; effort?: string } | undefined>)[h.id] ?? {};
+  const lensSeats = o.lensSeats ?? fixedSeat(o.harness, o.config);
+  const verifySeats = o.verifySeats ?? fixedSeat(o.verifier ?? o.harness, o.config);
+  const routed = (c: SeatChoice, routedHere: boolean) => (routedHere ? { seat: c.seat, ...(c.model ? { model: c.model } : {}) } : {});
 
   let droppedByEvidence = 0;
   const settled = await mapLimit(lenses, concurrency, async (lens): Promise<LensResult> => {
-    o.onEvent?.({ type: "lens-start", lens: lens.id, harness: o.harness.id });
-    const s = settingsOf(o.harness);
-    const r = await o.harness.run({
-      ...run,
-      prompt: lensPrompt(lens, promptCtx),
-      model: s.model,
-      effort: s.effort,
-      onEvent: (event) => o.onEvent?.({ type: "agent", role: lens.id, event }),
-    });
-    if (!r.ok) return failedLens(lens.id, o.harness.id, r.durationMs, r.failure ?? "crash", r.error, r.usage);
+    const tried: string[] = [];
+    let limited: LensResult | undefined;
+    for (let attempt = 0; attempt < MAX_SEAT_TRIES; attempt++) {
+      const c = await lensSeats(tried);
+      // No seat left: the run that hit its limit says why; a pick that found none at all says that.
+      if (isPickError(c)) return limited ?? failedLens(lens.id, o.harness.id, 0, "unsupported", `no seat: ${c.error}`);
+      tried.push(c.seat);
+      const seat = routed(c, !!o.lensSeats);
+      o.onEvent?.({ type: "lens-start", lens: lens.id, harness: c.harness.id, ...seat });
+      const r = await c.harness
+        .run({ ...run, prompt: lensPrompt(lens, promptCtx), model: c.model, effort: c.effort, onEvent: (event) => o.onEvent?.({ type: "agent", role: lens.id, event }) })
+        .finally(() => c.done());
+      if (!r.ok && r.failure === "quota" && o.lensSeats) {
+        c.limit(r.error ?? "quota");
+        limited = { ...failedLens(lens.id, c.harness.id, r.durationMs, "quota", r.error, r.usage), ...seat };
+        continue;
+      }
+      return lensResult(lens.id, c, seat, r);
+    }
+    return limited ?? failedLens(lens.id, o.harness.id, 0, "quota");
+  });
+
+  function lensResult(lensId: string, c: SeatChoice, seat: { seat?: string; model?: string }, r: Awaited<ReturnType<Harness["run"]>>): LensResult {
+    const lens = { id: lensId };
+    if (!r.ok) return { ...failedLens(lens.id, c.harness.id, r.durationMs, r.failure ?? "crash", r.error, r.usage), ...seat };
     const parsed = parseLensOutput(extractJson(r.text));
-    if (!parsed) return failedLens(lens.id, o.harness.id, r.durationMs, "parse", r.text.slice(0, 300), r.usage);
+    if (!parsed) return { ...failedLens(lens.id, c.harness.id, r.durationMs, "parse", r.text.slice(0, 300), r.usage), ...seat };
     const raw: Finding[] = parsed.findings.map((f, i) => ({ ...f, id: `${lens.id}-${i}`, lens: lens.id, lenses: [lens.id] }));
     const ev = checkEvidence(raw, oracle);
     droppedByEvidence += ev.dropped.length;
     return {
       lens: lens.id,
-      harness: o.harness.id,
+      harness: c.harness.id,
       status: ev.hallucinated ? "hallucinated" : "ok",
       findings: ev.kept,
       coverage: parsed.coverage,
       uncovered: parsed.uncovered,
       durationMs: r.durationMs,
       usage: r.usage,
+      ...seat,
     };
-  });
+  }
 
   const results: LensResult[] = settled.map((s, i) =>
     s.status === "fulfilled" ? s.value : failedLens(lenses[i]!.id, o.harness.id, 0, "crash", String(s.reason)),
@@ -195,22 +228,34 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   let findings = sortFindings(dedupeFindings(results.flatMap((r) => r.findings))).map((f, i) => ({ ...f, id: `F${i + 1}` }));
 
   const verifier: VerifierSummary = { ran: false, dropped: [], downgraded: 0 };
-  const verifierHarness = o.verifier ?? o.harness;
   if (o.config.review.verifier && findings.length > 0) {
-    verifier.harness = verifierHarness.id;
-    o.onEvent?.({ type: "verifier-start", harness: verifierHarness.id });
     await writeFile(
       join(ctx.ctxDir, "findings.json"),
       JSON.stringify(findings.map(({ id, path, line, endLine, severity, title, body, evidence, lenses: l }) => ({ id, path, line, endLine, severity, title, body, evidence, lenses: l })), null, 2),
     );
-    const s = settingsOf(verifierHarness);
-    const r = await verifierHarness.run({
-      ...run,
-      prompt: verifierPrompt(promptCtx),
-      model: s.model,
-      effort: s.effort,
-      onEvent: (event) => o.onEvent?.({ type: "agent", role: "verifier", event }),
-    });
+    const tried: string[] = [];
+    let ran: Awaited<ReturnType<Harness["run"]>> | undefined;
+    let noSeat: string | undefined;
+    for (let attempt = 0; attempt < MAX_SEAT_TRIES; attempt++) {
+      const c = await verifySeats(tried);
+      if (isPickError(c)) {
+        noSeat = c.error;
+        break;
+      }
+      tried.push(c.seat);
+      const seat = routed(c, !!o.verifySeats);
+      Object.assign(verifier, { harness: c.harness.id }, seat);
+      o.onEvent?.({ type: "verifier-start", harness: c.harness.id, ...seat });
+      ran = await c.harness
+        .run({ ...run, prompt: verifierPrompt(promptCtx), onEvent: (event) => o.onEvent?.({ type: "agent", role: "verifier", event }), model: c.model, effort: c.effort })
+        .finally(() => c.done());
+      if (!ran.ok && ran.failure === "quota" && o.verifySeats) {
+        c.limit(ran.error ?? "quota");
+        continue;
+      }
+      break;
+    }
+    const r = ran ?? { ok: false as const, text: "", exitCode: null, durationMs: 0, failure: "unsupported" as const, error: `no seat: ${noSeat ?? "quota"}` };
     verifier.durationMs = r.durationMs;
     const decisions = r.ok ? parseVerifierOutput(extractJson(r.text)) : undefined;
     if (decisions) {

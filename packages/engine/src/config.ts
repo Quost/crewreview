@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { DEFAULT_POLICY, DEFAULT_RULES, SEVERITIES } from "@crewreview/core";
+import { BALANCES, DEFAULT_POLICY, DEFAULT_RULES, SEVERITIES } from "@crewreview/core";
 import { z } from "zod";
 import { configFile } from "./paths.ts";
 
@@ -56,6 +56,30 @@ const CustomHarness = z
 
 const Severity = z.enum(SEVERITIES);
 
+const SEAT_ID = /^[a-z0-9][a-z0-9-]*$/;
+
+/** One agent the crew can hire: a harness, and the model and effort to ask it for. */
+const Seat = z
+  .object({
+    harness: z.string().regex(SEAT_ID),
+    model: z.string().min(1).optional(),
+    effort: z.string().min(1).optional(),
+    /** Most agent runs this seat makes a day. Unset: only the overall limits.dailyRuns. */
+    dailyRuns: z.number().int().min(1).optional(),
+  })
+  .strict();
+
+/** The seats that may do a job, by seat name (or a harness id, for that harness with its own settings), and how to share it. */
+const Role = z.union([
+  z
+    .array(z.string().regex(SEAT_ID))
+    .min(1)
+    .transform((seats) => ({ seats, balance: "order" as const })),
+  z
+    .object({ seats: z.array(z.string().regex(SEAT_ID)).min(1), balance: z.enum(BALANCES).default("order") })
+    .strict(),
+]);
+
 export const ConfigSchema = z
   .object({
     /** Interface language. Unset: the system language. */
@@ -73,6 +97,13 @@ export const ConfigSchema = z
         acp: z.array(AcpAgent).default([]),
         custom: z.array(CustomHarness).default([]),
       })
+      .strict()
+      .prefault({}),
+    /** Seats, by a name you choose (docs/plans/crew-mode.md). */
+    seats: z.record(z.string().regex(SEAT_ID), Seat).default({}),
+    /** Which seats do each job. A job left out works as before: harness.default, verifier and fallback. */
+    roles: z
+      .object({ review: Role.optional(), verify: Role.optional(), attend: Role.optional() })
       .strict()
       .prefault({}),
     limits: z

@@ -17,6 +17,7 @@ export * from "./daemon.ts";
 export * from "./harnesses.ts";
 export * from "./awake.ts";
 export * from "./quota.ts";
+export * from "./seats.ts";
 export * from "./preview.ts";
 export * from "./link.ts";
 export * from "./access.ts";

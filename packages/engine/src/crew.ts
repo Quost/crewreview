@@ -18,6 +18,25 @@ import { configFile, type AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
 import { previewLink, type Preview } from "./preview.ts";
 import { QuotaBook } from "./quota.ts";
+import { roleRoute, SeatBook, seatSpec, type Role, type SeatSpec } from "./seats.ts";
+
+const ROLES: readonly Role[] = ["review", "verify", "attend"];
+
+export interface TeamView {
+  roles: { role: Role; seats: string[]; balance: "order" | "spread" | "cheapest"; configured: boolean }[];
+  seats: (SeatSpec & {
+    /** Declared in [seats]; otherwise a harness standing for itself. */
+    named: boolean;
+    runsToday: number;
+    pausedUntil?: number;
+    reason?: string;
+    roles: Role[];
+    working: { role: string; repo: string; number: number }[];
+  })[];
+  configPath?: string;
+  /** A job uses "auto": the first installed harness that can do it. */
+  auto: boolean;
+}
 import { findLinked, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
 import type { ReviewEvent, ReviewReport } from "./review.ts";
 import type { Store } from "./state.ts";
@@ -39,6 +58,8 @@ export interface LiveAgent {
   job: JobRef;
   role: string;
   harness: string;
+  /** The seat it holds, when [roles] routes its job. */
+  seat?: string;
   startedAt: number;
   endedAt?: number;
   status: "running" | "ok" | "failed";
@@ -95,6 +116,14 @@ export class CrewDaemon {
   /** Paused harnesses and today's agent runs, shared with the CLI through a file. */
   get quota(): QuotaBook {
     return (this.book ??= QuotaBook.in(this.o.dirs.state));
+  }
+
+  private seatBook?: { config: Config; book: SeatBook };
+
+  /** Hands out seats per job; a new one when the config changes, so it always follows the file. */
+  get seats(): SeatBook {
+    if (this.seatBook?.config !== this.o.config) this.seatBook = { config: this.o.config, book: new SeatBook(this.o.config, this.o.registry, this.o.conformance, this.quota) };
+    return this.seatBook.book;
   }
   private log: LogEntry[] = [];
   private listeners = new Set<(e: CrewEvent) => void>();
@@ -154,19 +183,19 @@ export class CrewDaemon {
   /** Turn pipeline events into the live board. */
   private onJobEvent(job: JobRef, e: ReviewEvent): void {
     const key = (role: string) => `${job.repo}#${job.number}:${role}`;
-    const start = (role: string, harness: string) => {
-      this.agents.set(key(role), { id: key(role), job, role, harness, startedAt: Date.now(), status: "running", tools: 0 });
+    const start = (role: string, harness: string, seat?: string) => {
+      this.agents.set(key(role), { id: key(role), job, role, harness, ...(seat ? { seat } : {}), startedAt: Date.now(), status: "running", tools: 0 });
       (this.awake ??= keepAwake({ enabled: this.o.config.schedule.keepAwake })).on();
     };
     const end = (role: string, ok: boolean, detail?: string) => {
       const a = this.agents.get(key(role));
       if (a) Object.assign(a, { status: ok ? "ok" : "failed", endedAt: Date.now(), detail });
     };
-    if (e.type === "lens-start") start(e.lens, e.harness);
+    if (e.type === "lens-start") start(e.lens, e.harness, e.seat);
     else if (e.type === "lens-done") end(e.result.lens, e.result.status === "ok", e.result.status === "ok" ? `${e.result.findings.length}` : e.result.error);
-    else if (e.type === "verifier-start") start("verifier", e.harness);
+    else if (e.type === "verifier-start") start("verifier", e.harness, e.seat);
     else if (e.type === "verifier-done") end("verifier", e.ok, e.ok ? `-${e.dropped}` : e.error);
-    else if (e.type === "attendant-start") start("attendant", e.harness);
+    else if (e.type === "attendant-start") start("attendant", e.harness, e.seat);
     else if (e.type === "attendant-done") end("attendant", e.ok, e.error);
     else if (e.type === "agent") {
       const a = this.agents.get(key(e.role));
@@ -180,7 +209,7 @@ export class CrewDaemon {
 
   private deps(signal?: AbortSignal): AttendDeps {
     const { dirs, config, store, conformance, registry, version, ui, signing } = this.o;
-    return { dirs, config, store, conformance, registry, version, ui, signing, signal, quota: this.quota, onJobEvent: (job, e) => this.onJobEvent(job, e) };
+    return { dirs, config, store, conformance, registry, version, ui, signing, signal, quota: this.quota, seats: this.seats, onJobEvent: (job, e) => this.onJobEvent(job, e) };
   }
 
   /** Run one cycle now (or right after the current one). */
@@ -341,6 +370,39 @@ export class CrewDaemon {
       this.emit({ type: "status", status: this.status() });
     }
     return { ok: true };
+  }
+
+  /**
+   * The crew as a team: each job, the seats that do it and how they share it, and each seat's day (runs, pause, what
+   * it's doing now). Without [roles], a job shows the harnesses it uses as before (configured: false).
+   */
+  team(): TeamView {
+    const c = this.o.config;
+    const st = this.quota.status();
+    const legacy: Record<Role, string[]> = {
+      review: [c.harness.default, ...(c.harness.fallback ?? [])],
+      verify: [c.harness.verifier ?? c.harness.default],
+      attend: [c.harness.default, ...(c.harness.fallback ?? [])],
+    };
+    const roles = ROLES.map((role) => {
+      const route = roleRoute(c, role);
+      return { role, seats: route ? [...route.seats] : legacy[role], balance: route?.balance ?? ("order" as const), configured: !!route };
+    });
+    const ids = [...new Set([...Object.keys(c.seats), ...roles.flatMap((r) => r.seats)])].filter((id) => id !== "auto");
+    const live = this.liveAgents().filter((a) => a.status === "running");
+    const seats = ids.map((id) => {
+      const spec = seatSpec(c, id);
+      const paused = st.seatsPaused.find((p) => p.seat === id) ?? (c.seats[id] ? undefined : st.paused.map((p) => ({ ...p, seat: p.harness })).find((p) => p.harness === id));
+      return {
+        ...spec,
+        named: !!c.seats[id],
+        runsToday: st.seatRuns[id] ?? (c.seats[id] ? 0 : (st.runs[id] ?? 0)),
+        ...(paused ? { pausedUntil: paused.until, reason: paused.reason } : {}),
+        roles: roles.filter((r) => r.seats.includes(id)).map((r) => r.role),
+        working: live.filter((a) => (a.seat ?? a.harness) === id).map((a) => ({ role: a.role, repo: a.job.repo, number: a.job.number })),
+      };
+    });
+    return { roles, seats, configPath: this.o.configPath, auto: roles.some((r) => r.seats.includes("auto")) };
   }
 
   /** Whether an account can post a repository's reviews, and who it is. */

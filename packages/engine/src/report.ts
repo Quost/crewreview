@@ -41,7 +41,8 @@ function lensLine(r: LensResult, t: Translator, st: Style): string {
       : r.status === "hallucinated"
         ? t.t("status.hallucinated")
         : failureText(r.error, t) || t.t(`status.${r.status}`);
-  return `  ${mark} ${r.lens.padEnd(14)} ${st.dim(r.harness.padEnd(8))} ${st.dim(seconds(r.durationMs).padStart(6))}  ${detail}`;
+  const who = r.seat && r.seat !== r.harness ? r.seat : r.harness;
+  return `  ${mark} ${r.lens.padEnd(14)} ${st.dim(who.padEnd(8))} ${st.dim(seconds(r.durationMs).padStart(6))}  ${detail}`;
 }
 
 function findingBlock(f: Finding, t: Translator, st: Style): string[] {

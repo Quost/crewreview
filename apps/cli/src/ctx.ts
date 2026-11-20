@@ -62,8 +62,10 @@ export async function pickHarness(c: Ctx, id: string): Promise<Harness | string>
 /** Progress lines on stderr while agents work. CREWREVIEW_DEBUG=1 also shows each tool call. */
 export function progress(c: Ctx) {
   return (e: ReviewEvent) => {
-    if (e.type === "lens-start") c.err(c.errStyle.dim(`▸ ${c.t.t("local.lensStarted", { lens: e.lens, harness: e.harness })}`));
-    else if (e.type === "verifier-start") c.err(c.errStyle.dim(`▸ ${c.t.t("local.lensStarted", { lens: c.t.t("local.verifier"), harness: e.harness })}`));
+    // A seat shows by its name, with its harness: "sonnet (claude)".
+    const who = (e: { harness: string; seat?: string }) => (e.seat && e.seat !== e.harness ? `${e.seat} (${e.harness})` : e.harness);
+    if (e.type === "lens-start") c.err(c.errStyle.dim(`▸ ${c.t.t("local.lensStarted", { lens: e.lens, harness: who(e) })}`));
+    else if (e.type === "verifier-start") c.err(c.errStyle.dim(`▸ ${c.t.t("local.lensStarted", { lens: c.t.t("local.verifier"), harness: who(e) })}`));
     else if (e.type === "agent" && e.event.type === "tool" && process.env.CREWREVIEW_DEBUG) c.err(c.errStyle.dim(`    ${e.role}: ${e.event.text}`));
   };
 }

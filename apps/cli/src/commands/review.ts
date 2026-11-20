@@ -1,4 +1,4 @@
-import { connect, QuotaBook, registryFor, renderTerminal, reviewPullRequest, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
+import { connect, QuotaBook, registryFor, renderTerminal, SeatBook, reviewPullRequest, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
 import { HostError } from "@crewreview/hosts";
 import { conformanceStore, openStore, pickErrorText, progress, type Ctx } from "../ctx.ts";
 import { attendText } from "./attend.ts";
@@ -7,17 +7,21 @@ import { findRepo, noTokenText } from "./repo.ts";
 export function deps(c: Ctx, signal?: AbortSignal, quiet = false): AttendDeps & { close(): void } {
   const store = openStore(c);
   store.recoverInterrupted();
+  const conformance = conformanceStore(c);
+  const registry = registryFor(c.config);
+  const quota = QuotaBook.in(c.dirs.state);
   return {
     dirs: c.dirs,
     config: c.config,
     store,
-    conformance: conformanceStore(c),
-    registry: registryFor(c.config),
+    conformance,
+    registry,
     version: c.version,
     ui: c.t,
     signal,
     onEvent: quiet ? undefined : progress(c),
-    quota: QuotaBook.in(c.dirs.state),
+    quota,
+    seats: new SeatBook(c.config, registry, conformance, quota),
     close: () => store.close(),
   };
 }

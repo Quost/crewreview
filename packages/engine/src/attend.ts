@@ -18,6 +18,7 @@ import { createTranslator, languageName, matchLocale, type Translator } from "@c
 import { diffText, git, gitOk, mergeBase } from "./git.ts";
 import { isPickError, pickReviewer, pickWriter, type PickError } from "./harnesses.ts";
 import { pickLimits, watchQuota } from "./quota.ts";
+import { fixedSeatChoice, type SeatChoice } from "./seats.ts";
 import { fetchPull } from "./mirror.ts";
 import type { HostAdapter } from "@crewreview/hosts";
 import type { PrDeps, PrTarget } from "./pr.ts";
@@ -108,21 +109,23 @@ async function discardChanges(dir: string): Promise<void> {
   await git(["clean", "-fdq", "-e", ATTEND_DIR], dir);
 }
 
-async function runAgent(h: Harness, d: AttendDeps, cwd: string, access: "read" | "write", prompt: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
-  const s = (d.config.harness as Record<string, { model?: string; effort?: string } | undefined>)[h.id] ?? {};
-  d.onEvent?.({ type: "attendant-start", harness: h.id });
+async function runAgent(c: SeatChoice, routed: boolean, d: AttendDeps, cwd: string, access: "read" | "write", prompt: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const h = c.harness;
+  d.onEvent?.({ type: "attendant-start", harness: h.id, ...(routed ? { seat: c.seat } : {}) });
   const r = await h.run({
     prompt,
     cwd,
     access,
     timeoutMs: d.config.limits.agentTimeout,
     stallMs: d.config.limits.stallTimeout,
-    model: s.model,
-    effort: s.effort,
+    model: c.model,
+    effort: c.effort,
     signal: d.signal,
     onEvent: (event) => d.onEvent?.({ type: "agent", role: "attendant", event }),
   });
-  d.onEvent?.({ type: "attendant-done", ok: r.ok, error: r.ok ? undefined : r.error });
+  // A seat at its usage limit pauses (with the seats that share it); the next job takes another.
+  if (!r.ok && r.failure === "quota") c.limit(r.error ?? "quota");
+  d.onEvent?.({ type: "attendant-done", ok: r.ok, error: r.ok ? undefined : r.failure === "quota" ? `quota: ${r.error ?? ""}` : r.error });
   return r.ok ? { ok: true, text: r.text } : { ok: false, error: `${r.failure}: ${r.error ?? ""}` };
 }
 
@@ -178,9 +181,15 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   if (mode !== "dry-run" && !settled(items, now, d.config.attend.quiet)) return { kind: "waiting", reason: "settling" };
 
   const limits = pickLimits(d.config, d.quota);
-  const pick = s.fix ? await pickWriter(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits) : await pickReviewer(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits);
+  // [roles] routes the attendant through seats, unless this repository names its own harness.
+  const seats = s.harness ? undefined : d.seats?.picker("attend", { write: s.fix });
+  const taken = seats ? await seats([]) : undefined;
+  if (taken && isPickError(taken)) return { kind: "harness", error: taken };
+  const pick = taken ? taken.harness : s.fix ? await pickWriter(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits) : await pickReviewer(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits);
   if (isPickError(pick)) return { kind: "harness", error: pick };
   const harness = pick;
+  const routed = !!taken;
+  const seat = taken ?? fixedSeatChoice(harness, d.config);
 
   const attendId = mode === "dry-run" ? undefined : d.store.startAttend({ repo: repo.id, number, title: pr.title, url: pr.url, headSha: pr.headSha });
   let worktree: string | undefined;
@@ -228,7 +237,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     const { language } = languageFor(repo, d);
     const access = s.fix ? "write" : "read";
     const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR };
-    const first = await runAgent(harness, d, worktree, access, attendPrompt(base));
+    const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base));
     if (!first.ok) throw new Error(first.error);
     let parsed = parseAttendOutput(extractJson(first.text), items);
     if (!parsed) throw new Error("parse: the answer wasn't valid JSON");
@@ -241,7 +250,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       const failed = validation.find((v) => !v.ok);
       if (failed) {
         // One more try with the failure in hand; then it's yours to look at.
-        const second = await runAgent(harness, d, worktree, access, attendPrompt({ ...base, failedCheck: `$ ${failed.command}\n${failed.output}` }));
+        const second = await runAgent(seat, routed, d, worktree, access, attendPrompt({ ...base, failedCheck: `$ ${failed.command}\n${failed.output}` }));
         if (second.ok) parsed = parseAttendOutput(extractJson(second.text), items) ?? parsed;
         changed = await changedPaths(worktree);
         validation = await runChecks(s.validate, worktree, d.config.attend.validateTimeout);
@@ -317,6 +326,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     }
     if (worktree && mirror) await removeWorktree(mirror, worktree).catch(() => {});
     return { kind: "failed", attendId, error };
+  } finally {
+    seat.done();
   }
 }
 

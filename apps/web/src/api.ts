@@ -120,6 +120,27 @@ export interface Repo {
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean };
 }
 
+export type TeamRole = "review" | "verify" | "attend";
+
+export interface TeamView {
+  roles: { role: TeamRole; seats: string[]; balance: "order" | "spread" | "cheapest"; configured: boolean }[];
+  seats: {
+    id: string;
+    harness: string;
+    model?: string;
+    effort?: string;
+    dailyRuns?: number;
+    named: boolean;
+    runsToday: number;
+    pausedUntil?: number;
+    reason?: string;
+    roles: TeamRole[];
+    working: { role: string; repo: string; number: number }[];
+  }[];
+  configPath?: string;
+  auto: boolean;
+}
+
 export interface Preview {
   link: string;
   org: boolean;

@@ -1,5 +1,5 @@
 import { arch, platform } from "node:os";
-import { registryFor, reviewable, serviceEnvironment, serviceSpec } from "@crewreview/engine";
+import { registryFor, reviewable, seatSpec, serviceEnvironment, serviceSpec } from "@crewreview/engine";
 import { signedInHosts } from "@crewreview/hosts";
 import { runConformance, runProcess, which, type SignIn } from "@crewreview/harness";
 import { conformanceStore, table, type Ctx } from "../ctx.ts";
@@ -71,6 +71,24 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
   table(c, [t.t("doctor.col.harness"), t.t("doctor.col.status"), t.t("doctor.col.version"), t.t("doctor.col.readOnly"), t.t("doctor.col.write"), t.t("doctor.col.cost"), t.t("doctor.col.login"), t.t("doctor.col.service")], rows);
   for (const hint of hints) c.out(`  ${st.yellow("!")} ${hint}`);
   c.out();
+  // The jobs [roles] routes through seats, and seats whose harness isn't here.
+  const routed = (["review", "verify", "attend"] as const).filter((r) => c.config.roles[r]);
+  if (routed.length) {
+    c.out(st.bold(t.t("doctor.team")));
+    for (const role of routed) {
+      const route = c.config.roles[role]!;
+      const seats = route.seats.map((id) => {
+        const s = seatSpec(c.config, id);
+        return `${id} (${[s.harness, s.model, s.effort].filter(Boolean).join(" · ")})`;
+      });
+      c.out(`  ${role.padEnd(8)} ${seats.join(" → ")}${route.seats.length > 1 ? st.dim(`  ${route.balance}`) : ""}`);
+    }
+    for (const id of new Set(routed.flatMap((r) => c.config.roles[r]!.seats))) {
+      const h = registry.get(seatSpec(c.config, id).harness);
+      if (!h || !(await h.detect()).installed) c.out(`  ${st.yellow("!")} ${t.t("doctor.seatMissing", { seat: id, harness: seatSpec(c.config, id).harness })}`);
+    }
+    c.out();
+  }
   c.out(st.bold(t.t("doctor.hosts")));
   // The hosts each CLI holds a working login for. `glab auth status` fails when any configured host does (gitlab.com
   // with no login, say), so its exit code alone called a company GitLab login "not signed in".

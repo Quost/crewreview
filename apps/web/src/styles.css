@@ -1025,3 +1025,42 @@ tr:last-child td {
 .token-form input[type="password"] {
   font-family: var(--mono, ui-monospace, monospace);
 }
+
+/* The Team page: one card per seat, a small avatar that shows when it's working or paused. */
+.team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.team .member p {
+  margin: 6px 0;
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 10px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 2px solid var(--border);
+}
+.avatar.busy {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.avatar.paused {
+  border-color: var(--warn, #c98a00);
+}
+pre.code {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  white-space: pre;
+}

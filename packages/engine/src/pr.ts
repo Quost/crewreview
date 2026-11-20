@@ -8,6 +8,7 @@ import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { diffText, mergeBase, resolveRef } from "./git.ts";
 import { isPickError, pickReviewer, type PickError } from "./harnesses.ts";
+import type { SeatBook } from "./seats.ts";
 import { pickLimits, watchQuota, type QuotaBook } from "./quota.ts";
 import { BUILTIN_LENS_IDS, loadLenses } from "./lenses.ts";
 import { fetchPull, isAncestor } from "./mirror.ts";
@@ -33,6 +34,8 @@ export interface PrDeps {
   onJobEvent?: (job: JobRef, e: ReviewEvent) => void;
   /** Usage limits: paused harnesses and today's agent runs. */
   quota?: QuotaBook;
+  /** Hands out seats when [roles] names a job (docs/plans/crew-mode.md). */
+  seats?: SeatBook;
 }
 
 export interface JobRef {
@@ -120,11 +123,17 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
   }
 
   const limits = pickLimits(d.config, d.quota);
-  const harness = await pickReviewer(d.registry, repo.review.harness ?? d.config.harness.default, d.conformance, limits);
+  // [roles] routes the lenses and the verifier through seats, unless this repository names its own harness.
+  const seats = repo.review.harness ? undefined : d.seats;
+  const routedReview = await seats?.available("review");
+  const harness = routedReview ?? (await pickReviewer(d.registry, repo.review.harness ?? d.config.harness.default, d.conformance, limits));
   if (isPickError(harness)) return { kind: "harness", error: harness };
   const verifierId = repo.review.verifier ?? d.config.harness.verifier;
-  const verifier = verifierId ? await pickReviewer(d.registry, verifierId, d.conformance, { ...limits, budget: undefined }) : harness;
+  const routedVerify = repo.review.verifier ? undefined : await seats?.available("verify");
+  const verifier = routedVerify ?? (verifierId ? await pickReviewer(d.registry, verifierId, d.conformance, { ...limits, budget: undefined }) : harness);
   if (isPickError(verifier)) return { kind: "harness", error: verifier };
+  const lensSeats = routedReview ? seats?.picker("review") : undefined;
+  const verifySeats = routedVerify ? seats?.picker("verify") : undefined;
 
   const reviewId = mode === "dry-run" ? undefined : d.store.start({ repo: repo.id, number, title: pr.title, url: pr.url, headSha: pr.headSha });
   // An older review still waiting in the inbox describes code that's gone.
@@ -173,6 +182,8 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
         jobDir: join(d.dirs.state, "runs", `${repo.id}-${number}-${stamp}`),
         lenses,
         partial: false,
+        lensSeats,
+        verifySeats,
         harness,
         verifier,
         config: d.config,

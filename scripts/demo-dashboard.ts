@@ -159,6 +159,20 @@ const crew = {
           applied: ids.filter((id) => id !== "acme-api"),
         },
   signInStatus: () => ({ state: "idle" }),
+  team: () => ({
+    roles: [
+      { role: "review", seats: ["fast", "sonnet"], balance: "spread", configured: true },
+      { role: "verify", seats: ["opus"], balance: "order", configured: true },
+      { role: "attend", seats: ["sonnet", "fast"], balance: "order", configured: true },
+    ],
+    seats: [
+      { id: "fast", harness: "codex", model: "gpt-6.1-sol", effort: "low", dailyRuns: 40, named: true, runsToday: 18, roles: ["review", "attend"], working: [{ role: "security", repo: "acme/shop", number: 142 }, { role: "attendant", repo: "acme/api", number: 87 }] },
+      { id: "sonnet", harness: "claude", model: "claude-sonnet-5-5", effort: "medium", named: true, runsToday: 11, roles: ["review", "attend"], working: [{ role: "correctness", repo: "acme/shop", number: 142 }] },
+      { id: "opus", harness: "claude", model: "claude-opus-5-5", effort: "high", named: true, runsToday: 5, pausedUntil: now + 2 * 3_600_000, reason: "5-hour limit reached", roles: ["verify"], working: [] },
+    ],
+    configPath: "~/.config/crewreview/config.toml",
+    auto: false,
+  }),
   hosts: async () => [
     { kind: "github", host: "github.com", source: "gh", user: "ana" },
     { kind: "gitlab", host: "gitlab.com" },

@@ -13,6 +13,9 @@ interface QuotaFile {
   day: string;
   runs: Record<string, number>;
   paused: Record<string, { until: number; reason: string }>;
+  /** The same per seat (docs/plans/crew-mode.md). Seat runs are also in `runs` under their harness. */
+  seatRuns?: Record<string, number>;
+  seatPaused?: Record<string, { until: number; reason: string }>;
 }
 
 export interface Paused {
@@ -46,7 +49,7 @@ export class QuotaBook {
     try {
       f = { ...f, ...JSON.parse(readFileSync(this.file, "utf8")) };
     } catch {}
-    if (f.day !== today) f = { ...f, day: today, runs: {} };
+    if (f.day !== today) f = { ...f, day: today, runs: {}, seatRuns: {} };
     return f;
   }
 
@@ -83,17 +86,51 @@ export class QuotaBook {
     this.write(f);
   }
 
+  /** When this seat can be used again, if it is paused now. */
+  seatPausedUntil(seat: string): number | undefined {
+    const p = this.read().seatPaused?.[seat];
+    return p && p.until > this.now() ? p.until : undefined;
+  }
+
+  pauseSeat(seat: string, until: number, reason: string): void {
+    const f = this.read();
+    f.seatPaused = { ...f.seatPaused, [seat]: { until, reason: reason.slice(0, 300) } };
+    this.write(f);
+  }
+
+  resumeSeat(seat: string): void {
+    const f = this.read();
+    if (!f.seatPaused?.[seat]) return;
+    delete f.seatPaused[seat];
+    this.write(f);
+  }
+
+  /** A run on a seat: it counts for the seat and, under its harness, for the day. */
+  countSeatRun(seat: string, harness: string): void {
+    const f = this.read();
+    f.seatRuns = { ...f.seatRuns, [seat]: (f.seatRuns?.[seat] ?? 0) + 1 };
+    f.runs[harness] = (f.runs[harness] ?? 0) + 1;
+    this.write(f);
+  }
+
+  seatRunsToday(seat: string): number {
+    return this.read().seatRuns?.[seat] ?? 0;
+  }
+
   runsToday(): number {
     return Object.values(this.read().runs).reduce((a, b) => a + b, 0);
   }
 
-  status(): { runsToday: number; runs: Record<string, number>; paused: Paused[] } {
+  status(): { runsToday: number; runs: Record<string, number>; paused: Paused[]; seatRuns: Record<string, number>; seatsPaused: { seat: string; until: number; reason: string }[] } {
     const f = this.read();
     const now = this.now();
     const paused = Object.entries(f.paused)
       .filter(([, p]) => p.until > now)
       .map(([harness, p]) => ({ harness, ...p }));
-    return { runsToday: Object.values(f.runs).reduce((a, b) => a + b, 0), runs: f.runs, paused };
+    const seatsPaused = Object.entries(f.seatPaused ?? {})
+      .filter(([, p]) => p.until > now)
+      .map(([seat, p]) => ({ seat, ...p }));
+    return { runsToday: Object.values(f.runs).reduce((a, b) => a + b, 0), runs: f.runs, paused, seatRuns: f.seatRuns ?? {}, seatsPaused };
   }
 }
 
@@ -112,11 +149,12 @@ export function watchQuota(book: QuotaBook | undefined, onEvent?: (e: ReviewEven
     if (isQuota(error)) book.pause(harness, quotaResetAt(error!, now()) ?? now() + DEFAULT_PAUSE_MS, error!);
     else if (ok) book.resume(harness);
   };
+  // Runs on a seat are counted and paused by the seat book that hands the seat out; this keeps to the others.
   return (e) => {
-    if (e.type === "lens-start") book.countRun(e.harness);
-    else if (e.type === "verifier-start") book.countRun((verifier = e.harness));
-    else if (e.type === "attendant-start") book.countRun((attendant = e.harness));
-    else if (e.type === "lens-done") ended(e.result.harness, e.result.status === "ok", e.result.error);
+    if (e.type === "lens-start") e.seat ? undefined : book.countRun(e.harness);
+    else if (e.type === "verifier-start") (verifier = e.seat ? undefined : e.harness) && book.countRun(e.harness);
+    else if (e.type === "attendant-start") (attendant = e.seat ? undefined : e.harness) && book.countRun(e.harness);
+    else if (e.type === "lens-done") e.result.seat ? undefined : ended(e.result.harness, e.result.status === "ok", e.result.error);
     else if (e.type === "verifier-done") ended(verifier, e.ok, e.error);
     else if (e.type === "attendant-done") ended(attendant, e.ok, e.error);
     onEvent?.(e);

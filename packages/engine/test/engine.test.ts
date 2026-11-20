@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Harness, RunRequest, RunResult } from "@crewreview/harness";
-import { appDirs, git, loadLenses, localTarget, parseConfig, parseDuration, runReview, type Lens } from "../src/index.ts";
+import { appDirs, git, loadLenses, localTarget, parseConfig, parseDuration, QuotaBook, runReview, SeatBook, type ConformanceStore, type Lens } from "../src/index.ts";
 
 let repo: string;
 let home: string;
@@ -154,6 +154,27 @@ describe("review pipeline", () => {
     await expect(
       runReview({ target, jobDir: join(home, "job3"), lenses, partial: false, harness: none, config: parseConfig({}), language: "English", policy: parseConfig({}).review.policy }, "test"),
     ).rejects.toThrow("all-lenses-failed");
+  }, 60_000);
+
+  test("with seats, a lens that hits its usage limit goes on the next seat, with that seat's model and effort", async () => {
+    const target = await localTarget({ cwd: repo });
+    const lenses = (await loadLenses(target.root, target.rulesRef)).filter((l) => ["correctness", "security"].includes(l.id));
+    const asked: string[] = [];
+    const limited = { ...fakeHarness(() => ""), id: "claude", run: async (): Promise<RunResult> => ({ ok: false, text: "", exitCode: 1, durationMs: 1, failure: "quota", error: "5-hour limit reached ∙ resets 3pm" }) };
+    const fine = fakeHarness((req) => (asked.push(`${req.model}/${req.effort}`), req.prompt.includes("You are the verifier") ? JSON.stringify({ decisions: [] }) : JSON.stringify({ findings: [] })));
+    const codex = { ...fine, id: "codex" };
+    const config = parseConfig({ seats: { opus: { harness: "claude", model: "claude-opus-5-5" }, fast: { harness: "codex", model: "gpt-6.1-sol", effort: "low" } }, roles: { review: ["opus", "fast"] } });
+    const book = new QuotaBook(join(home, "seats-quota.json"));
+    const store = { get: async () => undefined } as unknown as ConformanceStore;
+    const seats = new SeatBook(config, new Map<string, Harness>([["claude", limited], ["codex", codex]]), store, book);
+    const r = await runReview({ target, jobDir: join(home, "job-seats"), lenses, partial: false, harness: limited, lensSeats: seats.picker("review"), verifySeats: seats.picker("verify"), config, language: "English", policy: config.review.policy }, "test");
+    expect(r.lenses.map((l) => [l.lens, l.status, l.seat, l.model]).sort()).toEqual([
+      ["correctness", "ok", "fast", "gpt-6.1-sol"],
+      ["security", "ok", "fast", "gpt-6.1-sol"],
+    ]);
+    expect(asked.every((a) => a === "gpt-6.1-sol/low")).toBe(true);
+    expect(book.seatPausedUntil("opus")).toBeGreaterThan(Date.now());
+    expect(book.seatRunsToday("fast")).toBe(2);
   }, 60_000);
 
   test("uncommitted changes are reviewed from a stash commit, leaving the work tree alone", async () => {

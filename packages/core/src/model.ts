@@ -68,6 +68,9 @@ export interface Usage {
 export interface LensResult {
   lens: string;
   harness: string;
+  /** The seat that ran it, when the review job routes through seats. */
+  seat?: string;
+  model?: string;
   status: LensStatus;
   findings: Finding[];
   coverage: "full" | "partial";

@@ -4,6 +4,15 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- Seats and roles, the first part of crew mode ([plan](docs/plans/crew-mode.md)). A seat is an agent with a model and an effort (`[seats] fast = { harness = "codex", model = "…", effort = "low" }`). `[roles]` says which seats review, verify and answer reviews, and how they share the work: `order` (the next takes over when one is paused or out of runs), `spread` (each plan used evenly, lenses running at once land on different seats) or `cheapest`. A lens or verifier that hits its usage limit carries on at once on the next seat, and the seat pauses until its limit resets, with any other seat on the same harness and model. Seats can have their own `dailyRuns`. Without `[roles]` nothing changes.
+- A Team page in the dashboard: each seat as a member of the crew, with its jobs, model and effort, what it's doing now, today's runs and its pause; the jobs and how they share their seats; and how to set it up. `doctor` lists the jobs and their seats, and warns about a seat whose harness isn't installed. The terminal shows which seat ran each lens.
+
+### Fixed
+
+- An attendant run that hit its usage limit didn't pause its harness, so the next cycle tried it again.
+
 ## 0.11.0 — 2026-11-20
 
 A second account on GitLab with one pasted token, and every first-run flow walked through and fixed.

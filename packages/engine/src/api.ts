@@ -178,6 +178,7 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const r = await crew.updateSettings({ values: b.values && typeof b.values === "object" ? b.values : undefined, autostart: b.autostart });
       return "error" in r ? json(r, r.error === "not-desktop" ? 409 : 400) : json(r);
     }
+    if (p === "/api/team" && m === "GET") return json(crew.team());
     if (p === "/api/limits" && m === "GET") return json({ ...crew.limits(), usageToday: await crew.usageToday() });
     return json({ error: "not-found" }, 404);
   }
