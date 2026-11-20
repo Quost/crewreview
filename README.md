@@ -1,67 +1,168 @@
-<div align="center">
+<p align="center">
+  <img src="assets/icon.png" width="104" alt="Crewreview icon">
+</p>
 
-# Crewreview
+<h1 align="center">Crewreview</h1>
 
-**A crew of AI agents that reviews your pull requests and answers the reviews on yours.**
+<p align="center">
+  <b>A crew of AI agents that reviews your team's pull requests and answers the reviews on yours.</b><br>
+  Runs on your computer with the coding agents you already pay for: Claude Code, Codex, Kiro or any ACP agent.<br>
+  GitHub and GitLab, cloud or self-managed. Free and open source. No server, no account, no telemetry.
+</p>
 
-Runs on your machine, with the coding agents you already use: Claude Code, Codex, Kiro, any [ACP](https://agentclientprotocol.com) agent, or any CLI you describe.
+<p align="center">
+  <a href="https://github.com/Quost/crewreview/releases/latest"><img src="https://img.shields.io/github/v/release/Quost/crewreview?style=flat-square&color=4f46e5&label=download" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-111?style=flat-square" alt="macOS, Windows, Linux">
+  <a href="https://github.com/Quost/crewreview/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Quost/crewreview/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Quost/crewreview?style=flat-square&color=2ea44f" alt="AGPL-3.0 license"></a>
+  <a href="https://github.com/Quost/crewreview/stargazers"><img src="https://img.shields.io/github/stars/Quost/crewreview?style=flat-square&color=f5c518" alt="Stars"></a>
+</p>
 
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-![Status](https://img.shields.io/badge/status-pre--alpha-orange)
-![Platforms](https://img.shields.io/badge/macOS%20·%20Linux%20·%20Windows-lightgrey)
+<p align="center">
+  <a href="https://crewreview.web.app/?ref=github"><b>Website</b></a> ·
+  <a href="#install"><b>Download</b></a> ·
+  <a href="https://crewreview.web.app/llms.txt"><b>Guide for AI agents</b></a> ·
+  <a href="https://github.com/sponsors/Quost"><b>Sponsor</b></a>
+</p>
 
-</div>
-
-> **Status: pre-alpha.** Local review, pull request review, the attendant that answers the reviews on your own pull requests, the dashboard, the background service and signed updates work today, on GitHub and GitLab. The desktop app and the website come next; see the [roadmap](docs/ROADMAP.md).
-
-## What it does
-
-- **Reviewer.** Several read-only lenses look at a change in parallel: correctness, security, architecture, tests and UI. A verifier then tries to refute each finding, and a fixed rule (not a model) decides the verdict. Findings that don't point at a real `file:line` are dropped.
-- **Attendant.** On your own pull requests, it reads new review comments, fixes what it should in an isolated worktree, replies, resolves the thread and asks for a re-review. The agent never holds your git host token: Crewreview does the committing, pushing and posting.
-- **Crew view.** A dashboard to watch every agent live, approve what waits in the inbox, link repositories and switch automations on or off, and see limits and costs.
-
-Everything runs locally. No server, no account, no telemetry.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="site/static/shots/en/now-dark.webp">
+    <img src="site/static/shots/en/now-light.webp" width="860" alt="The Crewreview dashboard: four agents reviewing a pull request, the attendant fixing another, and the activity log">
+  </picture>
+</p>
 
 ## Install
 
-```bash
-curl -fsSL https://crewreview.web.app/install.sh | sh          # macOS, Linux
-brew install Quost/crewreview/crewreview                       # or Homebrew
-irm https://crewreview.web.app/install.ps1 | iex               # Windows (or: scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview)
-```
+**The desktop app** is the easiest way: the dashboard in its own window, the inbox count in your menu bar or tray, a notification when something waits for you, and updates by itself.
 
-The installers check the binary against the release's `SHA256SUMS`, and its signature too when `minisign` is installed. Builds are reproducible: the same commit and Bun version give the same bytes.
+| System | Download |
+|---|---|
+| macOS (Apple silicon) | [Crewreview-macos-arm64.dmg](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-arm64.dmg) |
+| macOS (Intel) | [Crewreview-macos-x64.dmg](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-macos-x64.dmg) |
+| Windows 10+ (x64, and Arm through emulation) | [Crewreview-windows-x64-setup.exe](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-windows-x64-setup.exe) |
+| Linux x64 | [AppImage](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.AppImage) · [.deb](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.deb) · [.rpm](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-x64.rpm) |
+| Linux arm64 | [AppImage](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.AppImage) · [.deb](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.deb) · [.rpm](https://github.com/Quost/crewreview/releases/latest/download/Crewreview-linux-arm64.rpm) |
 
-**Desktop app** (from 0.3): download it from the [site](https://crewreview.web.app/#start) or the [latest release](https://github.com/Quost/crewreview/releases/latest): a notarized `.dmg` for macOS (Apple silicon or Intel), an installer for Windows, and an AppImage, `.deb` or `.rpm` for Linux. It shows the dashboard in a window, the inbox count in the menu bar or tray, notifies you when something waits for your approval and updates itself. It runs the crew it carries, or shows the one your service already runs. See [apps/desktop](apps/desktop/README.md).
+The macOS app is signed and notarized. Windows may warn about an unknown publisher the first time: choose **More info**, then **Run anyway**.
 
-## Try it
-
-You need [Bun](https://bun.sh) 1.3+, git, and at least one harness: [Claude Code](https://claude.com/claude-code), [Codex CLI](https://github.com/openai/codex) or [Kiro CLI](https://kiro.dev).
-
-```bash
-git clone https://github.com/Quost/crewreview
-cd crewreview
-bun install
-bun run dev doctor                 # what's installed and what each harness can do
-bun run dev doctor --conformance   # prove the read-only lock with a real run (two tiny prompts each)
-```
-
-Then, inside any git repository, on a branch:
+**The command line** (`crewreview`), for terminals and servers:
 
 ```bash
-bun /path/to/crewreview/apps/cli/src/main.ts local
+curl -fsSL https://crewreview.web.app/install.sh | sh     # macOS, Linux
+brew install Quost/crewreview/crewreview                  # or Homebrew
 ```
 
-Useful options: `--base origin/develop`, `--uncommitted`, `--harness codex`, `--verifier-harness claude` (a second vendor checks the first), `--lens security`, `--lang pt-BR`, `--json`.
+```powershell
+irm https://crewreview.web.app/install.ps1 | iex          # Windows (or Scoop: see below)
+```
 
-Or download a binary from [Releases](https://github.com/Quost/crewreview/releases) (macOS, Linux and Windows). Each release's `SHA256SUMS` is signed with the [release key](docs/release-key.pub):
+<details>
+<summary><b>Let your AI assistant set it up</b>: a prompt for Claude Code, Codex or any agent</summary>
+
+Paste this into your coding agent. It installs Crewreview, checks your setup, asks which repositories to watch and links them in inbox mode, so nothing is posted without you.
+
+```text
+Set up Crewreview for me. It's a free, open source crew of AI agents that reviews pull requests and answers the reviews on mine: https://github.com/Quost/crewreview. Its guide for agents: https://crewreview.web.app/llms.txt
+
+1. Install the command line tool:
+   - macOS or Linux: curl -fsSL https://crewreview.web.app/install.sh | sh (with Homebrew: brew install Quost/crewreview/crewreview)
+   - Windows, in PowerShell: irm https://crewreview.web.app/install.ps1 | iex
+2. Run crewreview doctor. It needs git, at least one coding agent signed in (Claude Code, Codex or Kiro) and gh (GitHub) or glab (GitLab) signed in. If something is missing, tell me how to fix it and wait for me.
+3. Ask me which repositories Crewreview should watch. Link each one in inbox mode, so nothing is posted without my approval: crewreview repo add <repository URL> --attend inbox
+4. Keep it running and open the dashboard: crewreview service install, then crewreview ui
+5. Add Crewreview to the coding agents I use: crewreview mcp setup shows how for each one. In Claude Code: /plugin marketplace add Quost/crewreview, then /plugin install crewreview@crewreview
+
+Explain each command before you run it. Never switch a repository to auto mode unless I ask.
+```
+
+</details>
+
+<details>
+<summary>Scoop, checksums and signatures</summary>
+
+```powershell
+scoop bucket add crewreview https://github.com/Quost/crewreview
+scoop install crewreview/crewreview
+```
+
+The installers check each download against the release's `SHA256SUMS`, and its signature too when `minisign` is installed. To check by hand:
 
 ```bash
 minisign -Vm SHA256SUMS -P RWTk8l0TkAFZQOxVkYWEHrU6Nj+j1UTCGOMps627c4qsvaX3fvRFzhpx
 shasum -a 256 -c SHA256SUMS --ignore-missing
 ```
 
-The binaries aren't notarized or code-signed yet (that comes with the desktop app), so macOS and Windows may warn the first time you open one.
+Builds are reproducible: the same commit and Bun version give the same bytes.
+
+</details>
+
+You'll need git, at least one coding agent signed in (Claude Code, Codex or Kiro) and `gh` or `glab` signed in. Then:
+
+```bash
+crewreview doctor                                      # what's installed and what each harness can do
+crewreview repo add https://github.com/acme/shop       # starts in inbox mode: nothing is posted without you
+crewreview ui                                          # open the dashboard
+```
+
+The app and the command line are the same crew and share their settings: the app carries the command line inside it, and shows the crew your background service runs if there is one. Only one crew runs per computer.
+
+## What it does
+
+### 🔍 Reviews your teammates' pull requests
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="site/static/shots/en/inbox-dark.webp">
+    <img src="site/static/shots/en/inbox-light.webp" width="760" alt="A review in the inbox: a blocker, a major and a minor finding, each with its file and line">
+  </picture>
+</p>
+
+Several read-only lenses look at the change in parallel: correctness, security, architecture, tests and UI, plus any your repository adds. A verifier, from another vendor if you like, tries to prove each finding wrong. Findings that don't point at a real file and line are dropped, and a fixed rule (not a model) decides the verdict: request changes, comment or approve. It reads the description, the discussion so far, CI and what changed since its last review, and never repeats a point already made. One review, with inline comments, from your account.
+
+### 🛠️ Answers the reviews on yours
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="site/static/shots/en/fix-dark.webp">
+    <img src="site/static/shots/en/fix-light.webp" width="760" alt="The attendant's answer: two comments fixed, one replied, the checks that passed and the diff">
+  </picture>
+</p>
+
+On your own pull requests, the attendant reads each new review comment and decides: fixed, replied, declined, or left to you. It works in its own worktree (never in your clone), runs your checks, commits with your identity and signature, pushes without force, replies, resolves the threads it fixed and asks the reviewer to look again. The **polish loop** goes further: review, fix, review again, before you ask a person.
+
+### 👀 Shows you everything, and waits for you
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="site/static/shots/en/repos-dark.webp">
+    <img src="site/static/shots/en/repos-light.webp" width="760" alt="Repositories: for each one, review and the attendant switched off, inbox or auto">
+  </picture>
+</p>
+
+Every repository starts in **inbox** mode: reviews and answers wait for your approval in the dashboard or with `crewreview inbox`. Switch each one to **auto** when you trust it, one repository at a time. The dashboard shows every agent at work live, the inbox, history, and which harnesses are installed and proven safe, with today's usage. Five languages (English, Português, Español, Deutsch, 简体中文), light or dark.
+
+## Use it with your team
+
+- **Your team's rules live in the repository.** `.crewreview/lenses/<lens>.md` replaces a built-in lens or adds one, and the crew follows `AGENTS.md`, `CLAUDE.md` and `CONTRIBUTING.md`. All are read from the base branch, so a pull request can't change the rules it's judged by.
+- **Everyone brings their own agent.** Each developer runs the crew with the coding agent plan they already have; reviews post from their own account. No seats, no shared API key, no server.
+- **No duplicate reviews.** When several people run it on the same repository, a commit that already has a Crewreview review on the host is skipped, whoever's crew wrote it.
+- **GitHub and GitLab, cloud or self-managed**, with the `gh` or `glab` login you already have.
+- **Comments in your team's language**, set per repository (`commentLanguage`), whatever language each person's dashboard is in.
+- **Inbox first, auto when you trust it.** Nothing is posted or pushed without approval until you switch a repository to auto.
+
+## Safe by design
+
+Pull request text is written by others, and agents can be talked into things. Crewreview assumes both.
+
+- **Read-only, proven.** Reviewers can't write or run commands. `crewreview doctor --conformance` proves it on your machine with a canary, per harness version; the attendant must also prove it can't write outside its worktree.
+- **No tokens for agents.** Your git host token stays with Crewreview, and agents get a filtered environment. Crewreview does the committing, pushing and posting.
+- **Only trusted voices.** Only people who can push to the repository (and bots you list) steer the attendant.
+- **Sensitive files wait.** Changes to CI, secrets, deployment or the crew's own rules always wait for your approval, even in auto mode.
+- **Nothing leaves but to your harness.** No server, no account, no telemetry.
+- **Signed updates.** Updates install only with a valid signature from the release key built into your binary; the desktop app refuses an update whose signature names another version.
+
+## Using the command line
 
 ### Review pull requests
 
@@ -74,6 +175,7 @@ crewreview review acme-shop 42                               # review one pull r
 crewreview inbox                                             # what's waiting for you
 crewreview inbox approve 3                                   # post it
 crewreview run                                               # keep watching every linked repository
+crewreview local                                             # review the current branch on this machine; nothing is posted
 ```
 
 What it does for each pull request:
@@ -197,9 +299,27 @@ allowApprove = false
 
 A repository can tune its own review in `.crewreview/lenses/<lens>.md`: a file named like a built-in lens replaces its rubric, and any other file adds a lens.
 
+## Build from source
+
+You need [Bun](https://bun.sh) 1.3+ and git; the desktop app also needs Rust.
+
+```bash
+git clone https://github.com/Quost/crewreview && cd crewreview
+bun install
+bun run dev doctor            # the CLI from source
+bun run build                 # a binary for this machine in dist/
+bun run check                 # typecheck, tests, translations, changelog
+```
+
+`bun scripts/demo-dashboard.ts` serves the dashboard with made-up data, and `bun scripts/screenshots.ts` takes the pictures on this page and the website from it. [AGENTS.md](AGENTS.md) has the rest, for people and coding agents alike.
+
 ## Contributing
 
 Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Every commit needs a `Signed-off-by` line ([DCO](https://developercertificate.org)).
+
+## Sponsor
+
+Crewreview is free and open source, made by one developer. If it saves your team review time, [sponsoring it](https://github.com/sponsors/Quost) pays for new hosts, harnesses and features.
 
 ## License
 
