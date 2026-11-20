@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.8.0 — 2026-11-20
+
+A first contact that looks the part: a disk image that says what to do, a native app icon, and the next steps on the website right after the download.
+
 ### Changed
 
 - The macOS disk image says what to do: "Drag Crewreview into Applications", an arrow from the app to the Applications folder, and a sharp background on Retina screens. The icon labels stay readable in light and dark mode, and hidden files stay out of view even when Finder shows them. The image is now built with dmgbuild, which writes the layout into it, because Tauri's skipped its layout on CI.
