@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.9.0 — 2026-11-20
+
+Run it from the app: settings, open at login, pausing repositories, and approvals from the menu bar.
+
 ### Added
 
 - Settings in the app: everything under Limits and schedule is now a form (how often to check, peak hours, reviews and answers per check, keep-awake, agents at once, runs per day, time limits, the agent for reviews and the verifier, waits after a push or new comments, automatic approvals, update checks). Saving changes only those lines of config.toml, your comments included, and the crew uses the new values at once.
