@@ -180,6 +180,45 @@ footer a{color:var(--muted)}
 @media (max-width:1180px){.float{right:-12px}}
 @media (max-width:900px){.float{position:static;width:auto;margin:16px 0 0}.row,.row.flip{grid-template-columns:minmax(0,1fr);gap:28px}.row.flip > :first-child{order:0}.grid3{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}.harness{grid-template-columns:repeat(2,minmax(0,1fr))}.top nav a.hide-sm{display:none}.hero{padding-top:48px}}
 @media (max-width:520px){.cmd code{font-size:.8rem}.install{padding:16px}.install .tabs{width:100%}.install .tabs button{flex:1;padding:7px 8px}.copy{min-width:0;padding:7px 10px}.ai{flex-direction:column;align-items:stretch}.dl-btn{width:100%;justify-content:center}.top nav{gap:10px}.harness{grid-template-columns:minmax(0,1fr)}.bar span{margin-right:0}.stage{margin-top:40px}}
+/* after the download: what to do next, animated */
+dialog.next{border:0;padding:0;border-radius:22px;background:var(--surface);color:var(--text);width:min(560px,calc(100vw - 32px));box-shadow:var(--lift)}
+dialog.next::backdrop{background:rgb(12 14 30/45%);backdrop-filter:blur(3px)}
+.next-in{padding:26px 26px 22px;position:relative}
+.next-x{position:absolute;top:14px;right:14px;border:0;background:var(--surface-2);color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer}
+.next-kicker{margin:0;color:var(--ok);font-weight:650;font-size:.92rem}
+.next h3{margin:4px 0 16px;font-size:1.35rem}
+.nsteps{margin:16px 0 0;padding-left:22px;display:grid;gap:9px;color:var(--text)}
+.nsteps li::marker{color:var(--accent);font-weight:700}
+.nsteps code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:1px 6px;border-radius:6px}
+.next-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap}
+.next-foot a{color:var(--muted);font-size:.9rem}
+.next-foot form{margin:0}
+.anim{border-radius:16px;background:linear-gradient(180deg,var(--surface-2),var(--bg));border:1px solid var(--border);height:176px;position:relative;overflow:hidden}
+.mwin{position:absolute;inset:16px 34px;border-radius:12px;background:linear-gradient(180deg,#f8f8fd,#efeff7);box-shadow:0 10px 30px rgb(30 27 75/22%);overflow:hidden}
+.mbar{height:20px;display:flex;gap:6px;align-items:center;padding:0 9px;border-bottom:1px solid #e3e3ee}
+.mbar i{width:8px;height:8px;border-radius:50%;background:#ff5f57}.mbar i+i{background:#febc2e}.mbar i+i+i{background:#28c840}
+.mtray{position:absolute;left:14px;right:14px;top:30px;bottom:12px;border-radius:12px;background:linear-gradient(180deg,#7b77cd,#6d68c2)}
+.micon{position:absolute;top:50%;width:52px;height:52px;margin-top:-30px}
+.micon.app,.micon.ghost{left:16%}.micon.apps{right:16%}
+.micon.ghost{opacity:0;animation:drag 3.4s ease-in-out infinite}
+.micon.apps{animation:take 3.4s ease-in-out infinite}
+.marrow{position:absolute;top:50%;left:37%;right:37%;margin-top:-6px;border-top:3px dotted #fff;opacity:.9}
+.marrow::after{content:"";position:absolute;right:-2px;top:-8px;width:10px;height:10px;border-top:3px solid #fff;border-right:3px solid #fff;transform:rotate(45deg)}
+.mhand{position:absolute;right:-6px;bottom:-10px;width:22px;height:22px}
+@keyframes drag{0%,8%{transform:translate(0,0) scale(1);opacity:0}14%{opacity:.95;transform:translate(0,-4px) scale(1.04)}58%{transform:translate(var(--dx,170px),-4px) scale(1.04);opacity:.95}70%{transform:translate(var(--dx,170px),0) scale(.55);opacity:0}100%{opacity:0}}
+@keyframes take{0%,60%{transform:scale(1)}66%{transform:scale(1.14)}74%{transform:scale(.96)}80%,100%{transform:scale(1)}}
+.wdlg{position:absolute;inset:18px 38px;border-radius:8px;background:#0b5cad;color:#fff;padding:16px 18px;font:600 14px "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;gap:10px}
+.wdlg small{font-weight:400;opacity:.9}
+.wlink{text-decoration:underline;animation:pulse 3.4s infinite}
+.wbtn{align-self:flex-end;margin-top:auto;border:1px solid #fff;border-radius:4px;padding:5px 14px;opacity:0;animation:appear 3.4s infinite}
+@keyframes pulse{0%,10%{opacity:.75}20%,40%{opacity:1;text-shadow:0 0 10px #fff}50%,100%{opacity:.75;text-shadow:none}}
+@keyframes appear{0%,45%{opacity:0;transform:translateY(4px)}55%,85%{opacity:1;transform:none;box-shadow:0 0 0 3px rgb(255 255 255/35%)}100%{opacity:0}}
+.term{position:absolute;inset:18px 30px;border-radius:10px;background:#11131c;color:#d6d9e8;font:13px var(--mono);padding:16px;overflow:hidden}
+.term span{display:inline-block;white-space:nowrap;overflow:hidden;vertical-align:bottom;max-width:0;animation:type 4s steps(46,end) infinite}
+.term::before{content:"$ ";color:#7b77cd}
+@keyframes type{0%{max-width:0}60%,100%{max-width:46ch}}
+@media (max-width:520px){.next-in{padding:22px 18px 18px}.anim{height:150px}.mwin{inset:12px 12px}.wdlg{inset:12px 12px;padding:12px;gap:6px;font-size:12.5px}.wdlg small{display:none}.wbtn{padding:4px 10px}.term{inset:12px 12px;font-size:11px;padding:12px}}
+@media (prefers-reduced-motion:reduce){.anim *{animation:none!important}.micon.ghost{display:none}.wbtn,.term span{opacity:1;max-width:none}}
 </style>
 </head>
 <body>
@@ -407,6 +446,27 @@ footer a{color:var(--muted)}
     </div>
   </div>
 </section>
+<dialog id="next" class="next" aria-labelledby="next-title">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="ng" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5145e5"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs></svg>
+  <div class="next-in">
+    <form method="dialog"><button class="next-x" aria-label="{{next.close}}">×</button></form>
+    <p class="next-kicker">✓ {{next.started}}</p>
+    <h3 id="next-title">{{next.title}}</h3>
+    <div class="anim" data-os-show="macos" aria-hidden="true">
+      <div class="mwin"><div class="mbar"><i></i><i></i><i></i></div>
+        <div class="mtray"><span class="micon app"><svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="url(#ng)"/><path d="M15 27l7 7 15-16" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="marrow"></span><span class="micon apps"><svg viewBox="0 0 52 52"><path d="M4 13a4 4 0 0 1 4-4h12l5 5h19a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="#8fd2fb"/><path d="M4 19h44v23a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="#62bdf5"/><path d="M20 38l6-14 6 14M22.5 33h7" stroke="#2f8fd6" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></span><span class="micon ghost"><svg viewBox="0 0 52 52"><rect width="52" height="52" rx="12" fill="url(#ng)"/><path d="M15 27l7 7 15-16" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="mhand" viewBox="0 0 24 24"><path d="M5 2l14 9-6.5 1.5L16 20l-3 1.5-3.5-7.6L5 18z" fill="#fff" stroke="#141729" stroke-width="1.4" stroke-linejoin="round"/></svg></span></div>
+      </div>
+    </div>
+    <div class="anim" data-os-show="windows" aria-hidden="true">
+      <div class="wdlg"><span>{{next.winTitle}}</span><small>Crewreview-windows-x64-setup.exe</small><span class="wlink">{{next.winMore}}</span><span class="wbtn">{{next.winRun}}</span></div>
+    </div>
+    <div class="anim" data-os-show="linux" aria-hidden="true"><div class="term"><span>chmod +x Crewreview-*.AppImage &amp;&amp; ./Crewreview-*.AppImage</span></div></div>
+    <ol class="nsteps" data-os-show="macos"><li>{{next.mac1_html}}</li><li>{{next.mac2_html}}</li><li>{{next.mac3_html}}</li></ol>
+    <ol class="nsteps" data-os-show="windows"><li>{{next.win1_html}}</li><li>{{next.win2_html}}</li><li>{{next.win3_html}}</li></ol>
+    <ol class="nsteps" data-os-show="linux"><li>{{next.linux1_html}}</li><li>{{next.linux2_html}}</li><li>{{next.linux3_html}}</li></ol>
+    <div class="next-foot"><a id="next-again" href="https://github.com/Quost/crewreview/releases/latest">{{next.again}}</a><form method="dialog"><button class="btn primary">{{next.ok}}</button></form></div>
+  </div>
+</dialog>
 
 <section id="faq">
   <div class="wrap faq">
@@ -501,6 +561,22 @@ tablist([...document.querySelectorAll(".gallery [role=tab]")], (tab) => {
     for (const el of document.querySelectorAll("[data-os-show]")) el.classList.toggle("os-off", !el.dataset.osShow.split(" ").includes(os));
     for (const a of document.querySelectorAll(".get-other a")) a.classList.toggle("on", a.dataset.os === os && a.dataset.arch === arch);
   }
+  // After a download click: the next steps for that system, animated. The download itself goes on.
+  const next = $("next");
+  for (const id of ["dl-btn", "hero-dl"]) {
+    $(id).addEventListener("click", () => {
+      const href = $(id).getAttribute("href");
+      if (!href || href.startsWith("#") || !next || !next.showModal) return;
+      $("next-again").href = href;
+      // The mini window's drag distance follows its width.
+      const tray = next.querySelector(".mtray");
+      setTimeout(() => {
+        next.showModal();
+        if (tray) next.style.setProperty("--dx", Math.round(tray.clientWidth * 0.68 - 52) + "px");
+      }, 350);
+    });
+  }
+  if (next) next.addEventListener("click", (e) => { if (e.target === next) next.close(); });
   for (const a of document.querySelectorAll(".get-other a")) {
     a.addEventListener("click", (e) => { e.preventDefault(); os = a.dataset.os; arch = a.dataset.arch; known = true; render(); });
   }

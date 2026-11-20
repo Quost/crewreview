@@ -169,5 +169,22 @@
   "sponsor.button": "♥ 在 GitHub 上赞助",
   "sponsor.short": "赞助",
   "footer.license_html": "基于 <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a> 的自由软件。由 Matheus Quost 制作。",
-  "footer.releases": "版本"
+  "footer.releases": "版本",
+  "next.started": "下载已开始",
+  "next.title": "三步之后，团队就开始工作",
+  "next.mac1_html": "在“下载”文件夹中打开 <b>Crewreview.dmg</b>。",
+  "next.mac2_html": "按窗口中的提示，把 <b>Crewreview</b> 拖到<b>应用程序</b>。",
+  "next.mac3_html": "从“应用程序”打开 Crewreview。第一次打开时，macOS 会询问是否打开来自互联网的应用：选择<b>打开</b>。随后简短的设置会检查你的代理和 GitHub，并关联一个仓库。",
+  "next.win1_html": "在“下载”文件夹中运行 <b>Crewreview-windows-x64-setup.exe</b>。",
+  "next.win2_html": "如果 Windows 提示未知发布者，选择<b>更多信息</b>，然后选择<b>仍要运行</b>。",
+  "next.win3_html": "从“开始”菜单打开 Crewreview。简短的设置会检查你的代理和 GitHub，并关联一个仓库。",
+  "next.linux1_html": "让 AppImage 可执行并打开它：<code>chmod +x Crewreview-*.AppImage</code>。.deb 和 .rpm 在全部下载中。",
+  "next.linux2_html": "Crewreview 会打开并常驻托盘。",
+  "next.linux3_html": "简短的设置会检查你的代理和 GitHub，并关联一个仓库。",
+  "next.again": "没有开始？重新下载",
+  "next.ok": "知道了",
+  "next.close": "关闭",
+  "next.winTitle": "Windows 已保护你的电脑",
+  "next.winMore": "更多信息",
+  "next.winRun": "仍要运行"
 }

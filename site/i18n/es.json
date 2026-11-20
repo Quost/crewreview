@@ -169,5 +169,22 @@
   "sponsor.button": "♥ Patrocinar en GitHub",
   "sponsor.short": "Patrocinar",
   "footer.license_html": "Software libre bajo la <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>. Hecho por Matheus Quost.",
-  "footer.releases": "Versiones"
+  "footer.releases": "Versiones",
+  "next.started": "Tu descarga ha comenzado",
+  "next.title": "Tres pasos y el equipo se pone a trabajar",
+  "next.mac1_html": "Abre <b>Crewreview.dmg</b> desde tu carpeta Descargas.",
+  "next.mac2_html": "Arrastra <b>Crewreview</b> a <b>Aplicaciones</b>, como muestra la ventana.",
+  "next.mac3_html": "Abre Crewreview desde Aplicaciones. La primera vez, macOS pregunta si abrir una app de internet: elige <b>Abrir</b>. Una configuración breve comprueba tus agentes y GitHub y vincula un repositorio.",
+  "next.win1_html": "Ejecuta <b>Crewreview-windows-x64-setup.exe</b> desde tu carpeta Descargas.",
+  "next.win2_html": "Si Windows avisa de un editor desconocido, elige <b>Más información</b> y luego <b>Ejecutar de todas formas</b>.",
+  "next.win3_html": "Abre Crewreview desde el menú Inicio. Una configuración breve comprueba tus agentes y GitHub y vincula un repositorio.",
+  "next.linux1_html": "Haz ejecutable el AppImage y ábrelo: <code>chmod +x Crewreview-*.AppImage</code>. El .deb y el .rpm están en todas las descargas.",
+  "next.linux2_html": "Crewreview se abre y queda en la bandeja.",
+  "next.linux3_html": "Una configuración breve comprueba tus agentes y GitHub y vincula un repositorio.",
+  "next.again": "¿No empezó? Descargar de nuevo",
+  "next.ok": "Entendido",
+  "next.close": "Cerrar",
+  "next.winTitle": "Windows protegió su PC",
+  "next.winMore": "Más información",
+  "next.winRun": "Ejecutar de todas formas"
 }

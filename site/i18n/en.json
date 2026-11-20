@@ -169,5 +169,22 @@
   "sponsor.button": "♥ Sponsor on GitHub",
   "sponsor.short": "Sponsor",
   "footer.license_html": "Free software under the <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>. Made by Matheus Quost.",
-  "footer.releases": "Releases"
+  "footer.releases": "Releases",
+  "next.started": "Your download has started",
+  "next.title": "Three steps and the crew is at work",
+  "next.mac1_html": "Open <b>Crewreview.dmg</b> from your Downloads.",
+  "next.mac2_html": "Drag <b>Crewreview</b> into <b>Applications</b>, the way the window shows.",
+  "next.mac3_html": "Open Crewreview from Applications. The first time, macOS asks whether to open an app from the internet: choose <b>Open</b>. A short setup then checks your agents and GitHub and links a repository.",
+  "next.win1_html": "Run <b>Crewreview-windows-x64-setup.exe</b> from your Downloads.",
+  "next.win2_html": "If Windows warns about an unknown publisher, choose <b>More info</b>, then <b>Run anyway</b>.",
+  "next.win3_html": "Open Crewreview from the Start menu. A short setup checks your agents and GitHub and links a repository.",
+  "next.linux1_html": "Make the AppImage executable and open it: <code>chmod +x Crewreview-*.AppImage</code>. The .deb and .rpm are in all downloads.",
+  "next.linux2_html": "Crewreview opens and stays in the tray.",
+  "next.linux3_html": "A short setup checks your agents and GitHub and links a repository.",
+  "next.again": "Didn't start? Download again",
+  "next.ok": "Got it",
+  "next.close": "Close",
+  "next.winTitle": "Windows protected your PC",
+  "next.winMore": "More info",
+  "next.winRun": "Run anyway"
 }

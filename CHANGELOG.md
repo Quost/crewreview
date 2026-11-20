@@ -4,6 +4,12 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Changed
+
+- The macOS disk image says what to do: "Drag Crewreview into Applications", an arrow from the app to the Applications folder, and a sharp background on Retina screens. The icon labels stay readable in light and dark mode, and hidden files stay out of view even when Finder shows them. The image is now built with dmgbuild, which writes the layout into it, because Tauri's skipped its layout on CI.
+- A new app icon: transparent corners instead of white ones, and on macOS the margins and shadow of a native icon.
+- The website: right after you click download, it shows the next three steps for your system, with a short animation (dragging into Applications on macOS, the SmartScreen warning on Windows, chmod on Linux). Reduced motion is respected.
+
 ## 0.7.1 — 2026-11-20
 
 The desktop app finds your agents and your GitHub login when opened from the Dock.
