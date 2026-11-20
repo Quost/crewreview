@@ -55,6 +55,7 @@ async function fakeGh() {
 
 async function settled(s: AccountSignIn): Promise<SignInState> {
   for (let i = 0; i < 100 && s.status().state === "waiting"; i++) await Bun.sleep(50);
+  await s.settled();
   return s.status();
 }
 
@@ -86,7 +87,9 @@ describe.skipIf(process.platform === "win32")("signing a second account in to gh
     expect(await settled(refused)).toMatchObject({ state: "failed", error: "failed", detail: "error: access denied", restoredTo: "you" });
 
     expect(await gh.make({ GH_TOKEN: "x" }).start("acme-crew")).toEqual({ state: "failed", login: "acme-crew", error: "gh-token-env", detail: "GH_TOKEN" });
-    expect(await gh.make({ FAKEGH_SILENT: "1" }, 300).start("acme-crew")).toMatchObject({ state: "failed", error: "no-code" });
+    const silent = gh.make({ FAKEGH_SILENT: "1" }, 300);
+    expect(await silent.start("acme-crew")).toMatchObject({ state: "failed", error: "no-code" });
+    await silent.settled();
     expect(await gh.active()).toBe("you");
   });
 
@@ -96,7 +99,7 @@ describe.skipIf(process.platform === "win32")("signing a second account in to gh
     await s.start("acme-crew");
     s.cancel();
     expect(s.status()).toEqual({ state: "idle" });
-    await Bun.sleep(200);
+    await s.settled();
     expect(await gh.active()).toBe("you");
   });
 });

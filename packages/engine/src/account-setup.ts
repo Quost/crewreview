@@ -41,6 +41,7 @@ const lastLine = (s: string) =>
 export class AccountSignIn {
   private current: SignInState = { state: "idle" };
   private proc?: ReturnType<typeof Bun.spawn>;
+  private finished: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly ref: RepoRef,
@@ -102,9 +103,10 @@ export class AccountSignIn {
       shown(this.current);
     }, this.d.codeTimeoutMs ?? 20_000);
 
-    void (async () => {
+    this.finished = (async () => {
       const exit = await proc.exited;
-      await reading;
+      // Its output, but not forever: something gh started could keep the pipe open after it exits.
+      await Promise.race([reading, Bun.sleep(1000)]);
       clearTimeout(timer);
       // Even when cancelled: a code authorized just before would have switched gh to the second account.
       const restoredTo = await this.restore(gh, env, before);
@@ -121,8 +123,18 @@ export class AccountSignIn {
       if (who?.toLowerCase() === login.toLowerCase()) this.current = { state: "done", login: who, restoredTo };
       else this.current = { state: "failed", login, error: "wrong-account", who: /Logged in as (\S+)/.exec(text)?.[1], restoredTo };
       shown(this.current);
-    })();
+    })().catch((e) => {
+      // gh went away, or couldn't be started again: say so instead of leaving a waiting state behind.
+      if (this.proc === proc) this.proc = undefined;
+      this.current = { state: "failed", login, error: "failed", detail: e instanceof Error ? e.message.slice(0, 200) : String(e) };
+      shown(this.current);
+    });
     return ready;
+  }
+
+  /** Settles when the last sign-in is over, its account switched back. For tests and shutdown. */
+  async settled(): Promise<void> {
+    await this.finished;
   }
 
   /** The account gh uses for this host right now. */

@@ -29,14 +29,15 @@ describe("the environment of an app opened from the Dock", () => {
     expect(mergePath("/a:/b", "/usr/bin:/b", "", undefined, "/c")).toBe("/a:/b:/usr/bin:/c");
   });
 
-  test("takes the shell's PATH first, then the bare one, then the usual folders that exist", async () => {
+  // The stand-in shell is a /bin/sh script; on Windows apps already get the full PATH, so this isn't used there.
+  test.skipIf(process.platform === "win32")("takes the shell's PATH first, then the bare one, then the usual folders that exist", async () => {
     // A shell whose rc prints noise, then runs the command it was given.
     const shell = await fakeShell(`echo "motd"; PATH=/home/a/.local/bin:/opt/homebrew/bin:/usr/bin CLAUDE_CONFIG_DIR=/home/a/.claude-y GH_TOKEN=nope; export PATH CLAUDE_CONFIG_DIR GH_TOKEN; eval "$2"`);
     const env = await loginShellEnv({ shell, env: { PATH: "/usr/bin:/bin" }, home: "/home/a", exists: (d) => d === "/home/a/.bun/bin" || d === "/usr/local/bin" });
     expect(env).toEqual({ PATH: "/home/a/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/local/bin:/home/a/.bun/bin", CLAUDE_CONFIG_DIR: "/home/a/.claude-y" });
   });
 
-  test("a shell that hangs is given up on, and the usual folders still help", async () => {
+  test.skipIf(process.platform === "win32")("a shell that hangs is given up on, and the usual folders still help", async () => {
     const shell = await fakeShell("sleep 10");
     const started = Date.now();
     const env = await loginShellEnv({ shell, env: { PATH: "/usr/bin:/bin", CLAUDE_CONFIG_DIR: "/mine" }, home: "/home/a", timeoutMs: 200, exists: (d) => d === "/opt/homebrew/bin" });
