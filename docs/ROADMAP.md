@@ -15,6 +15,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **M5** ✅ | Desktop app for macOS, Windows and Linux, signed updates, simpler install on the site → **v0.3.0** | released 2026-11-19; installers checked on macOS and Linux, Windows not yet run |
 | **v0.4** ✅ | Organizations and groups, limits that act, "what would run now", keep-awake, login checks, the attendant on conflicts and red CI | released 2026-11-20 |
 | **v0.5** ✅ | First-run setup in the dashboard and the desktop app; a Docker image for a shared team machine | released 2026-11-20; 0.5.1 the same day with fixes to the setup |
+| **v0.6** ✅ | Post reviews as a second account, so someone working alone can have their pull requests approved | released 2026-11-20; the approval itself still to check with a second account |
 
 ## Owed from the first plan ✅ (v0.4.0)
 

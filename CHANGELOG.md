@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.6.0 — 2026-11-20
+
+For anyone working alone: reviews can post as a second account, so your own pull requests can be approved.
+
 ### Added
 
 - Post a repository's reviews as a second account (`crewreview repo set <id> --account my-bot`, or **Post reviews as** in the dashboard), so someone working alone can have their own pull requests approved: GitHub doesn't let you approve your own. The token comes from `gh`, which keeps several accounts per host, or from an environment variable with `env:VARIABLE` (GitLab, Docker). The account is checked before it's saved, your own is refused, and a review whose account can't be found waits in the inbox instead of posting as you.
