@@ -421,7 +421,7 @@
   "web.setup.hostAs": "sesión iniciada como {user}",
   "web.setup.hostError": "hay un token, pero: {error}",
   "web.setup.hostNone": "sin sesión",
-  "web.setup.hostsOk": "Basta con uno. GitHub Enterprise o un GitLab propio se comprueban al vincularlos.",
+  "web.setup.hostsOk": "Basta con uno. Aquí aparecen los hosts donde gh y glab tienen sesión; otro GitHub Enterprise o GitLab se comprueba al vincularlo.",
   "web.setup.linkHint": "Pega la dirección de un repositorio, o de una organización o grupo para seguir todos sus repositorios. Mira antes qué revisaría el equipo ahora; los vínculos empiezan en modo inbox, así que nada se publica sin ti.",
   "web.setup.previewButton": "Ver antes",
   "web.setup.linkButton": "Vincular en modo inbox",
@@ -541,5 +541,7 @@
   "web.setup.prove": "Probar que es solo lectura",
   "web.setup.proving": "probando… cerca de un minuto",
   "web.setup.proofFailed": "no pasó la prueba",
-  "web.setup.proveHint": "Dos prompts muy cortos en tu plan: pide al agente que cree un archivo mientras revisa y comprueba que no pudo, luego que solo escribe dentro de la carpeta."
+  "web.setup.proveHint": "Dos prompts muy cortos en tu plan: pide al agente que cree un archivo mientras revisa y comprueba que no pudo, luego que solo escribe dentro de la carpeta.",
+  "preview.inOrg": "{total} repositorios en él, subgrupos incluidos; {open} con pull requests abiertos.",
+  "preview.names": "Con pull requests abiertos: {list}"
 }

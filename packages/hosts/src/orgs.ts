@@ -38,6 +38,20 @@ async function gitlabPage(owner: RepoRef, transport: Transport, page: number): P
   return { paths, count: items.length };
 }
 
+/**
+ * How many repositories an organization or user (GitHub) or a group with its subgroups (GitLab) holds, archived ones
+ * left out: what linking it would watch. Undefined when the host doesn't say.
+ */
+export async function countRepos(owner: RepoRef, transport: Transport): Promise<number | undefined> {
+  if (owner.kind === "github") {
+    const res = await transport.request("GET", "/search/repositories", { query: { q: `user:${owner.slug} archived:false`, per_page: 1 } });
+    return typeof res.data?.total_count === "number" ? res.data.total_count : undefined;
+  }
+  const res = await transport.request("GET", `/groups/${encodeURIComponent(owner.slug)}/projects`, { query: { include_subgroups: true, archived: false, per_page: 1, simple: true } });
+  const total = Number(res.headers.get("x-total"));
+  return Number.isFinite(total) && res.headers.has("x-total") ? total : undefined;
+}
+
 /** On GitLab a path can name a project or a group. Ask which: a project answers on /projects, a group on /groups. */
 export async function gitlabPathKind(ref: RepoRef, transport: Transport): Promise<"project" | "group" | undefined> {
   for (const [kind, path] of [["project", "/projects"], ["group", "/groups"]] as const) {

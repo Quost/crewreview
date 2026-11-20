@@ -73,3 +73,35 @@ export async function resolveAccountToken(
   const token = out?.trim().split("\n")[0]?.trim();
   return token ? { token, source: "gh" } : { error: "not-signed-in", name: account };
 }
+
+/**
+ * The hosts gh and glab hold a login for, as the setup shows them: a company GitLab or GitHub Enterprise appears
+ * without linking anything first. Only host names are read, never tokens.
+ */
+export async function signedInHosts(runCmd: (argv: string[]) => Promise<string | undefined> = run): Promise<{ kind: "github" | "gitlab"; host: string }[]> {
+  const out: { kind: "github" | "gitlab"; host: string }[] = [];
+  const gh = await runCmd(["gh", "auth", "status", "--json", "hosts", "--jq", ".hosts | keys | .[]"]);
+  for (const line of (gh ?? "").split("\n")) if (/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(line.trim())) out.push({ kind: "github", host: line.trim().toLowerCase() });
+  // glab prints each host on a line of its own, then indented details. Only a host it's logged in to counts: a
+  // configured host whose token fails (401) isn't one someone uses.
+  const glab = await runCmdAll(runCmd, ["glab", "auth", "status"]);
+  let heading: string | undefined;
+  for (const line of (glab ?? "").split("\n")) {
+    const m = /^([a-z0-9.-]+\.[a-z]{2,})\s*$/i.exec(line);
+    if (m) heading = m[1]!.toLowerCase();
+    else if (heading && /Logged in to /i.test(line) && !out.some((o) => o.kind === "gitlab" && o.host === heading)) out.push({ kind: "gitlab", host: heading });
+  }
+  return out;
+}
+
+/** glab auth status exits non-zero when any host fails; its listing is still what we want. */
+async function runCmdAll(runCmd: (argv: string[]) => Promise<string | undefined>, argv: string[]): Promise<string | undefined> {
+  if (runCmd !== run) return runCmd(argv);
+  const exe = Bun.which(argv[0]!, { PATH: process.env.PATH ?? "" });
+  if (!exe) return undefined;
+  const proc = Bun.spawn([exe, ...argv.slice(1)], { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1", GLAB_NO_PROMPT: "1" } });
+  const timer = setTimeout(() => proc.kill(), 15_000);
+  const [o, e] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+  clearTimeout(timer);
+  return `${o}\n${e}`;
+}

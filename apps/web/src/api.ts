@@ -124,6 +124,9 @@ export interface Preview {
   link: string;
   org: boolean;
   repos: number;
+  repoNames: string[];
+  /** For an organization or group: every repository in it, subgroups included. */
+  totalRepos?: number;
   pullRequests: number;
   wouldReview: { repo: string; number: number; title: string; url: string }[];
   skipped: Record<string, number>;

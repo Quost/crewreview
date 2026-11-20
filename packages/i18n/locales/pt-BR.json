@@ -421,7 +421,7 @@
   "web.setup.hostAs": "logado como {user}",
   "web.setup.hostError": "token encontrado, mas: {error}",
   "web.setup.hostNone": "sem login",
-  "web.setup.hostsOk": "Basta um. GitHub Enterprise ou GitLab próprio são conferidos quando você vincula.",
+  "web.setup.hostsOk": "Basta um. Aparecem aqui os hosts em que o gh e o glab têm login; outro GitHub Enterprise ou GitLab é conferido quando você vincula.",
   "web.setup.linkHint": "Cole o endereço de um repositório, ou de uma organização ou grupo para acompanhar todos os repositórios dele. Veja antes o que a equipe revisaria agora; vínculos começam no modo inbox, então nada é postado sem você.",
   "web.setup.previewButton": "Ver antes",
   "web.setup.linkButton": "Vincular no modo inbox",
@@ -541,5 +541,7 @@
   "web.setup.prove": "Provar que é só leitura",
   "web.setup.proving": "provando… cerca de um minuto",
   "web.setup.proofFailed": "não passou na prova",
-  "web.setup.proveHint": "Dois prompts curtinhos no seu plano: pede ao agente para criar um arquivo enquanto revisa e confere que ele não conseguiu, depois que ele só escreve dentro da pasta."
+  "web.setup.proveHint": "Dois prompts curtinhos no seu plano: pede ao agente para criar um arquivo enquanto revisa e confere que ele não conseguiu, depois que ele só escreve dentro da pasta.",
+  "preview.inOrg": "{total} repositórios nele, subgrupos incluídos; {open} com pull requests abertos.",
+  "preview.names": "Com pull requests abertos: {list}"
 }

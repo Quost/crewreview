@@ -1,4 +1,4 @@
-import { checkAccount, isOrg, linkFromUrl, loadRepos, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
+import { checkAccount, isOrg, resolveLink, loadRepos, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
 import type { HostKind, RepoRef } from "@crewreview/hosts";
 import { table, type Ctx } from "../ctx.ts";
 
@@ -52,7 +52,7 @@ export async function findRepo(c: Ctx, idOrUrl: string): Promise<LinkedRepo | st
   const hit = repos.find((r) => r.id === idOrUrl);
   if (hit) return hit;
   if (!idOrUrl.includes("/")) return c.t.t("error.unknownRepo", { id: idOrUrl });
-  const link = linkFromUrl(idOrUrl, repos);
+  const link = await resolveLink(idOrUrl, repos, c.version);
   return "error" in link ? c.t.t("error.repoUrl", { message: link.message }) : link;
 }
 
@@ -184,6 +184,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
 export function previewText(c: Ctx, p: Preview): string[] {
   const { t, style: st } = c;
   const out = [st.bold(t.t("preview.title", { link: p.link, prs: p.pullRequests, repos: p.repos }))];
+  if (p.totalRepos !== undefined) out.push(t.t("preview.inOrg", { total: p.totalRepos, open: p.repos }));
+  if (p.org && p.repoNames.length) out.push(st.dim(t.t("preview.names", { list: p.repoNames.slice(0, 10).join(", ") + (p.repoNames.length > 10 ? "…" : "") })));
   if (p.wouldReview.length === 0) out.push(t.t("preview.none"));
   else {
     out.push(t.t("preview.would", { count: p.wouldReview.length, perCycle: p.perCycle, runs: p.agentRuns }));

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { fixtureTransport, gitlabPathKind, globMatch, ownerOnly, parseOwnerUrl, reposWithOpenPullRequests } from "../src/index.ts";
+import { countRepos as count, fixtureTransport, fixtureTransport as fixture, gitlabPathKind, globMatch, ownerOnly, parseOwnerUrl, repoRef as ref, reposWithOpenPullRequests, signedInHosts } from "../src/index.ts";
 
 const item = (repo: string, n: number) => ({ number: n, repository_url: `https://api.github.com/repos/${repo}` });
 
@@ -45,4 +45,24 @@ describe("organizations", () => {
     expect(globMatch("Legacy?", "legacy2")).toBe(true);
     expect(globMatch("a.b", "axb")).toBe(false);
   });
+});
+
+
+test("counts an owner's repositories: GitLab subgroups included, from the total header", async () => {
+  const gl = fixture({ "GET /groups/acme%2Fplatform/projects": { status: 200, data: [{}], headers: { "x-total": "47" } } });
+  expect(await count(ref("gitlab", "gitlab.acme.dev", "acme/platform"), gl)).toBe(47);
+  expect(gl.calls[0]?.query).toMatchObject({ include_subgroups: true, archived: false });
+  const gh = fixture({ "GET /search/repositories": { total_count: 12, items: [] } });
+  expect(await count(ref("github", "github.com", "acme"), gh)).toBe(12);
+});
+
+test("the hosts gh and glab hold a login for, by name only", async () => {
+  const glab = "gitlab.com\n  x gitlab.com: API call failed: 401\ngitlab.acme.dev\n  ✓ Logged in to gitlab.acme.dev as ana (keyring)\n";
+  const run = async (argv: string[]) => (argv[0] === "gh" ? "github.com\nghe.acme.dev\n" : glab);
+  expect(await signedInHosts(run)).toEqual([
+    { kind: "github", host: "github.com" },
+    { kind: "github", host: "ghe.acme.dev" },
+    // gitlab.com is configured but its token fails: not a host anyone uses.
+    { kind: "gitlab", host: "gitlab.acme.dev" },
+  ]);
 });

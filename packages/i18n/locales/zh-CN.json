@@ -412,7 +412,7 @@
   "web.setup.hostAs": "已登录为 {user}",
   "web.setup.hostError": "找到令牌，但：{error}",
   "web.setup.hostNone": "未登录",
-  "web.setup.hostsOk": "有一个就够了。GitHub Enterprise 或自托管 GitLab 会在关联时检查。",
+  "web.setup.hostsOk": "有一个就够了。gh 和 glab 已登录的主机会显示在这里；其他 GitHub Enterprise 或 GitLab 会在关联时检查。",
   "web.setup.linkHint": "粘贴一个仓库的地址，或一个组织或群组的地址以关注其中所有仓库。先预览团队现在会审查什么；关联默认是收件箱模式，未经你批准不会发布任何内容。",
   "web.setup.previewButton": "预览",
   "web.setup.linkButton": "以收件箱模式关联",
@@ -532,5 +532,7 @@
   "web.setup.prove": "证明它是只读的",
   "web.setup.proving": "正在证明…约一分钟",
   "web.setup.proofFailed": "未通过证明",
-  "web.setup.proveHint": "在你的套餐上运行两个很小的提示：让代理在审查时创建文件并确认它做不到，然后确认它只在文件夹内写入。"
+  "web.setup.proveHint": "在你的套餐上运行两个很小的提示：让代理在审查时创建文件并确认它做不到，然后确认它只在文件夹内写入。",
+  "preview.inOrg": "其中有 {total} 个仓库（含子群组）；{open} 个有未关闭的合并请求。",
+  "preview.names": "有未关闭合并请求的：{list}"
 }

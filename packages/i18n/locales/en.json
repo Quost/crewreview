@@ -421,7 +421,7 @@
   "web.setup.hostAs": "signed in as {user}",
   "web.setup.hostError": "token found, but: {error}",
   "web.setup.hostNone": "not signed in",
-  "web.setup.hostsOk": "One is enough. GitHub Enterprise or a self-managed GitLab is checked when you link it.",
+  "web.setup.hostsOk": "One is enough. The hosts gh and glab are signed in to show up here; another GitHub Enterprise or GitLab is checked when you link it.",
   "web.setup.linkHint": "Paste the address of a repository, or of an organization or group to watch every repository in it. Preview first to see what the crew would review right now; links start in inbox mode, so nothing is posted without you.",
   "web.setup.previewButton": "Preview",
   "web.setup.linkButton": "Link in inbox mode",
@@ -541,5 +541,7 @@
   "web.setup.prove": "Prove it's read-only",
   "web.setup.proving": "proving… about a minute",
   "web.setup.proofFailed": "didn't pass the proof",
-  "web.setup.proveHint": "Two tiny prompts on your plan: it asks the agent to create a file while reviewing and checks it couldn't, then that it writes only inside the folder."
+  "web.setup.proveHint": "Two tiny prompts on your plan: it asks the agent to create a file while reviewing and checks it couldn't, then that it writes only inside the folder.",
+  "preview.inOrg": "{total} repositories in it, subgroups included; {open} with open pull requests.",
+  "preview.names": "With open pull requests: {list}"
 }

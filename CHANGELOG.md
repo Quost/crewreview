@@ -4,6 +4,11 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- The setup showed "no login" for gitlab.com while glab was signed in to a company GitLab. It now lists the hosts gh and glab are actually signed in to (a configured host whose token fails doesn't count), and shows gitlab.com only when no other GitLab is known.
+- Previewing a GitLab group by its address (`gitlab.example.com/group/subgroup`) treated it as a project and failed with "404 Project Not Found". The preview now asks GitLab whether the path is a group, as linking does, and then covers its subgroups. For an organization or group it also says how many repositories it holds and names the ones with open pull requests.
+
 ### Added
 
 - Antigravity (`agy`), OpenCode and Gemini CLI built in, over the Agent Client Protocol: they show up when installed, with no config. Crewreview answers their permission requests, so read-only holds, and they review once they pass the read-only proof. Antigravity 1.5.13 passes read-only and write scope, so it can answer reviews too.

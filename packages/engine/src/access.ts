@@ -1,5 +1,5 @@
-import { createHost, hostTransport, ownerOnly, parseOwnerUrl, parseRepoUrl, repoRef, RepoUrlError, resolveToken, type HostKind, type RepoRef, type TokenSource } from "@crewreview/hosts";
-import { newRepoEntry, type LinkedRepo } from "./repos.ts";
+import { createHost, gitlabPathKind, hostTransport, ownerOnly, parseOwnerUrl, parseRepoUrl, repoRef, RepoUrlError, resolveToken, signedInHosts, type HostKind, type RepoRef, type TokenSource } from "@crewreview/hosts";
+import { isOrg, newRepoEntry, type LinkedRepo } from "./repos.ts";
 
 /** Whether Crewreview can reach a git host from this machine, and as whom. Never carries the token itself. */
 export interface HostAccess {
@@ -20,6 +20,8 @@ const USUAL: readonly { kind: HostKind; host: string }[] = [
 
 export interface AccessDeps {
   version: string;
+  /** Hosts gh and glab hold a login for (tests pass a list). */
+  signedIn?: () => Promise<{ kind: HostKind; host: string }[]>;
   timeoutMs?: number;
   resolve?: (ref: RepoRef) => Promise<{ token: string; source: TokenSource } | undefined>;
   whoami?: (ref: RepoRef, token: string) => Promise<string>;
@@ -28,7 +30,11 @@ export interface AccessDeps {
 /** GitHub.com, GitLab.com and the hosts of linked repositories, each once. */
 export async function hostAccess(linked: readonly LinkedRepo[], d: AccessDeps): Promise<HostAccess[]> {
   const seen = new Set<string>();
-  const hosts = [...USUAL, ...linked.map((r) => ({ kind: r.ref.kind, host: r.ref.host }))].filter((h) => {
+  const cli = await (d.signedIn ?? signedInHosts)().catch(() => []);
+  const known = [...cli, ...linked.map((r) => ({ kind: r.ref.kind, host: r.ref.host }))];
+  // gitlab.com only when no other GitLab is known: someone on a company GitLab isn't missing a login there.
+  const usual = USUAL.filter((u) => u.kind === "github" || !known.some((k) => k.kind === "gitlab" && k.host !== "gitlab.com"));
+  const hosts = [...usual, ...known].filter((h) => {
     const key = `${h.kind}:${h.host.toLowerCase()}`;
     return seen.has(key) ? false : (seen.add(key), true);
   });
@@ -51,6 +57,21 @@ export async function hostAccess(linked: readonly LinkedRepo[], d: AccessDeps): 
       }
     }),
   );
+}
+
+/**
+ * A link for an address, asking the host when the address alone can't tell: on GitLab, `group/subgroup` is a group
+ * or a project at any depth. A group becomes an organization link, so its subgroups' projects come along.
+ */
+export async function resolveLink(url: string, linked: readonly LinkedRepo[], version: string): Promise<LinkedRepo | { error: "url"; message: string }> {
+  const link = linkFromUrl(url, linked);
+  if ("error" in link || link.ref.kind !== "gitlab" || isOrg(link) || linked.includes(link)) return link;
+  const tk = await resolveToken(link.ref);
+  if (!tk) return link;
+  const kind = await gitlabPathKind(link.ref, hostTransport(link.ref, tk.token, `crewreview/${version}`)).catch(() => undefined);
+  if (kind !== "group") return link;
+  const ref = repoRef("gitlab", link.ref.host, link.ref.slug);
+  return { ...newRepoEntry(ref, { scope: "org" }), ref };
 }
 
 /**

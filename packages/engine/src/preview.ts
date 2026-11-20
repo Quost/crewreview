@@ -1,4 +1,5 @@
 import { reviewEligibility, type SkipReason } from "@crewreview/core";
+import { countRepos, hostTransport, resolveToken } from "@crewreview/hosts";
 import { connect, openInOrg, rulesFor } from "./daemon.ts";
 import type { PrDeps, PrTarget } from "./pr.ts";
 import { expandOrgs, isOrg, type LinkedRepo } from "./repos.ts";
@@ -9,6 +10,10 @@ export interface Preview {
   org: boolean;
   /** Repositories looked at (an organization's with open pull requests, up to a limit). */
   repos: number;
+  /** Their paths, for the dashboard to name them. */
+  repoNames: string[];
+  /** For an organization or group: every repository in it (subgroups included, archived left out), when the host says. */
+  totalRepos?: number;
   pullRequests: number;
   wouldReview: { repo: string; number: number; title: string; url: string }[];
   skipped: Partial<Record<SkipReason, number>>;
@@ -32,13 +37,14 @@ const MAX_CI_CALLS = 20;
 export async function previewLink(
   d: PrDeps,
   link: LinkedRepo,
-  o: { now?: number; connectTo?: (r: LinkedRepo) => Promise<PrTarget | { error: "no-token" }>; listOrg?: (org: LinkedRepo) => Promise<string[]> } = {},
+  o: { now?: number; connectTo?: (r: LinkedRepo) => Promise<PrTarget | { error: "no-token" }>; listOrg?: (org: LinkedRepo) => Promise<string[]>; countRepos?: (org: LinkedRepo) => Promise<number | undefined> } = {},
 ): Promise<Preview> {
   const now = o.now ?? Date.now();
   const connectTo = o.connectTo ?? ((r: LinkedRepo) => connect(r, d.version));
   const errors: Preview["errors"] = [];
   const repos = (await expandOrgs([link], o.listOrg ?? ((org) => openInOrg(org, d.version)), (org, e) => errors.push({ repo: org.id, error: e instanceof Error ? e.message : String(e) }))).slice(0, MAX_REPOS);
-  const p: Preview = { link: link.id, org: isOrg(link), repos: repos.length, pullRequests: 0, wouldReview: [], skipped: {}, perCycle: d.config.schedule.maxReviewsPerCycle, agentRuns: 0, ownOpen: 0, errors };
+  const totalRepos = isOrg(link) ? await (o.countRepos ?? ((org: LinkedRepo) => countOrgRepos(org, d.version)))(link).catch(() => undefined) : undefined;
+  const p: Preview = { link: link.id, org: isOrg(link), repos: repos.length, repoNames: repos.map((r) => r.ref.slug), totalRepos, pullRequests: 0, wouldReview: [], skipped: {}, perCycle: d.config.schedule.maxReviewsPerCycle, agentRuns: 0, ownOpen: 0, errors };
   const users = new Map<string, string>();
   let ciCalls = 0;
   for (const repo of repos) {
@@ -84,4 +90,10 @@ export async function previewLink(
   const limit = d.config.limits.dailyRuns;
   if (limit) p.budget = { used: d.quota?.runsToday() ?? 0, limit };
   return p;
+}
+
+/** Every repository of an organization link, counted with a token found on this machine. */
+async function countOrgRepos(org: LinkedRepo, version: string): Promise<number | undefined> {
+  const tk = await resolveToken(org.ref);
+  return tk ? countRepos(org.ref, hostTransport(org.ref, tk.token, `crewreview/${version}`)) : undefined;
 }

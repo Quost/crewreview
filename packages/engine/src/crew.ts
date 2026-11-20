@@ -6,7 +6,7 @@ import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
-import { hostAccess, linkFromUrl, type HostAccess } from "./access.ts";
+import { hostAccess, resolveLink, type HostAccess } from "./access.ts";
 import { checkAccount, type AccountProblem } from "./account.ts";
 import { editConfig, type EditableKey } from "./config-edit.ts";
 import { AccountSignIn, type SignInState } from "./account-setup.ts";
@@ -430,7 +430,7 @@ export class CrewDaemon {
 
   /** The same, for an address that may not be linked yet: what linking it would start. */
   async previewUrl(url: string): Promise<Preview | { error: "url"; message: string }> {
-    const link = linkFromUrl(url, await this.repos());
+    const link = await resolveLink(url, await this.repos(), this.o.version);
     return "error" in link ? link : previewLink(this.deps(), link);
   }
 

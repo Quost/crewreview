@@ -230,6 +230,8 @@ export function PreviewBox({ value }: { value: Preview | "loading" | { failed: s
   return (
     <div className="notice preview">
       <strong>{t.t("preview.title", { link: p.link, prs: p.pullRequests, repos: p.repos })}</strong>
+      {p.totalRepos !== undefined && <p>{t.t("preview.inOrg", { total: p.totalRepos, open: p.repos })}</p>}
+      {p.org && p.repoNames.length > 0 && <p className="muted small">{t.t("preview.names", { list: p.repoNames.slice(0, 12).join(", ") + (p.repoNames.length > 12 ? "…" : "") })}</p>}
       <p>{p.wouldReview.length ? t.t("preview.would", { count: p.wouldReview.length, perCycle: p.perCycle, runs: p.agentRuns }) : t.t("preview.none")}</p>
       {p.wouldReview.length > 0 && (
         <ul className="small">
