@@ -996,3 +996,32 @@ tr:last-child td {
   padding: 4px 10px;
   font-size: 0.85rem;
 }
+
+/* The second-account page: the fields to fill on the host, and the pasted token. */
+.row.wrap {
+  flex-wrap: wrap;
+}
+.step .segmented {
+  margin-bottom: 12px;
+}
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 14px 0;
+  font-size: 14px;
+}
+.fields dt {
+  color: var(--muted);
+}
+.fields dd {
+  margin: 0;
+}
+.token-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+.token-form input[type="password"] {
+  font-family: var(--mono, ui-monospace, monospace);
+}

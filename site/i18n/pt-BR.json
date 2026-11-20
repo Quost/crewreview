@@ -161,7 +161,7 @@
   "faq.q8": "O time todo pode usar?",
   "faq.a8": "Pode. Cada pessoa instala e vincula os repositórios do time, ou a organização ou grupo inteiro de uma vez; as reviews saem da própria conta, e um commit que a equipe de outra pessoa já revisou é pulado. Lentes compartilhadas ficam em .crewreview/lenses/ no repositório.",
   "faq.q10": "Trabalho sozinho. Ele consegue aprovar os meus próprios pull requests?",
-  "faq.a10": "Sim, com uma segunda conta. O GitHub não deixa você aprovar os seus próprios pull requests, então a equipe posta as revisões como outra conta, cujas aprovações contam. O app guia você (Repositórios → Postar revisões como → Configurar passo a passo): você cria a conta e digita um código de login; o app confere a conta, convida com permissão de escrita, faz o login dela no gh, aceita os convites e aponta os seus repositórios para ela.",
+  "faq.a10": "Sim, com uma segunda conta. Ninguém aprova o próprio pull request, então a equipe posta as revisões como outra conta, cujas aprovações contam. O app guia você (Repositórios → Postar revisões como → Configurar passo a passo). No GitLab, um token de grupo ou de projeto cria uma conta bot sozinho: você cola o token e pronto. No GitHub, você cria a conta, o app convida ela com permissão de escrita e você cola um token dela. Os tokens vão para o chaveiro do sistema, nunca para um arquivo.",
   "faq.q9": "Por que AGPL?",
   "faq.a9": "Para continuar aberto: quem distribuir uma versão modificada, ou rodar uma como serviço para outros, precisa publicar o código.",
   "sponsor.title": "Mantenha a equipe trabalhando",

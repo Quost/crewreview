@@ -4,6 +4,17 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- The Docker image named the version about to be released, so building it from main between a version bump and its release failed. It now installs the latest published release unless you pin one with `--build-arg VERSION=`.
+- The second-account setup was a dead end without a linked GitHub repository, and had nothing for GitLab: every button stayed disabled. It now starts with where the account will review, links a repository, organization or group right on the page when nothing is linked, and then takes the path of that host.
+
+### Added
+
+- A second account on GitLab with an access token: a group or project access token creates a bot account by itself, so nobody signs up. The app opens the token page of your group or project, lists what to fill in, and you paste the token. It checks who the token belongs to, refuses your own, asks each place what the account can do there (can approve, read only, no access) and uses it only where it reaches. A group token covers its subgroups.
+- On GitHub, the second account can sign in by pasting a classic token of it, instead of the `gh` sign-in code: the crew accepts its invitations, checks the access and uses it.
+- Pasted tokens live in the system keychain (macOS Keychain, Windows Credential Manager, libsecret on Linux), never in a file; a repository refers to one as `keychain:<host>/<user>`.
+
 ## 0.10.0 — 2026-11-20
 
 More agents (Antigravity, OpenCode, Gemini CLI), proven from the app, and a setup that knows your company GitLab.

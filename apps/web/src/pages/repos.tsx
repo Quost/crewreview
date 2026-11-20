@@ -86,7 +86,7 @@ export function ReposPage({ version }: { version: number }) {
           key={r.id}
           title={
             <>
-              {r.id} {r.scope === "org" && <Pill tone="accent">{t.t("repo.org")}</Pill>} {r.paused && <Pill tone="warn">{t.t("web.repos.pausedPill")}</Pill>}{" "}
+              {r.id} {r.scope === "org" && <Pill tone="accent">{t.t(r.kind === "gitlab" ? "repo.group" : "repo.org")}</Pill>} {r.paused && <Pill tone="warn">{t.t("web.repos.pausedPill")}</Pill>}{" "}
               <span className="muted small">{r.kind}</span>
             </>
           }

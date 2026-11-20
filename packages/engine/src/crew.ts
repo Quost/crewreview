@@ -7,7 +7,7 @@ import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { hostAccess, resolveLink, type HostAccess } from "./access.ts";
-import { checkAccount, type AccountProblem } from "./account.ts";
+import { checkAccount, saveAccountToken, type AccountProblem, type TokenSaved } from "./account.ts";
 import { editConfig, type EditableKey } from "./config-edit.ts";
 import { AccountSignIn, type SignInState } from "./account-setup.ts";
 import { keepAwake, type KeepAwake } from "./awake.ts";
@@ -420,6 +420,26 @@ export class CrewDaemon {
     } catch (e) {
       return { error: "host", name: login, message: (e instanceof Error ? e.message : String(e)).slice(0, 200) };
     }
+  }
+
+  /**
+   * A token pasted for a second account (a GitLab group or project access token, a bot's GitHub token): checked, kept
+   * in the system keychain, and used for the chosen links on one host that it can reach.
+   */
+  async accountToken(ids: readonly string[], token: string, reviewOwn = false): Promise<(TokenSaved & { applied: string[] }) | AccountProblem | { error: "keychain" | "none"; message?: string }> {
+    const chosen = (await this.repos()).filter((r) => ids.includes(r.id));
+    const first = chosen[0]?.ref;
+    const links = chosen.filter((r) => r.ref.kind === first?.kind && r.ref.host.toLowerCase() === first?.host.toLowerCase());
+    const saved = await saveAccountToken(links, token, { version: this.o.version });
+    if ("error" in saved) return saved;
+    const applied: string[] = [];
+    for (const w of saved.reach) {
+      if (w.permission === "none" || w.permission === "error") continue;
+      const link = links.find((l) => l.id === w.id)!;
+      const authors = reviewOwn && link.review.authors === "others" ? { authors: "all" as const } : {};
+      if (await this.updateRepo(w.id, { review: { account: saved.account, ...authors } })) applied.push(w.id);
+    }
+    return { ...saved, applied };
   }
 
   /** What the crew would do with a link right now, without doing it. */

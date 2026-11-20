@@ -77,7 +77,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     table(
       c,
       [t.t("repo.col.id"), t.t("repo.col.url"), t.t("repo.col.mode"), t.t("repo.col.authors"), t.t("repo.col.attend")],
-      repos.map((r) => [r.id, isOrg(r) ? `${r.ref.webUrl} (${t.t("repo.org")})` : r.ref.webUrl, r.review.mode, r.review.authors, `${r.attend.mode}${r.attend.fromCrew ? " + polish" : ""}`]),
+      repos.map((r) => [r.id, isOrg(r) ? `${r.ref.webUrl} (${t.t(r.ref.kind === "gitlab" ? "repo.group" : "repo.org")})` : r.ref.webUrl, r.review.mode, r.review.authors, `${r.attend.mode}${r.attend.fromCrew ? " + polish" : ""}`]),
     );
     return 0;
   }

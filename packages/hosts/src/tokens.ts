@@ -11,7 +11,7 @@ async function run(argv: string[]): Promise<string | undefined> {
   return code === 0 ? `${out}\n${err}` : undefined;
 }
 
-export type TokenSource = "env" | "gh" | "glab";
+export type TokenSource = "env" | "gh" | "glab" | "keychain";
 
 /**
  * Find a token for the host without asking anyone: environment variables first, then the host's own CLI login
@@ -48,7 +48,19 @@ export function gitAuthEnv(repo: RepoRef, token: string): Record<string, string>
   };
 }
 
-export type AccountTokenError = "bad-name" | "env-unset" | "not-signed-in" | "gitlab-needs-env";
+export type AccountTokenError = "bad-name" | "env-unset" | "not-signed-in" | "gitlab-needs-env" | "keychain-missing";
+
+/** Where Crewreview keeps tokens someone pasted: the system's credential store, under this service name. */
+export const KEYCHAIN_SERVICE = "crewreview";
+
+/** Read a token Crewreview stored in the system's credential store (macOS Keychain, Windows, libsecret). */
+export async function keychainGet(name: string): Promise<string | undefined> {
+  try {
+    return (await Bun.secrets.get({ service: KEYCHAIN_SERVICE, name })) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * The token of another account to post reviews as (a repository's `review.account`), so a pull request of yours can
@@ -60,7 +72,14 @@ export async function resolveAccountToken(
   account: string,
   env: Record<string, string | undefined> = process.env,
   runCmd: (argv: string[]) => Promise<string | undefined> = run,
+  secrets: (name: string) => Promise<string | undefined> = keychainGet,
 ): Promise<{ token: string; source: TokenSource } | { error: AccountTokenError; name: string }> {
+  // A token pasted in the app (a GitLab group or project access token, a bot's GitHub token), kept in the keychain.
+  const fromKeychain = /^keychain:([A-Za-z0-9._/@-]{1,200})$/.exec(account);
+  if (fromKeychain) {
+    const value = (await secrets(fromKeychain[1]!))?.trim();
+    return value ? { token: value, source: "keychain" } : { error: "keychain-missing", name: fromKeychain[1]! };
+  }
   const fromEnv = /^env:([A-Za-z_][A-Za-z0-9_]*)$/.exec(account);
   if (fromEnv) {
     const value = env[fromEnv[1]!]?.trim();

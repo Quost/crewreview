@@ -107,6 +107,7 @@ const repos = [
   { id: "acme-shop", url: "https://github.com/acme/shop", kind: "github", webUrl: "https://github.com/acme/shop", host: "github.com", review: { mode: "inbox", authors: "others" }, attend: { mode: "inbox", fromCrew: true, maxPolishRounds: 2, validate: ["bun test"] } },
   { id: "acme-api", url: "https://gitlab.com/acme/api", kind: "gitlab", webUrl: "https://gitlab.com/acme/api", host: "gitlab.com", review: { mode: "auto", authors: "others" }, attend: { mode: "inbox", fromCrew: false, maxPolishRounds: 0, validate: ["npm test"] } },
   { id: "acme-web", url: "https://github.com/acme/web", kind: "github", webUrl: "https://github.com/acme/web", host: "github.com", review: { mode: "auto", authors: "all" }, attend: { mode: "off", fromCrew: false, maxPolishRounds: 0, validate: [] } },
+  { id: "acme-platform", url: "https://gitlab.com/acme/platform", kind: "gitlab", scope: "org", webUrl: "https://gitlab.com/acme/platform", host: "gitlab.com", review: { mode: "inbox", authors: "others" }, attend: { mode: "off", fromCrew: false, maxPolishRounds: 0, validate: [] } },
 ];
 
 const history = [
@@ -146,6 +147,18 @@ const crew = {
   wake() {},
   repos: async () => (empty ? [] : repos).map((r) => ({ ...r, ref: { kind: r.kind, webUrl: r.webUrl, host: r.host } })),
   addRepo: async () => ({ error: "host", message: "this is a demo: nothing is linked" }),
+  // The second-account page: "glpat-demo" belongs to a group bot that reaches the group but not acme/api.
+  accountToken: async (ids: string[], token: string) =>
+    token !== "glpat-demo" && token !== "ghp_demo"
+      ? { error: "host", name: "", message: "401 Unauthorized" }
+      : {
+          user: token === "glpat-demo" ? "group_42_bot_7f3a" : "acme-crew",
+          account: token === "glpat-demo" ? "keychain:gitlab.com/group_42_bot_7f3a" : "keychain:github.com/acme-crew",
+          reach: ids.map((id) => ({ id, permission: id === "acme-api" ? "none" : "write" })),
+          accepted: token === "ghp_demo" ? ids.filter((id) => id !== "acme-platform") : [],
+          applied: ids.filter((id) => id !== "acme-api"),
+        },
+  signInStatus: () => ({ state: "idle" }),
   hosts: async () => [
     { kind: "github", host: "github.com", source: "gh", user: "ana" },
     { kind: "gitlab", host: "gitlab.com" },

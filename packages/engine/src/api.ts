@@ -150,6 +150,12 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const r = await crew.accountAccept(String(b.login ?? ""), ids(b.repos));
       return "error" in r ? json(r, 400) : json(r);
     }
+    // A pasted token: it goes to the system keychain and is never written to a file, a log or an answer.
+    if (p === "/api/account/token" && m === "POST") {
+      const b = await body();
+      const r = await crew.accountToken(ids(b.repos), typeof b.token === "string" ? b.token : "", b.reviewOwn === true);
+      return "error" in r ? json(r, 400) : json(r);
+    }
     if (repoMatch && m === "DELETE") return (await crew.removeRepo(repoMatch[1]!)) ? json({ ok: true }) : json({ error: "not-found" }, 404);
     if (p === "/api/inbox" && m === "GET") return json(crew.inbox());
     const inboxMatch = /^\/api\/inbox\/([rf]\d+)(?:\/(approve|discard))?$/.exec(p);
