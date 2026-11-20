@@ -74,16 +74,21 @@ export function Inline({ text }: { text: string }) {
  * An agent that must prove its read-only lock before it reviews (ACP and custom ones): the button runs the proof,
  * "proving…" while it runs (the list updates when it's done), or the failed result.
  */
-export function ProveButton({ h }: { h: { id: string; review?: string; proving?: boolean } }) {
+/**
+ * Prove an agent's locks with a real run. Where reviews need the proof it's offered until it passes; with `any`, any
+ * agent not proven yet can be (the Harnesses table), since a built-in one is trusted but not yet shown to hold.
+ */
+export function ProveButton({ h, any }: { h: { id: string; review?: string; proving?: boolean; conformance?: { readOnly?: string; at?: string } }; any?: boolean }) {
   const t = useT();
   const [asked, setAsked] = useState(false);
   // The click shows "proving" at once; the list takes over from there, and says when it's done.
   useEffect(() => {
     if (h.proving) setAsked(false);
   }, [h.proving]);
-  if (h.proving || (asked && h.review === "needs-conformance")) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
+  useEffect(() => setAsked(false), [h.conformance?.at]);
+  if (h.proving || asked) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
   if (h.review === "failed-conformance") return <Pill tone="bad">{t.t("web.setup.proofFailed")}</Pill>;
-  if (h.review !== "needs-conformance") return null;
+  if (h.review !== "needs-conformance" && !(any && !h.conformance?.readOnly)) return null;
   return (
     <button
       className="btn ghost sm"

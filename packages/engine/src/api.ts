@@ -185,6 +185,9 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
   const server = Bun.serve<WsData>({
     hostname: "127.0.0.1",
     port: o.port ?? 0,
+    // Some answers ask the git hosts first (who you are on each, a group's 30 repositories): a company GitLab can take
+    // longer than Bun's 10-second default, which cut the request and left the page waiting.
+    idleTimeout: 120,
     // The page and its scripts are the same for everyone and carry no data or token, so they're served before the
     // Host check below; everything with data is under /api/ and checked.
     routes: { "/": o.page as Bun.HTMLBundle },

@@ -6,11 +6,17 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Fixed
 
+- `doctor` and the setup said glab wasn't signed in, or hid a company GitLab, whenever another configured host didn't answer: `glab auth status` checks hosts one after another and gave up after the first slow one. Each host in glab's config is now checked on its own, at the same time, for 8 seconds at most.
+- Answers that ask the git hosts first (who you are on each, a large GitLab group) were cut after 10 seconds, leaving the page waiting forever. The dashboard's server now waits up to two minutes, and the setup keeps the hosts it showed while it checks again.
+- Linking a repository, or resuming a paused one, now starts a check right away instead of at the next cycle.
 - The Docker image named the version about to be released, so building it from main between a version bump and its release failed. It now installs the latest published release unless you pin one with `--build-arg VERSION=`.
 - The second-account setup was a dead end without a linked GitHub repository, and had nothing for GitLab: every button stayed disabled. It now starts with where the account will review, links a repository, organization or group right on the page when nothing is linked, and then takes the path of that host.
 
 ### Added
 
+- `crewreview status`: whether the crew runs on this computer, what it's doing, when it checks next and what waits in the inbox. Exits 3 when it isn't running.
+- Prove any agent not proven yet from Harnesses & limits, the built-in ones included, not only those that need the proof to review.
+- When a preview finds only your own pull requests, it says how to have them reviewed (Whose pull requests: everyone's) and approved (a second account), with a link to the setup.
 - A second account on GitLab with an access token: a group or project access token creates a bot account by itself, so nobody signs up. The app opens the token page of your group or project, lists what to fill in, and you paste the token. It checks who the token belongs to, refuses your own, asks each place what the account can do there (can approve, read only, no access) and uses it only where it reaches. A group token covers its subgroups.
 - On GitHub, the second account can sign in by pasting a classic token of it, instead of the `gh` sign-in code: the crew accepts its invitations, checks the access and uses it.
 - Pasted tokens live in the system keychain (macOS Keychain, Windows Credential Manager, libsecret on Linux), never in a file; a repository refers to one as `keychain:<host>/<user>`.

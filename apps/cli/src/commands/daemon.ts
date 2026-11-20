@@ -154,3 +154,35 @@ export async function ui(c: Ctx, port?: number): Promise<number> {
   }
   return daemon(c, { loop: true, ui: true, open: true, port });
 }
+
+/** `crewreview status`: whether the crew runs on this computer, and what it's doing. Exits 3 when it doesn't run. */
+export async function status(c: Ctx): Promise<number> {
+  const { t } = c;
+  const info = await readApiInfo(c.dirs.state);
+  const repos = await loadRepos(reposFile(c.dirs)).catch(() => []);
+  const linked = t.tp("run.repoCount", repos.length);
+  if (!info) {
+    c.out(t.t("status.stopped", { repos: linked }));
+    c.out(t.t("status.start"));
+    return 3;
+  }
+  let s: { version: string; startedAt: number; cycleRunning: boolean; lastCycleAt?: number; nextCycleAt?: number; inbox: number } | undefined;
+  let agents = 0;
+  try {
+    const res = await fetch(new URL("api/state", info.url), { headers: { authorization: `Bearer ${info.token}` }, signal: AbortSignal.timeout(5000) });
+    const body = (await res.json()) as { status: typeof s; agents: { endedAt?: number }[] };
+    s = body.status;
+    agents = body.agents.filter((a) => !a.endedAt).length;
+  } catch {
+    // Running but not answering: say where it is, which is what someone needs to look further.
+  }
+  const mins = (ms: number) => Math.max(0, Math.round(ms / 60_000));
+  c.out(t.t("status.running", { pid: info.pid, version: s?.version ?? info.version ?? "?", repos: linked }));
+  if (s) {
+    if (s.cycleRunning) c.out(t.t("status.checking", { agents }));
+    else if (s.nextCycleAt) c.out(t.t("status.next", { minutes: mins(s.nextCycleAt - Date.now()) }));
+    c.out(t.tp("status.inbox", s.inbox));
+  }
+  c.out(t.t("run.dashboard", { url: info.url }));
+  return 0;
+}

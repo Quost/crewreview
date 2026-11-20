@@ -58,9 +58,9 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
     setHarnesses(undefined);
     api.get<HarnessInfo[]>("/api/harnesses").then(setHarnesses, () => setHarnesses([]));
   };
+  // A recheck keeps what's shown until the answer comes; a failed one keeps it too, rather than claim no login.
   const loadHosts = () => {
-    setHosts(undefined);
-    api.get<HostAccess[]>("/api/hosts").then(setHosts, () => setHosts([]));
+    api.get<HostAccess[]>("/api/hosts").then(setHosts, () => setHosts((h) => h ?? []));
   };
   useEffect(() => {
     loadAgents();

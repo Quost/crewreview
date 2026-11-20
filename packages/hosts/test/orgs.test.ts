@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { countRepos as count, fixtureTransport, fixtureTransport as fixture, gitlabPathKind, globMatch, ownerOnly, parseOwnerUrl, repoRef as ref, reposWithOpenPullRequests, signedInHosts } from "../src/index.ts";
+import { countRepos as count, fixtureTransport, fixtureTransport as fixture, gitlabPathKind, globMatch, ownerOnly, parseOwnerUrl, repoRef as ref, reposWithOpenPullRequests, parseGlabHosts, signedInHosts } from "../src/index.ts";
 
 const item = (repo: string, n: number) => ({ number: n, repository_url: `https://api.github.com/repos/${repo}` });
 
@@ -65,4 +65,25 @@ test("the hosts gh and glab hold a login for, by name only", async () => {
     // gitlab.com is configured but its token fails: not a host anyone uses.
     { kind: "gitlab", host: "gitlab.acme.dev" },
   ]);
+});
+
+test("each glab host is checked on its own, so one that hangs doesn't hide the others", async () => {
+  const asked: string[][] = [];
+  const run = async (argv: string[]) => {
+    asked.push(argv);
+    if (argv[0] === "gh") return undefined;
+    const host = argv[argv.indexOf("--hostname") + 1];
+    return host === "gitlab.acme.dev" ? "  ✓ Logged in to gitlab.acme.dev as ana (keyring)\n" : "  x gitlab.com: API call failed: context deadline exceeded\n";
+  };
+  expect(await signedInHosts(run, async () => ["gitlab.com", "gitlab.acme.dev"])).toEqual([{ kind: "gitlab", host: "gitlab.acme.dev" }]);
+  expect(asked.filter((a) => a[0] === "glab")).toEqual([
+    ["glab", "auth", "status", "--hostname", "gitlab.com"],
+    ["glab", "auth", "status", "--hostname", "gitlab.acme.dev"],
+  ]);
+});
+
+test("the hosts in glab's config, and nothing else", () => {
+  const yaml = "git_protocol: ssh\nhosts:\n    gitlab.com:\n        api_protocol: https\n        user: ana\n    # a comment\n    gitlab.acme.dev:\n        token: x\nother: 1\n  not.a.host:\n";
+  expect(parseGlabHosts(yaml)).toEqual(["gitlab.com", "gitlab.acme.dev"]);
+  expect(parseGlabHosts("hosts:\n")).toEqual([]);
 });

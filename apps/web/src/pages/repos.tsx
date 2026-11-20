@@ -247,6 +247,11 @@ export function PreviewBox({ value }: { value: Preview | "loading" | { failed: s
       )}
       {skipped.length > 0 && <p className="muted small">{t.t("preview.skipped", { list: skipped.join(", ") })}</p>}
       {p.ownOpen > 0 && <p className="muted small">{t.t("preview.own", { count: p.ownOpen })}</p>}
+      {(p.skipped.own ?? 0) > 0 && p.wouldReview.length === 0 && (
+        <p className="small">
+          {t.t("web.preview.solo")} <a href="#/account">{t.t("web.account.setupLink")}</a>
+        </p>
+      )}
       {p.budget && <p className="muted small">{t.t("preview.budget", { used: p.budget.used, limit: p.budget.limit })}</p>}
       {p.errors.map((e) => (
         <p key={e.repo} className="bad-text small">

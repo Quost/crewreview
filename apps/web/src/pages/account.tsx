@@ -314,6 +314,7 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
   const orgLinks = selected.filter((r) => r.scope === "org");
   const [login, setLogin] = useState("");
   const [found, setFound] = useState<{ ok?: string; bad?: string }>({});
+  const [checking, setChecking] = useState(false);
   const [invites, setInvites] = useState<{ id: string; result?: string; error?: string }[] | undefined>();
   const [how, setHow] = useState<"token" | "gh">("token");
   const [signIn, setSignIn] = useState<SignIn>({ state: "idle" });
@@ -340,6 +341,7 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
     e.preventDefault();
     if (!name) return;
     setFound({});
+    setChecking(true);
     try {
       const u = await api.get<{ login: string }>(`/api/account/user?login=${encodeURIComponent(name)}&host=${encodeURIComponent(host)}`);
       setLogin(u.login);
@@ -348,6 +350,8 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
       const code = err instanceof ApiError ? err.body?.error : "";
       const same = code === "same-account" ? t.t("account.error.same-account", { name: err instanceof ApiError ? (err.body?.name ?? name) : name }) : undefined;
       setFound({ bad: same ?? (code === "not-found" ? t.t("web.account.notFound", { login: name }) : code === "bad-name" ? t.t("web.account.badName") : code === "no-token" ? t.t("web.log.noToken") : problem(err)) });
+    } finally {
+      setChecking(false);
     }
   };
   const invite = async () => {
@@ -420,8 +424,8 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
         </div>
         <form className="add" onSubmit={check}>
           <input value={login} onChange={(e) => (setLogin(e.target.value), setFound({}))} placeholder="acme-crew" aria-label={t.t("web.account.username")} spellCheck={false} autoCapitalize="off" />
-          <button className="btn ghost" disabled={!name}>
-            {t.t("web.account.check")}
+          <button className="btn ghost" disabled={!name || checking}>
+            {checking ? t.t("web.account.checking") : t.t("web.account.check")}
           </button>
         </form>
         {found.ok && <p className="notice ok">{found.ok}</p>}

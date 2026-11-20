@@ -9,7 +9,7 @@ import { mcp, mcpSetup } from "./commands/mcp.ts";
 import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
 import { repo } from "./commands/repo.ts";
-import { daemon, ui } from "./commands/daemon.ts";
+import { daemon, status, ui } from "./commands/daemon.ts";
 import { service, update } from "./commands/system.ts";
 import { reviewOne } from "./commands/review.ts";
 import { makeCtx } from "./ctx.ts";
@@ -39,6 +39,7 @@ function help(t: Translator): string {
     row("inbox [show|approve|discard]", t.t("cli.cmd.inbox")),
     row("once", t.t("cli.cmd.once")),
     row("run [--open] [--no-ui]", t.t("cli.cmd.run")),
+    row("status", t.t("cli.cmd.status")),
     row("ui", t.t("cli.cmd.ui")),
     row("service [install|uninstall]", t.t("cli.cmd.service")),
     row("update [--check]", t.t("cli.cmd.update")),
@@ -180,6 +181,8 @@ async function main(argv: string[]): Promise<number> {
         return await daemon(c, { loop: false, ui: false, open: false });
       case "run":
         return await daemon(c, { loop: true, ui: !v["no-ui"], open: v.open, port: v.port ? Number(v.port) : undefined, desktop: v.desktop });
+      case "status":
+        return await status(c);
       case "ui":
         return await ui(c, v.port ? Number(v.port) : undefined);
       default:

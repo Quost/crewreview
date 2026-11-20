@@ -1,18 +1,12 @@
 import { arch, platform } from "node:os";
 import { registryFor, reviewable, serviceEnvironment, serviceSpec } from "@crewreview/engine";
+import { signedInHosts } from "@crewreview/hosts";
 import { runConformance, runProcess, which, type SignIn } from "@crewreview/harness";
 import { conformanceStore, table, type Ctx } from "../ctx.ts";
 
 async function gitVersion(): Promise<string | undefined> {
   const r = await runProcess({ argv: ["git", "--version"], cwd: process.cwd(), env: process.env as Record<string, string>, timeoutMs: 10_000 });
   return r.exitCode === 0 ? r.stdout.trim().replace(/^git version /, "") : undefined;
-}
-
-async function signedIn(cli: string): Promise<boolean | undefined> {
-  const path = which(cli);
-  if (!path) return undefined;
-  const r = await runProcess({ argv: [path, "auth", "status"], cwd: process.cwd(), env: process.env as Record<string, string>, timeoutMs: 15_000 });
-  return r.exitCode === 0;
 }
 
 export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
@@ -78,9 +72,12 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
   for (const hint of hints) c.out(`  ${st.yellow("!")} ${hint}`);
   c.out();
   c.out(st.bold(t.t("doctor.hosts")));
-  for (const cli of ["gh", "glab"]) {
-    const s = await signedIn(cli);
-    c.out(`  ${cli.padEnd(6)} ${s === undefined ? st.dim(t.t("doctor.notInstalled")) : s ? st.green(t.t("doctor.signedIn")) : st.yellow(t.t("doctor.notSignedIn"))}`);
+  // The hosts each CLI holds a working login for. `glab auth status` fails when any configured host does (gitlab.com
+  // with no login, say), so its exit code alone called a company GitLab login "not signed in".
+  const hosts = await signedInHosts().catch(() => []);
+  for (const [cli, kind] of [["gh", "github"], ["glab", "gitlab"]] as const) {
+    const mine = hosts.filter((h) => h.kind === kind).map((h) => h.host);
+    c.out(`  ${cli.padEnd(6)} ${!which(cli) ? st.dim(t.t("doctor.notInstalled")) : mine.length ? st.green(`${t.t("doctor.signedIn")}: ${mine.join(", ")}`) : st.yellow(t.t("doctor.notSignedIn"))}`);
   }
   c.out();
   if (!conformance) c.out(st.dim(t.t("doctor.conformanceHint")));

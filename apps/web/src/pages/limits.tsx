@@ -74,7 +74,7 @@ export function LimitsPage({ version, agentsVersion }: { version: number; agents
                     </td>
                     <td className="mono small">{h.installed ? (h.version ?? "?").replace(/\s*\(.*\)$/, "") : t.t("doctor.notInstalled")}</td>
                     <td>
-                      {h.installed && (h.capabilities.readOnly === "enforced" ? <Check value={h.conformance?.readOnly} /> : <Pill tone="bad">{t.t("doctor.no")}</Pill>)} {h.installed && <ProveButton h={h} />}
+                      {h.installed && (h.capabilities.readOnly === "enforced" ? <Check value={h.conformance?.readOnly} /> : <Pill tone="bad">{t.t("doctor.no")}</Pill>)} {h.installed && <ProveButton h={h} any />}
                     </td>
                     <td>{h.installed && (h.capabilities.write ? <Check value={h.conformance?.writeScope} /> : <Pill>{t.t("doctor.no")}</Pill>)}</td>
                     <td>{h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no")}</td>
@@ -97,7 +97,7 @@ export function LimitsPage({ version, agentsVersion }: { version: number; agents
             </table>
           </div>
         )}
-        <p className="muted small">{t.t("doctor.conformanceHint")}</p>
+        <p className="muted small">{t.t("web.limits.proveHint")}</p>
       </Card>
       <SettingsCard version={version} />
     </>

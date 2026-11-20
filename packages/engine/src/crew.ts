@@ -268,6 +268,8 @@ export class CrewDaemon {
     entries[idx] = merged;
     await saveRepos(reposFile(this.o.dirs), entries);
     this.emit({ type: "changed", what: "repos" });
+    // Resumed: look at it now.
+    if (e.paused && !paused) this.wake();
     return { ...merged, ref: repos[idx]!.ref };
   }
 
@@ -278,6 +280,8 @@ export class CrewDaemon {
     if ("error" in p) return { error: p.error, message: p.message };
     await saveRepos(reposFile(this.o.dirs), [...repos.map(({ ref: _r, ...x }) => x), p.entry]);
     this.emit({ type: "changed", what: "repos" });
+    // Look at it now: someone who just linked a repository shouldn't wait for the next cycle to see anything.
+    this.wake();
     return { repo: { ...p.entry, ref: p.ref }, user: p.user, openRepos: p.openRepos };
   }
 

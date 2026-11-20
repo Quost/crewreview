@@ -217,12 +217,13 @@ crewreview repo set acme-shop --conflicts on --ci on   # also fix conflicts with
 - `--conflicts on`: when your branch conflicts with its base, the attendant merges the base (never rebases, never force-pushes) and resolves the conflicts; a conflict it can't fully resolve is undone and left to you. `--ci on`: when CI is red, the failing jobs' logs (secrets taken out) go to the agent to fix the cause.
 - `--polish on` also takes the findings Crewreview's reviewer left on your pull request: review, fix, review again, for up to `maxPolishRounds` (3) rounds.
 
-The attendant edits files, so its harness must prove on your machine that it can write in its worktree and can't write outside it: run `crewreview doctor --conformance` once per harness version.
+The attendant edits files, so its harness must prove on your machine that it can write in its worktree and can't write outside it: prove it once per harness version, with **Prove** in Harnesses & limits or `crewreview doctor --conformance`.
 
 ### Dashboard, service and updates
 
 ```bash
 crewreview ui                  # open the dashboard (starts the daemon if it isn't running)
+crewreview status              # is the crew running here, what is it doing, what waits for you
 crewreview service install     # start the daemon with your login: launchd, systemd --user or a logon task
 crewreview service status
 crewreview update              # install the newest signed release; --check only looks
