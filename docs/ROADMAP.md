@@ -19,6 +19,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.7** ✅ | The second account set up from the app, step by step | released 2026-11-20; 0.7.1 the same day: the app opened from the Dock finds the agents and gh |
 | **v0.8** ✅ | A macOS disk image that says what to do, a native app icon, the next steps on the website after a download | released 2026-11-20 |
 | **v0.9** ✅ | Settings, open at login and paused repositories in the app; approvals from the menu bar | released 2026-11-20 |
+| **v0.10** ✅ | Antigravity, OpenCode and Gemini CLI built in over ACP, proven from the app; company GitLab hosts and nested groups in the setup | released 2026-11-20; Antigravity proven for real |
 
 ## Owed from the first plan ✅ (v0.4.0)
 

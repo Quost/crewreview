@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.10.0 — 2026-11-20
+
+More agents (Antigravity, OpenCode, Gemini CLI), proven from the app, and a setup that knows your company GitLab.
+
 ### Fixed
 
 - The setup showed "no login" for gitlab.com while glab was signed in to a company GitLab. It now lists the hosts gh and glab are actually signed in to (a configured host whose token fails doesn't count), and shows gitlab.com only when no other GitLab is known.
