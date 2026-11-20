@@ -435,5 +435,20 @@
   "web.setup.todo": "offen",
   "web.repos.setup": "Geführte Einrichtung",
   "web.setup.previewFailed": "Vorschau nicht möglich: {error}",
-  "web.setup.unreachable": "Das Dashboard erreicht die Crew nicht. Läuft sie noch?"
+  "web.setup.unreachable": "Das Dashboard erreicht die Crew nicht. Läuft sie noch?",
+  "account.error.bad-name": "\"{name}\" ist kein Konto: nutze einen Login oder env:VARIABLE für einen Token in einer Umgebungsvariable.",
+  "account.error.env-unset": "Die Umgebungsvariable {name} ist dort, wo die Crew läuft, nicht gesetzt.",
+  "account.error.not-signed-in": "{name} ist auf diesem Computer nicht bei gh angemeldet. Führe gh auth login aus, melde dich als {name} an und wechsle mit gh auth switch zurück zu deinem Konto.",
+  "account.error.gitlab-needs-env": "glab speichert ein Konto pro Host: lege den Token von {name} in eine Umgebungsvariable und nutze env:VARIABLE.",
+  "account.error.same-account": "{name} ist dein eigenes Konto, und GitHub lässt es deine Pull Requests weiterhin nicht freigeben. Nutze ein zweites Konto.",
+  "account.error.host": "Der Host hat den Token von {name} abgelehnt: {message}",
+  "repo.accountSet": "{id}: Reviews erscheinen jetzt als {user}.",
+  "repo.accountCleared": "{id}: Reviews erscheinen wieder unter deinem Konto.",
+  "cli.opt.account": "postet Reviews als anderes Konto (ein Login in gh oder env:VARIABLE), damit deine eigenen Pull Requests freigegeben werden können; none: als du.",
+  "web.repos.account": "Reviews posten als",
+  "web.repos.accountHint": "Allein unterwegs? GitHub lässt dich deine eigenen Pull Requests nicht freigeben. Gib der Crew ein zweites Konto mit Schreibrechten auf dieses Repository, dann erscheinen ihre Reviews, Freigaben eingeschlossen, unter diesem Konto. Melde es mit gh auth login an und wechsle mit gh auth switch zurück. Leer: dein eigenes Konto.",
+  "web.repos.accountPlaceholder": "dein Konto",
+  "web.repos.accountSave": "Speichern",
+  "web.repos.accountAs": "Reviews erscheinen als {user}.",
+  "web.setup.next4": "Allein unterwegs? GitHub lässt dich deine eigenen Pull Requests nicht freigeben. Damit die Crew sie freigibt, gib ihr unter Repositories → Reviews posten als ein zweites Konto."
 }

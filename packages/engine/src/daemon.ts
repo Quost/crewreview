@@ -3,6 +3,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_RULES, reviewEligibility, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
 import { createHost, HostError, hostTransport, reposWithOpenPullRequests, resolveToken, type HostAdapter } from "@crewreview/hosts";
+import { posterFor } from "./account.ts";
 import type { Config } from "./config.ts";
 import { attendPullRequest, type AttendDeps, type AttendOutcome } from "./attend.ts";
 import { reviewPullRequest, type PrDeps, type PrOutcome, type PrTarget } from "./pr.ts";
@@ -37,7 +38,7 @@ export async function connect(repo: LinkedRepo, version: string): Promise<PrTarg
   const tk = await resolveToken(repo.ref);
   if (!tk) return { error: "no-token" };
   const host: HostAdapter = createHost(repo.ref, hostTransport(repo.ref, tk.token, `crewreview/${version}`));
-  return { repo, host, token: tk.token };
+  return { repo, host, token: tk.token, poster: await posterFor(repo, version) };
 }
 
 class NoToken extends Error {}

@@ -23,6 +23,8 @@ const ReviewSettings = z
     harness: z.string().optional(),
     verifier: z.string().optional(),
     allowApprove: z.boolean().optional(),
+    /** Post reviews as this account instead of yours: a login signed in to gh, or env:VARIABLE with its token. */
+    account: z.string().optional(),
   })
   .strict();
 

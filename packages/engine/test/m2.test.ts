@@ -251,6 +251,26 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     expect(store.get(id)?.status).toBe("stale");
   }, 60_000);
 
+  test("a review account posts the review, and one without a token never falls back to you", async () => {
+    const sha = await pushPull(20, "discount");
+    const { d, repo, ref, store } = await setup("inbox");
+    // Your own pull request: the crew knows you through your login, and the bot posts.
+    const you = new FakeHost(ref, [pr(20, sha, { author: "quost" })]);
+    const bot = new FakeHost(ref, [pr(20, sha, { author: "quost" })]);
+    const own = { ...repo, review: { ...repo.review, authors: "all" as const, account: "quost-bot" } };
+    expect((await reviewPullRequest(d, { repo: own, host: you, token: "t" }, 20, "inbox")).kind).toBe("pending");
+    const row = store.inbox().find((r) => r.number === 20)!;
+
+    const broken = await postReview(d, { repo: own, host: you, token: "t", poster: { error: "can't post as quost-bot: not signed in" } }, row.id);
+    expect(broken).toMatchObject({ kind: "failed", error: "can't post as quost-bot: not signed in" });
+    expect(you.posted).toHaveLength(0);
+    expect(store.get(row.id)?.status).toBe("pending"); // still in the inbox, to retry
+
+    expect(await postReview(d, { repo: own, host: you, token: "t", poster: bot }, row.id)).toMatchObject({ kind: "posted" });
+    expect(bot.posted.map((x) => x.pr)).toEqual([20]);
+    expect(you.posted).toHaveLength(0);
+  });
+
   test("runCycle respects eligibility and the per-cycle limit", async () => {
     const { d, repo, ref } = await setup("inbox");
     const sha = await pushPull(12, "discount");

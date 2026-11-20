@@ -160,6 +160,8 @@
   "faq.a7": "It runs on your computer with the agents you already pay for: no per-seat price, and your code goes only to the agent you already use. It also answers the reviews on your own pull requests, a fixed rule (not a model) decides the verdict, and every prompt is open source.",
   "faq.q8": "Can my whole team use it?",
   "faq.a8": "Yes. Each person installs it and links the team's repositories, or the whole organization or group at once; reviews post from their own account, and a commit someone's crew already reviewed is skipped. Shared lenses go in .crewreview/lenses/ in the repository.",
+  "faq.q10": "I work alone. Can it approve my own pull requests?",
+  "faq.a10": "Yes, with a second account. GitHub doesn't let you approve your own pull requests, so give the crew another account with write access, sign it in to gh, and set it under Repositories → Post reviews as (or crewreview repo set <id> --account my-bot). Its reviews, approvals included, post as that account; everything else still runs as you.",
   "faq.q9": "Why AGPL?",
   "faq.a9": "So it stays open: anyone who ships a modified version, or runs one as a service for others, must share the source.",
   "sponsor.title": "Keep the crew working",

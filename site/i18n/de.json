@@ -160,6 +160,8 @@
   "faq.a7": "Es läuft auf deinem Rechner mit den Agenten, die du schon bezahlst: kein Preis pro Platz, und dein Code geht nur an den Agenten, den du ohnehin nutzt. Außerdem beantwortet es die Reviews auf deinen eigenen Pull Requests, eine feste Regel (kein Modell) entscheidet das Urteil, und jeder Prompt ist Open Source.",
   "faq.q8": "Kann mein ganzes Team es nutzen?",
   "faq.a8": "Ja. Jede Person installiert es und verknüpft die Repositories des Teams, oder gleich die ganze Organisation oder Gruppe; Reviews erscheinen unter dem eigenen Konto, und ein Commit, den die Crew einer anderen Person schon geprüft hat, wird übersprungen. Gemeinsame Linsen liegen in .crewreview/lenses/ im Repository.",
+  "faq.q10": "Ich arbeite allein. Kann es meine eigenen Pull Requests freigeben?",
+  "faq.a10": "Ja, mit einem zweiten Konto. GitHub lässt dich deine eigenen Pull Requests nicht freigeben, also gib der Crew ein weiteres Konto mit Schreibrechten, melde es bei gh an und stelle es unter Repositories → Reviews posten als ein (oder crewreview repo set <id> --account mein-bot). Seine Reviews, Freigaben eingeschlossen, erscheinen unter diesem Konto; alles andere läuft weiter unter deinem.",
   "faq.q9": "Warum AGPL?",
   "faq.a9": "Damit es offen bleibt: Wer eine veränderte Version verbreitet oder als Dienst anbietet, muss den Quellcode teilen.",
   "sponsor.title": "Halte die Crew am Laufen",

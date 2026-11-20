@@ -130,6 +130,13 @@ export function ReposPage({ version }: { version: number }) {
             </div>
             <div className="setting">
               <div>
+                <strong>{t.t("web.repos.account")}</strong>
+                <p className="muted small">{t.t("web.repos.accountHint")}</p>
+              </div>
+              <AccountField repo={r} />
+            </div>
+            <div className="setting">
+              <div>
                 <strong>{t.t("web.repos.attend")}</strong>
                 <p className="muted small">{t.t("web.repos.attendHint")}</p>
               </div>
@@ -160,6 +167,41 @@ export function ReposPage({ version }: { version: number }) {
         </Card>
       ))}
     </>
+  );
+}
+
+/** Who posts this repository's reviews. The daemon checks an account before it saves it. */
+function AccountField({ repo }: { repo: Repo }) {
+  const t = useT();
+  const [value, setValue] = useState(repo.review.account ?? "");
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<{ ok?: string; bad?: string }>({});
+  useEffect(() => setValue(repo.review.account ?? ""), [repo.review.account]);
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setState({});
+    try {
+      const r = await api.patch<{ ok: boolean; user?: string }>(`/api/repos/${repo.id}`, { review: { account: value.trim() } });
+      setState({ ok: r.user ? t.t("web.repos.accountAs", { user: r.user }) : undefined });
+    } catch (err) {
+      const b = err instanceof ApiError ? err.body : undefined;
+      setState({ bad: unreachable(err) ? t.t("web.setup.unreachable") : b?.problem ? t.t(`account.error.${b.problem}` as never, { name: b.name ?? value, message: b.message ?? "" }) : String(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="account" onSubmit={save}>
+      <div className="add">
+        <input value={value} onChange={(e) => setValue(e.target.value)} placeholder={t.t("web.repos.accountPlaceholder")} aria-label={t.t("web.repos.account")} spellCheck={false} autoCapitalize="off" />
+        <button className="btn ghost" disabled={busy || value.trim() === (repo.review.account ?? "")}>
+          {t.t("web.repos.accountSave")}
+        </button>
+      </div>
+      {state.ok && <p className="ok-text small">{state.ok}</p>}
+      {state.bad && <p className="bad-text small">{state.bad}</p>}
+    </form>
   );
 }
 

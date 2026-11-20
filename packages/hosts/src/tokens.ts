@@ -46,3 +46,29 @@ export function gitAuthEnv(repo: RepoRef, token: string): Record<string, string>
     GIT_CONFIG_VALUE_0: `Authorization: Basic ${basic}`,
   };
 }
+
+export type AccountTokenError = "bad-name" | "env-unset" | "not-signed-in" | "gitlab-needs-env";
+
+/**
+ * The token of another account to post reviews as (a repository's `review.account`), so a pull request of yours can
+ * be approved by someone who isn't you. `env:NAME` reads an environment variable; a login asks gh for that account's
+ * token, since gh keeps several accounts per host. glab keeps one per host, so GitLab needs `env:`.
+ */
+export async function resolveAccountToken(
+  repo: RepoRef,
+  account: string,
+  env: Record<string, string | undefined> = process.env,
+  runCmd: (argv: string[]) => Promise<string | undefined> = run,
+): Promise<{ token: string; source: TokenSource } | { error: AccountTokenError; name: string }> {
+  const fromEnv = /^env:([A-Za-z_][A-Za-z0-9_]*)$/.exec(account);
+  if (fromEnv) {
+    const value = env[fromEnv[1]!]?.trim();
+    return value ? { token: value, source: "env" } : { error: "env-unset", name: fromEnv[1]! };
+  }
+  // A login, never an option: it goes on gh's command line.
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(account)) return { error: "bad-name", name: account };
+  if (repo.kind === "gitlab") return { error: "gitlab-needs-env", name: account };
+  const out = await runCmd(["gh", "auth", "token", "--hostname", repo.host, "--user", account]);
+  const token = out?.trim().split("\n")[0]?.trim();
+  return token ? { token, source: "gh" } : { error: "not-signed-in", name: account };
+}

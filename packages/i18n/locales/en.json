@@ -435,5 +435,20 @@
   "web.setup.todo": "to do",
   "web.repos.setup": "Guided setup",
   "web.setup.previewFailed": "Couldn't preview it: {error}",
-  "web.setup.unreachable": "The dashboard can't reach the crew. Is it still running?"
+  "web.setup.unreachable": "The dashboard can't reach the crew. Is it still running?",
+  "account.error.bad-name": "\"{name}\" isn't an account: use a login, or env:VARIABLE for a token kept in an environment variable.",
+  "account.error.env-unset": "The environment variable {name} isn't set where the crew runs.",
+  "account.error.not-signed-in": "{name} isn't signed in to gh on this computer. Run gh auth login and sign in as {name}, then gh auth switch to come back to your account.",
+  "account.error.gitlab-needs-env": "glab keeps one account per host: put the token of {name} in an environment variable and use env:VARIABLE.",
+  "account.error.same-account": "{name} is your own account, and GitHub still won't let it approve your pull requests. Use a second account.",
+  "account.error.host": "The host refused the token of {name}: {message}",
+  "repo.accountSet": "{id}: reviews now post as {user}.",
+  "repo.accountCleared": "{id}: reviews post as you again.",
+  "cli.opt.account": "post reviews as another account (a login signed in to gh, or env:VARIABLE), so your own pull requests can be approved; none: as you.",
+  "web.repos.account": "Post reviews as",
+  "web.repos.accountHint": "Working alone? GitHub doesn't let you approve your own pull requests. Give the crew a second account with write access to this repository, and its reviews, approvals included, post as that account. Sign it in with gh auth login, then gh auth switch back to yours. Empty: your own account.",
+  "web.repos.accountPlaceholder": "your account",
+  "web.repos.accountSave": "Save",
+  "web.repos.accountAs": "Reviews post as {user}.",
+  "web.setup.next4": "Working alone? GitHub doesn't let you approve your own pull requests. To have the crew approve them, give it a second account under Repositories → Post reviews as."
 }

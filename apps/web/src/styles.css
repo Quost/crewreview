@@ -904,3 +904,16 @@ tr:last-child td {
     flex-basis: 100%;
   }
 }
+
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(100%, 320px);
+}
+.account p {
+  margin: 0;
+}
+.ok-text {
+  color: var(--ok);
+}

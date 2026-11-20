@@ -426,5 +426,20 @@
   "web.setup.todo": "待办",
   "web.repos.setup": "引导设置",
   "web.setup.previewFailed": "无法预览：{error}",
-  "web.setup.unreachable": "仪表板无法连接到团队。它还在运行吗？"
+  "web.setup.unreachable": "仪表板无法连接到团队。它还在运行吗？",
+  "account.error.bad-name": "“{name}”不是账号：请使用登录名，或用 env:VARIABLE 表示保存在环境变量中的令牌。",
+  "account.error.env-unset": "团队运行的环境中没有设置环境变量 {name}。",
+  "account.error.not-signed-in": "{name} 尚未在这台电脑的 gh 中登录。运行 gh auth login 并以 {name} 登录，然后用 gh auth switch 切回你的账号。",
+  "account.error.gitlab-needs-env": "glab 每个主机只保存一个账号：请把 {name} 的令牌放入环境变量，并使用 env:VARIABLE。",
+  "account.error.same-account": "{name} 是你自己的账号，GitHub 仍然不允许它批准你的合并请求。请使用第二个账号。",
+  "account.error.host": "主机拒绝了 {name} 的令牌：{message}",
+  "repo.accountSet": "{id}：审查现在以 {user} 的身份发布。",
+  "repo.accountCleared": "{id}：审查重新以你的身份发布。",
+  "cli.opt.account": "以另一个账号（gh 中已登录的账号，或 env:VARIABLE）发布审查，这样你自己的合并请求也能被批准；none：以你的身份。",
+  "web.repos.account": "发布审查的账号",
+  "web.repos.accountHint": "独自开发？GitHub 不允许你批准自己的合并请求。给团队一个对此仓库有写权限的第二个账号，它的审查（包括批准）就会以该账号发布。用 gh auth login 登录它，再用 gh auth switch 切回你的账号。留空：使用你自己的账号。",
+  "web.repos.accountPlaceholder": "你的账号",
+  "web.repos.accountSave": "保存",
+  "web.repos.accountAs": "审查以 {user} 的身份发布。",
+  "web.setup.next4": "独自开发？GitHub 不允许你批准自己的合并请求。要让团队批准它们，请在“仓库 → 发布审查的账号”中给它第二个账号。"
 }

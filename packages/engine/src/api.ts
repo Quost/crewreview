@@ -100,8 +100,21 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const flag = (v: unknown) => (typeof v === "boolean" ? v : undefined);
       const attend = { mode: pick(b.attend?.mode, REVIEW_MODES), fromCrew: flag(b.attend?.fromCrew), conflicts: flag(b.attend?.conflicts), ci: flag(b.attend?.ci) };
       const clean = <T extends object>(x: T) => Object.fromEntries(Object.entries(x).filter(([, v]) => v !== undefined)) as Partial<T>;
-      const updated = await crew.updateRepo(repoMatch[1]!, { review: clean(review), attend: clean(attend) });
-      return updated ? json({ ok: true }) : json({ error: "not-found" }, 404);
+      // A review account is checked before it's saved: its token is found and it isn't you. "" goes back to you.
+      let account: string | null | undefined;
+      let user: string | undefined;
+      if (typeof b.review?.account === "string") {
+        const name = b.review.account.trim();
+        if (name) {
+          const check = await crew.checkAccount(repoMatch[1]!, name);
+          if (!check) return json({ error: "not-found" }, 404);
+          if ("error" in check) return json({ error: "account", problem: check.error, name: check.name, message: check.message }, 400);
+          account = name;
+          user = check.user;
+        } else account = null;
+      }
+      const updated = await crew.updateRepo(repoMatch[1]!, { review: { ...clean(review), ...(account !== undefined ? { account } : {}) }, attend: clean(attend) });
+      return updated ? json({ ok: true, ...(user ? { user } : {}) }) : json({ error: "not-found" }, 404);
     }
     const previewMatch = /^\/api\/repos\/([a-z0-9._-]+)\/preview$/.exec(p);
     if (previewMatch && m === "GET") {

@@ -46,6 +46,8 @@ export interface PrTarget {
   repo: LinkedRepo;
   host: HostAdapter;
   token: string;
+  /** Posts the reviews when the repository has a review account; an error when its token can't be found. */
+  poster?: HostAdapter | { error: string };
 }
 
 export type PrMode = "inbox" | "auto" | "dry-run";
@@ -212,8 +214,10 @@ export async function postReview(d: PrDeps, x: PrTarget, reviewId: number): Prom
   }
   const { t } = commentTranslator(x.repo, d.config, d.ui);
   const rendered = await renderHostReview(report, t, d.version);
+  const poster = x.poster ?? x.host;
   try {
-    const r = await x.host.postReview(pr, rendered);
+    if ("error" in poster) throw new Error(poster.error);
+    const r = await poster.postReview(pr, rendered);
     d.store.update(reviewId, { status: "posted", postedUrl: r.url ?? pr.url, event: r.event });
     return { kind: "posted", reviewId, url: r.url ?? pr.url, event: r.event, findings: report.findings.length };
   } catch (e) {

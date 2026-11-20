@@ -6,6 +6,7 @@ import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { hostAccess, linkFromUrl, type HostAccess } from "./access.ts";
+import { checkAccount, type AccountProblem } from "./account.ts";
 import { keepAwake, type KeepAwake } from "./awake.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
 import { signInOf } from "./harnesses.ts";
@@ -235,13 +236,20 @@ export class CrewDaemon {
     return loadRepos(reposFile(this.o.dirs));
   }
 
-  async updateRepo(id: string, patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">>; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">> }): Promise<LinkedRepo | undefined> {
+  async updateRepo(
+    id: string,
+    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">> },
+  ): Promise<LinkedRepo | undefined> {
     const repos = await this.repos();
     const idx = repos.findIndex((r) => r.id === id);
     if (idx === -1) return undefined;
     const entries = repos.map(({ ref: _ref, ...e }) => e);
     const e = entries[idx]!;
-    const merged = newRepoEntry(repos[idx]!.ref, { ...e, review: { ...e.review, ...patch.review }, attend: { ...e.attend, ...patch.attend } });
+    const { account, ...rest } = patch.review ?? {};
+    const review = { ...e.review, ...rest };
+    if (account === null) delete review.account;
+    else if (account !== undefined) review.account = account;
+    const merged = newRepoEntry(repos[idx]!.ref, { ...e, review, attend: { ...e.attend, ...patch.attend } });
     entries[idx] = merged;
     await saveRepos(reposFile(this.o.dirs), entries);
     this.emit({ type: "changed", what: "repos" });
@@ -256,6 +264,12 @@ export class CrewDaemon {
     await saveRepos(reposFile(this.o.dirs), [...repos.map(({ ref: _r, ...x }) => x), p.entry]);
     this.emit({ type: "changed", what: "repos" });
     return { repo: { ...p.entry, ref: p.ref }, user: p.user, openRepos: p.openRepos };
+  }
+
+  /** Whether an account can post a repository's reviews, and who it is. */
+  async checkAccount(id: string, account: string): Promise<{ user: string } | AccountProblem | undefined> {
+    const link = (await this.repos()).find((r) => r.id === id);
+    return link ? checkAccount(link.ref, account, this.o.version) : undefined;
   }
 
   /** What the crew would do with a link right now, without doing it. */

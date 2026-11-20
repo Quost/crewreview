@@ -435,5 +435,20 @@
   "web.setup.todo": "falta",
   "web.repos.setup": "Configuração guiada",
   "web.setup.previewFailed": "Não deu para ver a prévia: {error}",
-  "web.setup.unreachable": "O painel não alcança a equipe. Ela ainda está rodando?"
+  "web.setup.unreachable": "O painel não alcança a equipe. Ela ainda está rodando?",
+  "account.error.bad-name": "\"{name}\" não é uma conta: use um login, ou env:VARIAVEL para um token guardado numa variável de ambiente.",
+  "account.error.env-unset": "A variável de ambiente {name} não está definida onde a equipe roda.",
+  "account.error.not-signed-in": "{name} não está logado no gh neste computador. Rode gh auth login e entre como {name}, depois gh auth switch para voltar à sua conta.",
+  "account.error.gitlab-needs-env": "O glab guarda uma conta por host: coloque o token de {name} numa variável de ambiente e use env:VARIAVEL.",
+  "account.error.same-account": "{name} é a sua própria conta, e o GitHub continua sem deixar ela aprovar os seus pull requests. Use uma segunda conta.",
+  "account.error.host": "O host recusou o token de {name}: {message}",
+  "repo.accountSet": "{id}: as revisões agora saem como {user}.",
+  "repo.accountCleared": "{id}: as revisões voltam a sair como você.",
+  "cli.opt.account": "posta as revisões como outra conta (um login no gh, ou env:VARIAVEL), para que os seus próprios pull requests possam ser aprovados; none: como você.",
+  "web.repos.account": "Postar revisões como",
+  "web.repos.accountHint": "Trabalha sozinho? O GitHub não deixa você aprovar os seus próprios pull requests. Dê à equipe uma segunda conta com permissão de escrita neste repositório, e as revisões dela, aprovações incluídas, saem como essa conta. Faça login com gh auth login e volte para a sua com gh auth switch. Vazio: a sua própria conta.",
+  "web.repos.accountPlaceholder": "sua conta",
+  "web.repos.accountSave": "Salvar",
+  "web.repos.accountAs": "As revisões saem como {user}.",
+  "web.setup.next4": "Trabalha sozinho? O GitHub não deixa você aprovar os seus próprios pull requests. Para a equipe aprová-los, dê a ela uma segunda conta em Repositórios → Postar revisões como."
 }

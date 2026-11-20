@@ -1,5 +1,5 @@
-import { isOrg, linkFromUrl, loadRepos, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
-import type { HostKind } from "@crewreview/hosts";
+import { checkAccount, isOrg, linkFromUrl, loadRepos, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
+import type { HostKind, RepoRef } from "@crewreview/hosts";
 import { table, type Ctx } from "../ctx.ts";
 
 export interface RepoArgs {
@@ -15,6 +15,7 @@ export interface RepoArgs {
   exclude?: string;
   conflicts?: string;
   ci?: string;
+  account?: string;
 }
 
 const onOff = (v: string | undefined, current: boolean) => (v === undefined ? current : v === "on");
@@ -22,6 +23,17 @@ const onOff = (v: string | undefined, current: boolean) => (v === undefined ? cu
 const patterns = (v: string | undefined) => (v === undefined ? undefined : v.split(",").map((p) => p.trim()).filter(Boolean));
 
 const AUTHORS = ["others", "all", "mine"] as const;
+
+/**
+ * `--account`: post this repository's reviews as another account, checked before it's saved. "none" goes back to
+ * you. Returns the text of what's wrong, or the account to save and who it is.
+ */
+async function reviewAccount(c: Ctx, ref: RepoRef, value: string): Promise<{ account?: string; user?: string } | string> {
+  if (value === "none" || value === "") return {};
+  const check = await checkAccount(ref, value, c.version);
+  if ("error" in check) return c.t.t(`account.error.${check.error}` as never, { name: check.name, message: check.message ?? "" });
+  return { account: value, user: check.user };
+}
 
 function check(c: Ctx, option: string, value: string | undefined, list: readonly string[]): string | undefined {
   if (value === undefined || list.includes(value)) return undefined;
@@ -90,9 +102,17 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       return (c.err(t.t("error.host", { message: p.message ?? "" })), 2);
     }
     const { entry, ref, user } = p;
+    let as: string | undefined;
+    if (a.account !== undefined) {
+      const acc = await reviewAccount(c, ref, a.account);
+      if (typeof acc === "string") return (c.err(acc), 2);
+      entry.review.account = acc.account;
+      as = acc.user;
+    }
     await saveRepos(file, [...entries(), entry]);
     if (p.scope === "org") c.out(t.t("repo.orgAdded", { id: entry.id, url: ref.webUrl, mode: entry.review.mode, authors: entry.review.authors, user, open: p.openRepos ?? 0 }));
     else c.out(t.t("repo.added", { id: entry.id, url: ref.webUrl, mode: entry.review.mode, authors: entry.review.authors, user }));
+    if (as) c.out(t.t("repo.accountSet", { id: entry.id, user: as }));
     return 0;
   }
 
@@ -123,6 +143,14 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     return 0;
   }
   const e = list[idx]!;
+  let account = e.review.account;
+  let as: string | undefined;
+  if (a.account !== undefined) {
+    const acc = await reviewAccount(c, repos[idx]!.ref, a.account);
+    if (typeof acc === "string") return (c.err(acc), 2);
+    account = acc.account;
+    as = acc.user;
+  }
   list[idx] = {
     ...e,
     clone: a.clone ?? e.clone,
@@ -133,6 +161,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       mode: (a.mode as RepoEntry["review"]["mode"]) ?? e.review.mode,
       authors: (a.authors as RepoEntry["review"]["authors"]) ?? e.review.authors,
       commentLanguage: a.lang ?? e.review.commentLanguage,
+      account,
     },
     attend: {
       ...e.attend,
@@ -144,6 +173,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
   };
   await saveRepos(file, list);
   c.out(t.t("repo.updated", { id }));
+  if (a.account !== undefined) c.out(as ? t.t("repo.accountSet", { id, user: as }) : t.t("repo.accountCleared", { id }));
   return 0;
 }
 

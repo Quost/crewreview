@@ -435,5 +435,20 @@
   "web.setup.todo": "pendiente",
   "web.repos.setup": "Configuración guiada",
   "web.setup.previewFailed": "No se pudo ver la vista previa: {error}",
-  "web.setup.unreachable": "El panel no llega al equipo. ¿Sigue en marcha?"
+  "web.setup.unreachable": "El panel no llega al equipo. ¿Sigue en marcha?",
+  "account.error.bad-name": "\"{name}\" no es una cuenta: usa un login, o env:VARIABLE para un token guardado en una variable de entorno.",
+  "account.error.env-unset": "La variable de entorno {name} no está definida donde corre el equipo.",
+  "account.error.not-signed-in": "{name} no tiene sesión en gh en este equipo. Ejecuta gh auth login e inicia sesión como {name}, luego gh auth switch para volver a tu cuenta.",
+  "account.error.gitlab-needs-env": "glab guarda una cuenta por host: pon el token de {name} en una variable de entorno y usa env:VARIABLE.",
+  "account.error.same-account": "{name} es tu propia cuenta, y GitHub sigue sin dejar que apruebe tus pull requests. Usa una segunda cuenta.",
+  "account.error.host": "El host rechazó el token de {name}: {message}",
+  "repo.accountSet": "{id}: las revisiones ahora salen como {user}.",
+  "repo.accountCleared": "{id}: las revisiones vuelven a salir como tú.",
+  "cli.opt.account": "publica las revisiones como otra cuenta (un login en gh, o env:VARIABLE), para que tus propios pull requests puedan aprobarse; none: como tú.",
+  "web.repos.account": "Publicar revisiones como",
+  "web.repos.accountHint": "¿Trabajas solo? GitHub no te deja aprobar tus propios pull requests. Dale al equipo una segunda cuenta con permiso de escritura en este repositorio, y sus revisiones, aprobaciones incluidas, salen como esa cuenta. Inicia sesión con gh auth login y vuelve a la tuya con gh auth switch. Vacío: tu propia cuenta.",
+  "web.repos.accountPlaceholder": "tu cuenta",
+  "web.repos.accountSave": "Guardar",
+  "web.repos.accountAs": "Las revisiones salen como {user}.",
+  "web.setup.next4": "¿Trabajas solo? GitHub no te deja aprobar tus propios pull requests. Para que el equipo los apruebe, dale una segunda cuenta en Repositorios → Publicar revisiones como."
 }
