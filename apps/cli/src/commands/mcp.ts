@@ -92,16 +92,16 @@ export function mcpTools(c: Ctx, crew: CrewDaemon): Tool[] {
     },
     {
       name: "crewreview_repo_link",
-      description: "Link a GitHub or GitLab repository so the daemon watches it. Only do this when the user asked. Uses the gh/glab login already on this machine. New repositories review in inbox mode (nothing is posted without approval).",
+      description: "Link a GitHub or GitLab repository so the daemon watches it, or a whole organization or group (every repository in it, new ones too). Only do this when the user asked. Uses the gh/glab login already on this machine. New links review in inbox mode (nothing is posted without approval).",
       inputSchema: {
         type: "object",
-        properties: { url: str("Repository URL, e.g. https://github.com/owner/repo."), review: modes("Review mode (default inbox).") },
+        properties: { url: str("Repository URL (https://github.com/owner/repo) or organization/group URL (https://github.com/owner)."), review: modes("Review mode (default inbox).") },
         required: ["url"],
       },
       async run(a) {
         const r = await crew.addRepo(String(a.url), REVIEW_MODES.includes(a.review) ? a.review : "inbox");
         if ("error" in r) throw new Error(r.message ? `${r.error}: ${r.message}` : r.error);
-        return { linked: r.repo.id, as: r.user, review: r.repo.review.mode };
+        return { linked: r.repo.id, as: r.user, review: r.repo.review.mode, ...(r.repo.scope === "org" ? { organization: true, reposWithOpenPullRequests: r.openRepos } : {}) };
       },
     },
     {

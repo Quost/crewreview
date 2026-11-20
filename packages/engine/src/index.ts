@@ -14,6 +14,7 @@ export * from "./publish.ts";
 export * from "./pr.ts";
 export * from "./daemon.ts";
 export * from "./harnesses.ts";
+export * from "./link.ts";
 export * from "./conformance-store.ts";
 export * from "./worktree.ts";
 export * from "./attend.ts";

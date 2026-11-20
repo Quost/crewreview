@@ -116,7 +116,7 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}
 - Command line, Windows (PowerShell): irm ${SITE}/install.ps1 | iex (Scoop: scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview/crewreview)
 
 ## Using it with a team
-- Each developer installs it and links the team's repositories; reviews post from their own account, with the coding agent plan they already have. No server, no seats, no shared API key.
+- Each developer installs it and links the team's repositories, or a whole GitHub organization or GitLab group (crewreview repo add https://github.com/acme, with --include/--exclude name filters); reviews post from their own account, with the coding agent plan they already have. No server, no seats, no shared API key.
 - A commit that already has a Crewreview review on the host is skipped, whoever's crew wrote it, so several people can run it on the same repository.
 - Shared rules live in the repository: .crewreview/lenses/<lens>.md replaces or adds a lens, and the crew follows AGENTS.md, CLAUDE.md and CONTRIBUTING.md, all read from the base branch.
 - The language of review comments is set per repository (commentLanguage).
@@ -124,7 +124,7 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}
 ## Setting it up for someone (for AI agents)
 1. Install the command line tool (above). Explain each command before running it.
 2. Run crewreview doctor. It needs git, at least one coding agent signed in (Claude Code, Codex or Kiro) and gh (GitHub) or glab (GitLab) signed in. If something is missing, tell the user how to fix it and wait.
-3. Ask which repositories to watch. Link each one in inbox mode, so nothing is posted without approval: crewreview repo add <url> --attend inbox. Never switch a repository to auto unless the user asks.
+3. Ask which repositories to watch, or whether to link a whole organization or group (every repository in it, new ones too). Link each in inbox mode, so nothing is posted without approval: crewreview repo add <repository or organization url> --attend inbox. Never switch a repository to auto unless the user asks.
 4. Keep it running and open the dashboard: crewreview service install, then crewreview ui.
 5. Connect it to the user's coding agents: crewreview mcp setup prints the steps for each. Claude Code: /plugin marketplace add Quost/crewreview, then /plugin install crewreview@crewreview.
 

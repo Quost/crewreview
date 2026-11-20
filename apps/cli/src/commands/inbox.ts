@@ -1,4 +1,4 @@
-import { connect, discardAttend, loadRepos, postReview, publishAttend, registryFor, renderTerminal, reposFile, type AttendPayload } from "@crewreview/engine";
+import { connect, discardAttend, findLinked, loadRepos, postReview, publishAttend, registryFor, renderTerminal, reposFile, type AttendPayload } from "@crewreview/engine";
 import { HostError } from "@crewreview/hosts";
 import { ago, conformanceStore, openStore, table, type Ctx } from "../ctx.ts";
 import { noTokenText } from "./repo.ts";
@@ -42,7 +42,7 @@ export async function inbox(c: Ctx, sub: string | undefined, rest: string[]): Pr
       return 0;
     }
     if (sub === "approve") {
-      const repo = (await loadRepos(reposFile(c.dirs))).find((r) => r.id === row.repo);
+      const repo = findLinked(await loadRepos(reposFile(c.dirs)), row.repo, row.url);
       if (!repo) return (c.err(t.t("error.unknownRepo", { id: row.repo })), 2);
       const target = await connect(repo, c.version);
       if ("error" in target) return (c.err(noTokenText(c, repo)), 2);
@@ -85,7 +85,7 @@ async function fixItem(c: Ctx, sub: string, id: number, store: ReturnType<typeof
     return 0;
   }
   if (sub === "approve") {
-    const repo = (await loadRepos(reposFile(c.dirs))).find((r) => r.id === row.repo);
+    const repo = findLinked(await loadRepos(reposFile(c.dirs)), row.repo, row.url);
     if (!repo) return (c.err(t.t("error.unknownRepo", { id: row.repo })), 2);
     const target = await connect(repo, c.version);
     if ("error" in target) return (c.err(noTokenText(c, repo)), 2);

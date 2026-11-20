@@ -6,6 +6,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Added
 
+- Link a whole GitHub organization or GitLab group: `crewreview repo add https://github.com/acme`, or the same address in the dashboard. Every repository in it is watched with the organization's settings, new ones too and archived ones never; `--include` and `--exclude` filter by name. One search per cycle finds the repositories with open pull requests. A repository linked on its own keeps its own settings.
 - `doctor` shows whether each harness is signed in, here and as the background service would see it, with when Claude Code's login expires and the command that signs it in. The dashboard shows it too.
 - The crew checks a harness's login before it starts a job: a signed-out harness is reported once per pull request with the command to fix it, instead of failing every run.
 

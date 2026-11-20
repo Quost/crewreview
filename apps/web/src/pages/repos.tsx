@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, type Repo } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Segmented, Toggle } from "../ui.tsx";
+import { Card, Empty, ExternalLink, Segmented, Toggle, Pill } from "../ui.tsx";
 
 type Mode = Repo["review"]["mode"];
 
@@ -54,7 +54,7 @@ export function ReposPage({ version }: { version: number }) {
       </header>
       <Card title={t.t("web.repos.add")}>
         <form className="add" onSubmit={add}>
-          <input type="url" required placeholder="https://github.com/owner/repo" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t.t("repo.col.url")} />
+          <input type="url" required placeholder="https://github.com/owner/repo · https://github.com/org" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t.t("repo.col.url")} />
           <button className="btn primary" disabled={busy}>
             {t.t("web.repos.addButton")}
           </button>
@@ -72,7 +72,7 @@ export function ReposPage({ version }: { version: number }) {
           key={r.id}
           title={
             <>
-              {r.id} <span className="muted small">{r.kind}</span>
+              {r.id} {r.scope === "org" && <Pill tone="accent">{t.t("repo.org")}</Pill>} <span className="muted small">{r.kind}</span>
             </>
           }
           actions={
@@ -84,6 +84,13 @@ export function ReposPage({ version }: { version: number }) {
             </>
           }
         >
+          {r.scope === "org" && (
+            <p className="muted small">
+              {t.t("web.repos.orgHint")}
+              {r.include?.length ? ` ${t.t("web.repos.orgOnly", { list: r.include.join(", ") })}` : ""}
+              {r.exclude?.length ? ` ${t.t("web.repos.orgExcept", { list: r.exclude.join(", ") })}` : ""}
+            </p>
+          )}
           <div className="settings">
             <div className="setting">
               <div>

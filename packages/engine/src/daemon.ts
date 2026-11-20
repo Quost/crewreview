@@ -2,11 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_RULES, reviewEligibility, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
-import { createHost, hostTransport, resolveToken, type HostAdapter } from "@crewreview/hosts";
+import { createHost, HostError, hostTransport, reposWithOpenPullRequests, resolveToken, type HostAdapter } from "@crewreview/hosts";
 import type { Config } from "./config.ts";
 import { attendPullRequest, type AttendDeps, type AttendOutcome } from "./attend.ts";
 import { reviewPullRequest, type PrDeps, type PrOutcome, type PrTarget } from "./pr.ts";
-import type { LinkedRepo } from "./repos.ts";
+import { expandOrgs, type LinkedRepo } from "./repos.ts";
 
 export type DaemonEvent =
   | { type: "repo-error"; repo: string; error: string; code?: "no-token" }
@@ -40,6 +40,15 @@ export async function connect(repo: LinkedRepo, version: string): Promise<PrTarg
   return { repo, host, token: tk.token };
 }
 
+class NoToken extends Error {}
+
+/** The repositories of an organization link with open pull requests, read with a token found on this machine. */
+export async function openInOrg(org: LinkedRepo, version: string): Promise<string[]> {
+  const tk = await resolveToken(org.ref);
+  if (!tk) throw new NoToken();
+  return reposWithOpenPullRequests(org.ref, hostTransport(org.ref, tk.token, `crewreview/${version}`));
+}
+
 interface Due {
   target: PrTarget;
   pr: PullRequest;
@@ -49,12 +58,18 @@ interface Due {
 /** One pass over every linked repository: find what's due, review the oldest first, up to the cycle limit. */
 export async function runCycle(
   d: PrDeps,
-  repos: readonly LinkedRepo[],
+  links: readonly LinkedRepo[],
   log: (e: DaemonEvent) => void,
   now = () => Date.now(),
   /** How to reach each repository's host (tests swap in an in-memory one). */
   connectTo: (repo: LinkedRepo) => Promise<PrTarget | { error: "no-token" }> = (r) => connect(r, d.version),
+  /** Which repositories of an organization link have open pull requests (tests swap this too). */
+  listOrg: (org: LinkedRepo) => Promise<string[]> = (o) => openInOrg(o, d.version),
 ): Promise<{ reviewed: number; waiting: number }> {
+  // Organizations become their repositories with open pull requests, found with one search each.
+  const repos = await expandOrgs(links, listOrg, (org, e) =>
+    log(e instanceof NoToken ? { type: "repo-error", repo: org.id, error: "no-token", code: "no-token" } : { type: "repo-error", repo: org.id, error: e instanceof HostError ? e.message : String(e) }),
+  );
   const due: Due[] = [];
   const targets = new Map<string, PrTarget | { error: "no-token" }>();
   const reach = async (repo: LinkedRepo) => {

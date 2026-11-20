@@ -106,6 +106,10 @@ export interface Repo {
   webUrl: string;
   kind: "github" | "gitlab";
   host: string;
+  /** `org`: every repository of a GitHub organization or GitLab group. */
+  scope?: "repo" | "org";
+  include?: string[];
+  exclude?: string[];
   review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine" };
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[] };
 }

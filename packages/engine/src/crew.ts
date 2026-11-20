@@ -1,19 +1,18 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Harness, HarnessEvent } from "@crewreview/harness";
-import { signInOf } from "./harnesses.ts";
-import { HostError } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
+import { signInOf } from "./harnesses.ts";
+import { prepareLink } from "./link.ts";
 import type { AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
-import { loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
+import { findLinked, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
 import type { ReviewEvent, ReviewReport } from "./review.ts";
 import type { Store } from "./state.ts";
-import { parseRepoUrl } from "@crewreview/hosts";
 
 /** One agent working right now, as the live board shows it. */
 export interface LiveAgent {
@@ -236,28 +235,14 @@ export class CrewDaemon {
     return { ...merged, ref: repos[idx]!.ref };
   }
 
-  async addRepo(url: string, mode: ReviewMode = "inbox"): Promise<{ repo: LinkedRepo; user: string } | { error: "url" | "exists" | "no-token" | "host"; message?: string }> {
-    let ref;
-    try {
-      ref = parseRepoUrl(url);
-    } catch (e) {
-      return { error: "url", message: (e as Error).message };
-    }
+  /** Link a repository, or a whole organization or group. */
+  async addRepo(url: string, mode: ReviewMode = "inbox"): Promise<{ repo: LinkedRepo; user: string; openRepos?: number } | { error: "url" | "exists" | "no-token" | "host"; message?: string }> {
     const repos = await this.repos();
-    const entry = newRepoEntry(ref, { review: { mode } });
-    if (repos.some((r) => r.id === entry.id || r.ref.webUrl === ref.webUrl)) return { error: "exists" };
-    const target = await connect({ ...entry, ref }, this.o.version);
-    if ("error" in target) return { error: "no-token" };
-    let user: string;
-    try {
-      user = await target.host.whoami();
-      await target.host.listOpenPullRequests();
-    } catch (e) {
-      return { error: "host", message: e instanceof HostError ? e.message : String(e) };
-    }
-    await saveRepos(reposFile(this.o.dirs), [...repos.map(({ ref: _r, ...x }) => x), entry]);
+    const p = await prepareLink(url, repos, { version: this.o.version, overrides: { review: { mode } } });
+    if ("error" in p) return { error: p.error, message: p.message };
+    await saveRepos(reposFile(this.o.dirs), [...repos.map(({ ref: _r, ...x }) => x), p.entry]);
     this.emit({ type: "changed", what: "repos" });
-    return { repo: { ...entry, ref }, user };
+    return { repo: { ...p.entry, ref: p.ref }, user: p.user, openRepos: p.openRepos };
   }
 
   async removeRepo(id: string): Promise<boolean> {
@@ -308,7 +293,7 @@ export class CrewDaemon {
     const n = Number(id.slice(1));
     const row = id.startsWith("r") ? this.o.store.get(n) : this.o.store.getAttend(n);
     if (!row || row.status !== "pending") return { kind: "missing" };
-    const repo = (await this.repos()).find((r) => r.id === row.repo);
+    const repo = findLinked(await this.repos(), row.repo, row.url);
     if (!repo) return { kind: "missing" };
     const target = await connect(repo, this.o.version);
     if ("error" in target) return { kind: "no-token" };

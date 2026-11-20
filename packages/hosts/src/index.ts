@@ -7,6 +7,7 @@ export * from "./types.ts";
 export * from "./transport.ts";
 export * from "./url.ts";
 export * from "./tokens.ts";
+export * from "./orgs.ts";
 export { githubHost, githubCiState } from "./github.ts";
 export { gitlabHost, gitlabCiState } from "./gitlab.ts";
 

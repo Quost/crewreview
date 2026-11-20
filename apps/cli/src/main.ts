@@ -65,6 +65,8 @@ function help(t: Translator): string {
     row("--id <id>", t.t("cli.opt.id")),
     row("--attend off|inbox|auto", t.t("cli.opt.attend")),
     row("--polish on|off", t.t("cli.opt.polish")),
+    row("--include <a,b>", t.t("cli.opt.include")),
+    row("--exclude <a,b>", t.t("cli.opt.exclude")),
     row("--lang <code>", t.t("cli.opt.lang")),
     "",
     `${t.t("cli.options")} (review, attend):`,
@@ -100,6 +102,8 @@ async function main(argv: string[]): Promise<number> {
       id: { type: "string" },
       attend: { type: "string" },
       polish: { type: "string" },
+      include: { type: "string" },
+      exclude: { type: "string" },
       post: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
@@ -151,7 +155,7 @@ async function main(argv: string[]): Promise<number> {
           json: v.json,
         });
       case "repo":
-        return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id, attend: v.attend, polish: v.polish });
+        return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id, attend: v.attend, polish: v.polish, include: v.include, exclude: v.exclude });
       case "review":
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
       case "attend":

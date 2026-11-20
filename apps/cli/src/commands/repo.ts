@@ -1,5 +1,5 @@
-import { loadRepos, newRepoEntry, REVIEW_MODES, reposFile, saveRepos, connect, type LinkedRepo, type RepoEntry } from "@crewreview/engine";
-import { HostError, parseRepoUrl, RepoUrlError, type HostKind } from "@crewreview/hosts";
+import { isOrg, loadRepos, newRepoEntry, prepareLink, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type RepoEntry } from "@crewreview/engine";
+import { parseRepoUrl, type HostKind } from "@crewreview/hosts";
 import { table, type Ctx } from "../ctx.ts";
 
 export interface RepoArgs {
@@ -11,7 +11,11 @@ export interface RepoArgs {
   id?: string;
   attend?: string;
   polish?: string;
+  include?: string;
+  exclude?: string;
 }
+
+const patterns = (v: string | undefined) => (v === undefined ? undefined : v.split(",").map((p) => p.trim()).filter(Boolean));
 
 const AUTHORS = ["others", "all", "mine"] as const;
 
@@ -57,39 +61,36 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     table(
       c,
       [t.t("repo.col.id"), t.t("repo.col.url"), t.t("repo.col.mode"), t.t("repo.col.authors"), t.t("repo.col.attend")],
-      repos.map((r) => [r.id, r.ref.webUrl, r.review.mode, r.review.authors, `${r.attend.mode}${r.attend.fromCrew ? " + polish" : ""}`]),
+      repos.map((r) => [r.id, isOrg(r) ? `${r.ref.webUrl} (${t.t("repo.org")})` : r.ref.webUrl, r.review.mode, r.review.authors, `${r.attend.mode}${r.attend.fromCrew ? " + polish" : ""}`]),
     );
     return 0;
   }
 
   if (sub === "add") {
     const url = rest[0];
-    if (!url) return (c.err(t.t("error.usage", { usage: "crewreview repo add <url> [--mode inbox|auto|off] [--authors others|all|mine]" })), 2);
-    let ref;
-    try {
-      ref = parseRepoUrl(url, a.kind as HostKind | undefined);
-    } catch (e) {
-      if (e instanceof RepoUrlError) return (c.err(t.t("error.repoUrl", { message: e.message })), 2);
-      throw e;
-    }
-    const entry = newRepoEntry(ref, {
-      id: a.id,
-      clone: a.clone,
-      review: { mode: (a.mode as RepoEntry["review"]["mode"]) ?? "inbox", authors: (a.authors as RepoEntry["review"]["authors"]) ?? "others", commentLanguage: a.lang },
-      attend: { mode: (a.attend as RepoEntry["attend"]["mode"]) ?? "off", fromCrew: a.polish === "on" },
+    if (!url) return (c.err(t.t("error.usage", { usage: "crewreview repo add <repository or organization url> [--mode inbox|auto|off] [--authors others|all|mine]" })), 2);
+    const p = await prepareLink(url, repos, {
+      version: c.version,
+      kind: a.kind as HostKind | undefined,
+      overrides: {
+        id: a.id,
+        clone: a.clone,
+        include: patterns(a.include),
+        exclude: patterns(a.exclude),
+        review: { mode: (a.mode as RepoEntry["review"]["mode"]) ?? "inbox", authors: (a.authors as RepoEntry["review"]["authors"]) ?? "others", commentLanguage: a.lang },
+        attend: { mode: (a.attend as RepoEntry["attend"]["mode"]) ?? "off", fromCrew: a.polish === "on" },
+      },
     });
-    if (repos.some((r) => r.id === entry.id || r.ref.webUrl === ref.webUrl)) return (c.err(t.t("error.repoExists", { id: entry.id })), 2);
-    const target = await connect({ ...entry, ref }, c.version);
-    if ("error" in target) return (c.err(noTokenText(c, { ref })), 2);
-    let user: string;
-    try {
-      user = await target.host.whoami();
-      await target.host.listOpenPullRequests();
-    } catch (e) {
-      return (c.err(t.t("error.host", { message: e instanceof HostError ? e.message : String(e) })), 2);
+    if ("error" in p) {
+      if (p.error === "url") return (c.err(t.t("error.repoUrl", { message: p.message ?? url })), 2);
+      if (p.error === "exists") return (c.err(t.t("error.repoExists", { id: p.id ?? url })), 2);
+      if (p.error === "no-token" && p.ref) return (c.err(noTokenText(c, { ref: p.ref })), 2);
+      return (c.err(t.t("error.host", { message: p.message ?? "" })), 2);
     }
+    const { entry, ref, user } = p;
     await saveRepos(file, [...entries(), entry]);
-    c.out(t.t("repo.added", { id: entry.id, url: ref.webUrl, mode: entry.review.mode, authors: entry.review.authors, user }));
+    if (p.scope === "org") c.out(t.t("repo.orgAdded", { id: entry.id, url: ref.webUrl, mode: entry.review.mode, authors: entry.review.authors, user, open: p.openRepos ?? 0 }));
+    else c.out(t.t("repo.added", { id: entry.id, url: ref.webUrl, mode: entry.review.mode, authors: entry.review.authors, user }));
     return 0;
   }
 
@@ -108,6 +109,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
   list[idx] = {
     ...e,
     clone: a.clone ?? e.clone,
+    include: isOrg(e) ? (patterns(a.include) ?? e.include) : e.include,
+    exclude: isOrg(e) ? (patterns(a.exclude) ?? e.exclude) : e.exclude,
     review: {
       ...e.review,
       mode: (a.mode as RepoEntry["review"]["mode"]) ?? e.review.mode,

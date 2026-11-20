@@ -69,7 +69,7 @@ Set up Crewreview for me. It's a free, open source crew of AI agents that review
    - macOS or Linux: curl -fsSL https://crewreview.web.app/install.sh | sh (with Homebrew: brew install Quost/crewreview/crewreview)
    - Windows, in PowerShell: irm https://crewreview.web.app/install.ps1 | iex
 2. Run crewreview doctor. It needs git, at least one coding agent signed in (Claude Code, Codex or Kiro) and gh (GitHub) or glab (GitLab) signed in. If something is missing, tell me how to fix it and wait for me.
-3. Ask me which repositories Crewreview should watch. Link each one in inbox mode, so nothing is posted without my approval: crewreview repo add <repository URL> --attend inbox
+3. Ask me which repositories Crewreview should watch, or whether to link a whole organization or group. Link each in inbox mode, so nothing is posted without my approval: crewreview repo add <repository or organization URL> --attend inbox
 4. Keep it running and open the dashboard: crewreview service install, then crewreview ui
 5. Add Crewreview to the coding agents I use: crewreview mcp setup shows how for each one. In Claude Code: /plugin marketplace add Quost/crewreview, then /plugin install crewreview@crewreview
 
@@ -102,6 +102,7 @@ You'll need git, at least one coding agent signed in (Claude Code, Codex or Kiro
 ```bash
 crewreview doctor                                      # what's installed and what each harness can do
 crewreview repo add https://github.com/acme/shop       # starts in inbox mode: nothing is posted without you
+# or a whole organization or group: crewreview repo add https://github.com/acme
 crewreview ui                                          # open the dashboard
 ```
 
@@ -147,6 +148,7 @@ Every repository starts in **inbox** mode: reviews and answers wait for your app
 - **Your team's rules live in the repository.** `.crewreview/lenses/<lens>.md` replaces a built-in lens or adds one, and the crew follows `AGENTS.md`, `CLAUDE.md` and `CONTRIBUTING.md`. All are read from the base branch, so a pull request can't change the rules it's judged by.
 - **Everyone brings their own agent.** Each developer runs the crew with the coding agent plan they already have; reviews post from their own account. No seats, no shared API key, no server.
 - **No duplicate reviews.** When several people run it on the same repository, a commit that already has a Crewreview review on the host is skipped, whoever's crew wrote it.
+- **Link the whole organization at once.** `crewreview repo add https://github.com/acme` (or a GitLab group) links every repository in it, new ones too, with `--include`/`--exclude` name filters. One search per cycle finds the repositories with open pull requests, so even a large organization costs a few API calls. A repository linked on its own keeps its own settings.
 - **GitHub and GitLab, cloud or self-managed**, with the `gh` or `glab` login you already have.
 - **Comments in your team's language**, set per repository (`commentLanguage`), whatever language each person's dashboard is in.
 - **Inbox first, auto when you trust it.** Nothing is posted or pushed without approval until you switch a repository to auto.
@@ -171,6 +173,7 @@ Link a repository. Crewreview uses the login you already have in `gh` or `glab` 
 ```bash
 crewreview repo add https://github.com/acme/shop            # new repositories start in inbox mode
 crewreview repo add https://gitlab.com/acme/api --mode auto  # or post reviews right away
+crewreview repo add https://github.com/acme --exclude "legacy-*"   # every repository of an organization or group
 crewreview review acme-shop 42                               # review one pull request now
 crewreview inbox                                             # what's waiting for you
 crewreview inbox approve 3                                   # post it
