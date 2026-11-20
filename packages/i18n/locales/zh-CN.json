@@ -513,5 +513,19 @@
   "web.settings.updatesHint": "每天一次；安装前会先询问你。",
   "web.repos.active": "启用",
   "web.repos.activeHint": "团队会关注此仓库。暂停：仍保持关联，但在你重新启用前不会审查或回复。",
-  "web.repos.pausedPill": "已暂停"
+  "web.repos.pausedPill": "已暂停",
+  "desktop.inboxOpen": "打开收件箱",
+  "desktop.approveReview": "批准并发布审查",
+  "desktop.approveFix": "批准：推送并回复",
+  "desktop.openItem": "在 Crewreview 中打开",
+  "desktop.discard": "丢弃",
+  "desktop.more": "收件箱中还有 {count} 项…",
+  "desktop.confirmReview": "在 {pr} 上发布审查？\n\n{title}",
+  "desktop.confirmFix": "推送修复并在 {pr} 上发布回复？\n\n{title}",
+  "desktop.post": "发布",
+  "desktop.pushReply": "推送并回复",
+  "desktop.cancel": "取消",
+  "desktop.posted": "已在 {pr} 上发布。",
+  "desktop.stale": "{pr} 在审查后有了变化；这条审查已搁置。",
+  "desktop.failed": "无法在 {pr} 上发布：{error}"
 }

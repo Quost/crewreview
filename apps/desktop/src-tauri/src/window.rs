@@ -74,6 +74,21 @@ pub fn show_loading(app: &AppHandle) {
     }
 }
 
+/// Bring the window forward on a dashboard address after `#/` (`inbox?item=r12`). Only letters, digits, `?`, `=`.
+pub fn show_hash(app: &AppHandle, hash: &str) {
+    if !hash.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '?' | '=' | '-' | '_')) {
+        return;
+    }
+    let Some(window) = app.get_webview_window(MAIN) else { return };
+    let _ = window.unminimize();
+    let _ = window.show();
+    let _ = window.set_focus();
+    let on_dashboard = window.url().map(|u| u.host_str() == Some("127.0.0.1")).unwrap_or(false);
+    if on_dashboard {
+        let _ = window.eval(format!("location.hash = '#/{hash}'"));
+    }
+}
+
 /// Bring the window forward, on a dashboard page if one is given (`inbox`, `now`, …).
 pub fn show(app: &AppHandle, page: Option<&'static str>) {
     let Some(window) = app.get_webview_window(MAIN) else { return };

@@ -522,5 +522,19 @@
   "web.settings.updatesHint": "Einmal am Tag; vor jeder Installation wirst du gefragt.",
   "web.repos.active": "Aktiv",
   "web.repos.activeHint": "Die Crew beobachtet dieses Repository. Pausiert: bleibt verknüpft, aber ohne Reviews und Antworten, bis du es wieder einschaltest.",
-  "web.repos.pausedPill": "pausiert"
+  "web.repos.pausedPill": "pausiert",
+  "desktop.inboxOpen": "Inbox öffnen",
+  "desktop.approveReview": "Freigeben und Review posten",
+  "desktop.approveFix": "Freigeben: pushen und antworten",
+  "desktop.openItem": "In Crewreview öffnen",
+  "desktop.discard": "Verwerfen",
+  "desktop.more": "{count} weitere in der Inbox…",
+  "desktop.confirmReview": "Review auf {pr} posten?\n\n{title}",
+  "desktop.confirmFix": "Korrekturen pushen und Antworten auf {pr} posten?\n\n{title}",
+  "desktop.post": "Posten",
+  "desktop.pushReply": "Pushen und antworten",
+  "desktop.cancel": "Abbrechen",
+  "desktop.posted": "Auf {pr} gepostet.",
+  "desktop.stale": "{pr} hat sich seit dem Review geändert; es wurde zurückgestellt.",
+  "desktop.failed": "Posten auf {pr} fehlgeschlagen: {error}"
 }

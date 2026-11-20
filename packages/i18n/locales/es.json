@@ -522,5 +522,19 @@
   "web.settings.updatesHint": "Una vez al día; se te pregunta antes de instalar nada.",
   "web.repos.active": "Activo",
   "web.repos.activeHint": "El equipo sigue este repositorio. En pausa: sigue vinculado, pero sin revisiones ni respuestas hasta que lo vuelvas a activar.",
-  "web.repos.pausedPill": "en pausa"
+  "web.repos.pausedPill": "en pausa",
+  "desktop.inboxOpen": "Abrir el Inbox",
+  "desktop.approveReview": "Aprobar y publicar la revisión",
+  "desktop.approveFix": "Aprobar: push y respuestas",
+  "desktop.openItem": "Abrir en Crewreview",
+  "desktop.discard": "Descartar",
+  "desktop.more": "{count} más en el Inbox…",
+  "desktop.confirmReview": "¿Publicar la revisión en {pr}?\n\n{title}",
+  "desktop.confirmFix": "¿Hacer push de las correcciones y publicar las respuestas en {pr}?\n\n{title}",
+  "desktop.post": "Publicar",
+  "desktop.pushReply": "Push y responder",
+  "desktop.cancel": "Cancelar",
+  "desktop.posted": "Publicado en {pr}.",
+  "desktop.stale": "{pr} cambió desde la revisión; se dejó de lado.",
+  "desktop.failed": "No se pudo publicar en {pr}: {error}"
 }

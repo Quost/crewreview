@@ -34,6 +34,8 @@ pub struct Inner {
     pub conn: Option<Conn>,
     pub status: StatusView,
     pub inbox: u64,
+    /// What waits in the inbox, as the API lists it, for the menu.
+    pub pending: Vec<Value>,
     /// `updates.check` from the user's config.
     pub update_check: bool,
     /// The release we already asked about, so the daily check doesn't ask twice.
@@ -53,6 +55,7 @@ impl Shared {
             conn: None,
             status: StatusView::default(),
             inbox: 0,
+            pending: Vec::new(),
             update_check: true,
             offered_update: None,
             child: None,
@@ -263,6 +266,7 @@ fn set_status(app: &AppHandle, text: String, detail: String, error: bool) {
 /// Every few seconds: the inbox count for the tray, and a notification for each new item waiting for approval.
 fn watch(app: AppHandle) {
     let s = shared(&app);
+    let mut tick: u64 = 0;
     loop {
         thread::sleep(Duration::from_secs(3));
         let conn = {
@@ -284,11 +288,31 @@ fn watch(app: AppHandle) {
         if changed {
             tray::refresh(&app);
         }
-        if changed || !seeded {
+        tick += 1;
+        // The list too, for the menu: when the count moved, and now and then (an item can replace another).
+        if changed || !seeded || tick.is_multiple_of(10) {
             if let Ok(items) = conn.get("/api/inbox") {
                 notify_new(&app, &items);
+                keep_pending(&app, items);
             }
         }
+    }
+}
+
+/// Remember the inbox items and redraw the menu.
+fn keep_pending(app: &AppHandle, items: Value) {
+    let list = items.as_array().cloned().unwrap_or_default();
+    shared(app).lock().pending = list;
+    tray::refresh(app);
+}
+
+/// Read the inbox again now: after an approval or a discard from the menu.
+pub fn refresh_inbox(app: &AppHandle) {
+    let Some(conn) = shared(app).lock().conn.clone() else { return };
+    if let Ok(items) = conn.get("/api/inbox") {
+        let count = items.as_array().map(|a| a.len() as u64).unwrap_or(0);
+        shared(app).lock().inbox = count;
+        keep_pending(app, items);
     }
 }
 

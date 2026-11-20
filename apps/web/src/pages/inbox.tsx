@@ -97,7 +97,17 @@ function FixDetail({ d }: { d: Extract<InboxDetail, { kind: "fix" }> }) {
 export function InboxPage({ version }: { version: number }) {
   const t = useT();
   const [items, setItems] = useState<InboxItem[] | undefined>();
-  const [selected, setSelected] = useState<string | undefined>();
+  // `#/inbox?item=r12` (the menu bar's Open) selects that item.
+  const fromHash = () => /[?&]item=([rf]\d+)/.exec(location.hash)?.[1];
+  const [selected, setSelected] = useState<string | undefined>(fromHash);
+  useEffect(() => {
+    const on = () => {
+      const id = fromHash();
+      if (id) setSelected(id);
+    };
+    addEventListener("hashchange", on);
+    return () => removeEventListener("hashchange", on);
+  }, []);
   const [detail, setDetail] = useState<InboxDetail | undefined>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | undefined>();

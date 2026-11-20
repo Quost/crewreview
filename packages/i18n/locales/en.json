@@ -522,5 +522,19 @@
   "web.settings.updatesHint": "Once a day; you're asked before anything is installed.",
   "web.repos.active": "Active",
   "web.repos.activeHint": "The crew watches this repository. Paused: linked, but no reviews or answers until you turn it back on.",
-  "web.repos.pausedPill": "paused"
+  "web.repos.pausedPill": "paused",
+  "desktop.inboxOpen": "Open the Inbox",
+  "desktop.approveReview": "Approve and post the review",
+  "desktop.approveFix": "Approve: push and reply",
+  "desktop.openItem": "Open in Crewreview",
+  "desktop.discard": "Discard",
+  "desktop.more": "{count} more in the Inbox…",
+  "desktop.confirmReview": "Post the review on {pr}?\n\n{title}",
+  "desktop.confirmFix": "Push the fixes and post the replies on {pr}?\n\n{title}",
+  "desktop.post": "Post",
+  "desktop.pushReply": "Push and reply",
+  "desktop.cancel": "Cancel",
+  "desktop.posted": "Posted on {pr}.",
+  "desktop.stale": "{pr} changed since the review; it was set aside.",
+  "desktop.failed": "Couldn't post on {pr}: {error}"
 }

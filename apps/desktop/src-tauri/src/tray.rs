@@ -1,19 +1,24 @@
 //! The menu bar (macOS) or tray (Windows, Linux) icon: the crew's state, the inbox count, and the app's commands.
-use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem};
+use std::sync::Mutex;
+
+use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_autostart::ManagerExt;
 
 use crate::crew;
 use crate::strings::Strings;
-use crate::{updates, window};
+use crate::{approvals, updates, window};
 
 const TRAY: &str = "crew";
 
 struct Items {
     status: MenuItem<Wry>,
     open: MenuItem<Wry>,
-    inbox: MenuItem<Wry>,
+    /// What waits for approval, one submenu each, and "open the inbox".
+    inbox: Submenu<Wry>,
+    /// The ids the inbox submenu shows now, so it's only rebuilt when they change.
+    shown: Mutex<String>,
     check: MenuItem<Wry>,
     autostart: CheckMenuItem<Wry>,
     updates: MenuItem<Wry>,
@@ -26,7 +31,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let items = Items {
         status: MenuItem::with_id(app, "status", s.get("starting"), false, none)?,
         open: MenuItem::with_id(app, "open", s.get("open"), true, none)?,
-        inbox: MenuItem::with_id(app, "inbox", s.fill("inbox", &[("count", "0")]), false, none)?,
+        inbox: Submenu::with_items(app, s.fill("inbox", &[("count", "0")]), false, &[])?,
+        shown: Mutex::new(String::from("-")),
         check: MenuItem::with_id(app, "check", s.get("checkNow"), false, none)?,
         autostart: CheckMenuItem::with_id(app, "autostart", s.get("autostart"), true, autostart_on(app), none)?,
         updates: MenuItem::with_id(app, "updates", s.get("updates"), true, none)?,
@@ -90,6 +96,9 @@ pub fn tell_autostart(app: &AppHandle) {
 }
 
 fn on_menu(app: &AppHandle, event: MenuEvent) {
+    if approvals::on_menu(app, event.id().as_ref()) {
+        return;
+    }
     match event.id().as_ref() {
         "open" => window::show(app, None),
         "inbox" => window::show(app, Some("inbox")),
@@ -109,10 +118,10 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
 
 /// Redraw texts and counts from the shared state (call it after anything there changed).
 pub fn refresh(app: &AppHandle) {
-    let (strings, conn, inbox) = {
+    let (strings, conn, inbox, pending) = {
         let s = crew::shared(app);
         let inner = s.lock();
-        (inner.strings.clone(), inner.conn.clone(), inner.inbox)
+        (inner.strings.clone(), inner.conn.clone(), inner.inbox, inner.pending.clone())
     };
     let Some(items) = app.try_state::<Items>() else { return };
     let status = match &conn {
@@ -125,6 +134,14 @@ pub fn refresh(app: &AppHandle) {
     let _ = items.open.set_text(strings.get("open"));
     let _ = items.inbox.set_text(&inbox_text);
     let _ = items.inbox.set_enabled(conn.is_some());
+    // Rebuild the items only when they changed (or the language did), not on every status tick.
+    let ids: Vec<&str> = pending.iter().filter_map(|i| i.get("id").and_then(serde_json::Value::as_str)).collect();
+    let key = format!("{}|{}", ids.join(","), strings.get("inboxOpen"));
+    if let Ok(mut shown) = items.shown.lock() {
+        if *shown != key && approvals::fill(app, &items.inbox, &pending, &strings).is_ok() {
+            *shown = key;
+        }
+    }
     let _ = items.check.set_text(strings.get("checkNow"));
     let _ = items.check.set_enabled(conn.is_some());
     let _ = items.autostart.set_text(strings.get("autostart"));

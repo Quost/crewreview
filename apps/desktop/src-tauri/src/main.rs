@@ -2,6 +2,7 @@
 // bundled with the app; apps/desktop/README.md describes how the two talk.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod approvals;
 mod api;
 mod crew;
 mod strings;
