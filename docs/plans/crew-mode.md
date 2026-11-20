@@ -84,7 +84,13 @@ An agent runs through a **runner**, and the runner is chosen in the config.
 
 - **headless:** today's runner, a process whose JSON output streams into the dashboard.
 - **tmux:** each agent in a window of a `crewreview` session. `tmux attach` shows them all, and closing a window stops that agent.
-- **Cockpit:** each agent in a Cockpit tab, opened and closed through Cockpit's CLI. I need the link to the Cockpit remote / Pi project you mentioned, to build against its real interface.
+- **Cockpit** (the IDE in [remote_pi](https://github.com/jacobaraujo7/remote_pi)): each agent in a Cockpit tab. Cockpit's CLI exists only inside its own terminals, so this runner is offered when the crew runs in one (`COCKPIT_STATUS_SOCK` is set): `crewreview run` in a Cockpit tab, or as a Cockpit task. Per agent:
+  1. `cockpit new-tab --cwd <worktree> --title "<role> · <repo>#<n>"` opens the tab and gives its id.
+  2. `cockpit send --tab-id <id> --enter "crewreview agent <run-id>"` starts a small command that runs the harness with the same locks as today, shows a readable transcript in the tab, and writes the structured result to the ledger.
+  3. The result file is the report, read by the daemon. `cockpit list-tabs --json` (`working`) only says whether the tab is still alive. This is remote_pi's orchestration idea: `results/<task-id>.md` is the report, and the ping to the orchestrator's tab is only the notice.
+  4. `cockpit close-tab <id>` when the agent ends, or the tab stays open, as you prefer.
+
+  You type into the tab to step in. `cockpit orchestrate crew.ckp` lays out a pane per role, so a review opens as a grid. Later, Crewreview could also speak remote_pi's `[ORCH:<task-id>]` task protocol, so a Pi agent in its local mesh can take a crew task, and the Remote Pi phone app could follow it.
 
 Two more things work with any runner:
 
@@ -119,6 +125,6 @@ M8.1 first: it pays off right away in what the crew already does (cheaper lenses
 
 ## Open questions
 
-- **Cockpit:** the link to the Cockpit remote / Pi project, to integrate its interface instead of guessing.
+- **Cockpit:** its CLI addresses tabs only from inside a Cockpit terminal. Is starting the crew from a Cockpit tab (or as a Cockpit task) fine, or should Cockpit get a way for an outside process to open tabs?
 - **Model names:** each harness takes its own (Claude Code `--model`, Codex `-m`). Crewreview passes what you write and `doctor` checks it. Do you want a list to pick from in the app, or free text?
 - **Budgets:** limits per seat in runs, tokens or dollars? Dollars only exist where the harness reports cost (Claude Code and Codex today).
