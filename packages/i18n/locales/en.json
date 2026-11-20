@@ -168,7 +168,7 @@
   "skip.base-branch": "it targets another branch",
   "skip.already-reviewed": "this commit was already reviewed",
   "skip.too-many-failures": "it failed too many times on this commit",
-  "skip.settling": "waiting for pushes to settle",
+  "skip.settling": "pushed a moment ago: waiting a few minutes for the author to finish",
   "skip.ci-running": "waiting for CI",
   "inbox.empty": "The inbox is empty.",
   "inbox.col.id": "#",

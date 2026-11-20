@@ -95,13 +95,13 @@ export class Store {
     this.db.close();
   }
 
-  /** When this head was first seen; records `now` the first time. */
   /** When the crew first saw this head, without recording anything. */
   seenAt(repo: string, number: number, sha: string): number | undefined {
     const row = this.db.query("SELECT first_seen AS t FROM heads WHERE repo = ? AND number = ? AND sha = ?").get(repo, number, sha) as { t: number } | null;
     return row?.t;
   }
 
+  /** When this head was first seen; records `now` (or the time given) the first time. */
   firstSeen(repo: string, number: number, sha: string, now = Date.now()): number {
     this.db.query("INSERT OR IGNORE INTO heads (repo, number, sha, first_seen) VALUES (?, ?, ?, ?)").run(repo, number, sha, now);
     const row = this.db.query("SELECT first_seen AS t FROM heads WHERE repo = ? AND number = ? AND sha = ?").get(repo, number, sha) as { t: number };

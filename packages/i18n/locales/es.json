@@ -168,7 +168,7 @@
   "skip.base-branch": "apunta a otra rama",
   "skip.already-reviewed": "este commit ya se revisó",
   "skip.too-many-failures": "falló demasiadas veces en este commit",
-  "skip.settling": "esperando a que terminen los push",
+  "skip.settling": "push de hace un momento: esperando unos minutos a que el autor termine",
   "skip.ci-running": "esperando al CI",
   "inbox.empty": "El inbox está vacío.",
   "inbox.col.id": "#",

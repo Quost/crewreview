@@ -21,6 +21,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.9** ✅ | Settings, open at login and paused repositories in the app; approvals from the menu bar | released 2026-11-20 |
 | **v0.10** ✅ | Antigravity, OpenCode and Gemini CLI built in over ACP, proven from the app; company GitLab hosts and nested groups in the setup | released 2026-11-20; Antigravity proven for real |
 | **v0.11** ✅ | A second account on GitLab from one access token, kept in the system keychain; no dead end in the setup; `crewreview status`; every first-run flow reviewed | released 2026-11-20 |
+| **v0.12** ✅ | Seats and roles (M8.1): a harness, model and effort per job, shared across plans with order, spread or cheapest, the next seat taking over at a usage limit; the Team page | released 2026-11-20; verified with a real review split across Claude and Codex |
 
 ## Owed from the first plan ✅ (v0.4.0)
 

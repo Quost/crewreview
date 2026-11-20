@@ -281,5 +281,19 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     expect(events.filter((e) => e.type === "skip").map((e) => (e as { reason: string }).reason)).toEqual(["label"]);
     expect(events.find((e) => e.type === "outcome")).toMatchObject({ number: 12, outcome: { kind: "pending" } });
   }, 60_000);
+
+  test("a pull request pushed yesterday doesn't wait to settle when the crew first sees it; one pushed now does", async () => {
+    const { d, repo, ref } = await setup("inbox");
+    const sha = await pushPull(14, "discount");
+    await pushPull(15, "discount");
+    const now = Date.now();
+    const config = { ...d.config, review: { ...d.config.review, settle: 5 * 60_000 } };
+    const host = new FakeHost(ref, [pr(14, sha, { updatedAt: new Date(now - 86_400_000).toISOString() }), pr(15, sha, { updatedAt: new Date(now - 30_000).toISOString() })]);
+    const events: DaemonEvent[] = [];
+    await runCycle({ ...d, config }, [repo], (e) => events.push(e), () => now, async () => ({ repo, host, token: "t" }));
+    const skips = events.filter((e) => e.type === "skip") as { number: number; reason: string }[];
+    expect(skips.map((e) => [e.number, e.reason])).toEqual([[15, "settling"]]);
+    expect(events.find((e) => e.type === "outcome")).toMatchObject({ number: 14 });
+  }, 60_000);
 });
 

@@ -164,7 +164,7 @@
   "skip.base-branch": "目标是其他分支",
   "skip.already-reviewed": "该提交已审查过",
   "skip.too-many-failures": "该提交失败次数过多",
-  "skip.settling": "等待推送稳定",
+  "skip.settling": "刚刚推送：等待几分钟让作者推送完",
   "skip.ci-running": "等待 CI",
   "inbox.empty": "收件箱为空。",
   "inbox.col.id": "#",

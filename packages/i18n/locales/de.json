@@ -168,7 +168,7 @@
   "skip.base-branch": "er zielt auf einen anderen Branch",
   "skip.already-reviewed": "dieser Commit wurde schon geprüft",
   "skip.too-many-failures": "er ist bei diesem Commit zu oft fehlgeschlagen",
-  "skip.settling": "warte, bis die Pushes fertig sind",
+  "skip.settling": "gerade erst gepusht: wartet ein paar Minuten, bis der Autor fertig ist",
   "skip.ci-running": "warte auf die CI",
   "inbox.empty": "Der Inbox ist leer.",
   "inbox.col.id": "#",

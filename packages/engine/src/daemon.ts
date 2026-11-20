@@ -119,7 +119,9 @@ export async function runCycle(
       const me = await target.host.whoami();
       const rules = rulesFor(repo, d.config);
       for (const pr of await target.host.listOpenPullRequests()) {
-        const firstSeen = d.store.firstSeen(repo.id, pr.number, pr.headSha, now());
+        // A head the crew sees for the first time dates from the host's last update, not from now: a repository
+        // linked a moment ago has pull requests pushed days ago, which don't need to settle.
+        const firstSeen = d.store.firstSeen(repo.id, pr.number, pr.headSha, Math.min(now(), Date.parse(pr.updatedAt) || now()));
         const input = {
           pr,
           me,
