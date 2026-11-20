@@ -50,14 +50,20 @@ for (const [loc, info] of Object.entries(LOCALES)) {
     url: `${SITE}${info.path}`,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     codeRepository: "https://github.com/Quost/crewreview",
-  }).replace(/</g, "\\u003c");
+  });
+  // The questions on the page, as FAQ structured data: what search engines and AI assistants quote.
+  const faq = Object.keys(t)
+    .filter((k) => /^faq\.q\d+$/.test(k))
+    .map((k) => ({ "@type": "Question", name: t[k], acceptedAnswer: { "@type": "Answer", text: t[k.replace(".q", ".a")] } }));
+  const graph = JSON.stringify([JSON.parse(jsonld), { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq }]).replace(/</g, "\\u003c");
   const vars: Record<string, string> = {
     lang: info.lang,
     url: `${SITE}${info.path}`,
     home: info.path,
     alternates,
     version: esc(pkg.version),
-    jsonld,
+    jsonld: graph,
+    shots: `/shots/${loc}`,
     pathsJson: JSON.stringify(paths),
     langOptions: Object.entries(LOCALES)
       .map(([k, l]) => `<option value="${k}"${k === loc ? " selected" : ""}>${l.name}</option>`)
@@ -108,6 +114,12 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}
 - Desktop app (macOS, Windows, Linux): ${SITE}/#start, or the latest release: https://github.com/Quost/crewreview/releases/latest (Crewreview-macos-arm64.dmg, Crewreview-macos-x64.dmg, Crewreview-windows-x64-setup.exe, Crewreview-linux-x64.AppImage and .deb/.rpm, the same for linux-arm64). It bundles the crew and keeps it running from the menu bar or tray.
 - Command line, macOS or Linux: curl -fsSL ${SITE}/install.sh | sh (Homebrew: brew install Quost/crewreview/crewreview)
 - Command line, Windows (PowerShell): irm ${SITE}/install.ps1 | iex (Scoop: scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview/crewreview)
+
+## Using it with a team
+- Each developer installs it and links the team's repositories; reviews post from their own account, with the coding agent plan they already have. No server, no seats, no shared API key.
+- A commit that already has a Crewreview review on the host is skipped, whoever's crew wrote it, so several people can run it on the same repository.
+- Shared rules live in the repository: .crewreview/lenses/<lens>.md replaces or adds a lens, and the crew follows AGENTS.md, CLAUDE.md and CONTRIBUTING.md, all read from the base branch.
+- The language of review comments is set per repository (commentLanguage).
 
 ## Setting it up for someone (for AI agents)
 1. Install the command line tool (above). Explain each command before running it.
