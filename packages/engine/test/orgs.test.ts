@@ -45,6 +45,10 @@ describe("organization links", () => {
     await saveRepos(file, [entry]);
     const [back] = await loadRepos(file);
     expect(back).toMatchObject({ id: "acme", scope: "org", include: ["svc-*"], exclude: ["svc-old"], ref: { slug: "acme" } });
+    // Paused survives being rebuilt (the dashboard's switch) and saved.
+    const { ref: _p, ...paused } = { ...newRepoEntry(parseRepoUrl("https://github.com/acme/shop"), { paused: true }), ref: undefined };
+    await saveRepos(file, [paused]);
+    expect((await loadRepos(file))[0]).toMatchObject({ id: "acme-shop", paused: true });
   });
 
   test("a cycle expands organizations before it looks for work", async () => {
@@ -61,6 +65,24 @@ describe("organization links", () => {
     );
     expect(reached).toEqual(["acme-shop", "acme-api"]);
     expect(events.filter((e) => e.type === "repo-error").map((e) => (e as { repo: string }).repo)).toEqual(["acme-shop", "acme-api"]);
+  });
+
+  test("paused links are left alone: a paused repository stays paused inside an active organization", async () => {
+    const d = { config: parseConfig({}), version: "test" } as unknown as PrDeps;
+    const reached: string[] = [];
+    const searched: string[] = [];
+    const shop = { ...own("https://github.com/acme/shop"), paused: true };
+    const beta = { ...org("https://github.com/beta"), paused: true };
+    await runCycle(
+      d,
+      [org("https://github.com/acme"), shop, beta, { ...own("https://github.com/other/x"), paused: true }, own("https://github.com/other/y")],
+      () => {},
+      Date.now,
+      async (r) => (reached.push(r.id), { error: "no-token" as const }),
+      async (o) => (searched.push(o.id), o.id === "acme" ? ["acme/shop", "acme/api"] : ["beta/one"]),
+    );
+    expect(searched).toEqual(["acme"]);
+    expect(reached.sort()).toEqual(["acme-api", "other-y"]);
   });
 
   test("the preview says what a cycle would review, without recording anything", async () => {

@@ -86,7 +86,8 @@ export function ReposPage({ version }: { version: number }) {
           key={r.id}
           title={
             <>
-              {r.id} {r.scope === "org" && <Pill tone="accent">{t.t("repo.org")}</Pill>} <span className="muted small">{r.kind}</span>
+              {r.id} {r.scope === "org" && <Pill tone="accent">{t.t("repo.org")}</Pill>} {r.paused && <Pill tone="warn">{t.t("web.repos.pausedPill")}</Pill>}{" "}
+              <span className="muted small">{r.kind}</span>
             </>
           }
           actions={
@@ -110,6 +111,13 @@ export function ReposPage({ version }: { version: number }) {
             </p>
           )}
           <div className="settings">
+            <div className="setting">
+              <div>
+                <strong>{t.t("web.repos.active")}</strong>
+                <p className="muted small">{t.t("web.repos.activeHint")}</p>
+              </div>
+              <Toggle label={r.paused ? t.t("web.off") : t.t("web.on")} checked={!r.paused} onChange={(on) => patch(r.id, { paused: !on })} />
+            </div>
             <div className="setting">
               <div>
                 <strong>{t.t("web.repos.review")}</strong>

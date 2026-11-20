@@ -8,12 +8,13 @@ import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { hostAccess, linkFromUrl, type HostAccess } from "./access.ts";
 import { checkAccount, type AccountProblem } from "./account.ts";
+import { editConfig, type EditableKey } from "./config-edit.ts";
 import { AccountSignIn, type SignInState } from "./account-setup.ts";
 import { keepAwake, type KeepAwake } from "./awake.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
 import { signInOf } from "./harnesses.ts";
 import { prepareLink } from "./link.ts";
-import type { AppDirs } from "./paths.ts";
+import { configFile, type AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
 import { previewLink, type Preview } from "./preview.ts";
 import { QuotaBook } from "./quota.ts";
@@ -23,6 +24,14 @@ import type { Store } from "./state.ts";
 
 /** A GitHub login: letters, digits and single hyphens, never an option. */
 const LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
+
+/** Milliseconds as the shortest way to write them in config.toml: 3m, 45s, 1h, 1500ms. */
+export function durationText(ms: number): string {
+  if (ms % 3_600_000 === 0) return `${ms / 3_600_000}h`;
+  if (ms % 60_000 === 0) return `${ms / 60_000}m`;
+  if (ms % 1000 === 0) return `${ms / 1000}s`;
+  return `${ms}ms`;
+}
 
 /** One agent working right now, as the live board shows it. */
 export interface LiveAgent {
@@ -47,7 +56,7 @@ export type CrewEvent =
   | { type: "agents"; agents: LiveAgent[] }
   | { type: "log"; entry: LogEntry }
   | { type: "status"; status: CrewStatus }
-  | { type: "changed"; what: "inbox" | "repos" | "history" };
+  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" };
 
 export interface CrewStatus {
   version: string;
@@ -243,7 +252,7 @@ export class CrewDaemon {
 
   async updateRepo(
     id: string,
-    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">> },
+    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">>; paused?: boolean },
   ): Promise<LinkedRepo | undefined> {
     const repos = await this.repos();
     const idx = repos.findIndex((r) => r.id === id);
@@ -254,7 +263,8 @@ export class CrewDaemon {
     const review = { ...e.review, ...rest };
     if (account === null) delete review.account;
     else if (account !== undefined) review.account = account;
-    const merged = newRepoEntry(repos[idx]!.ref, { ...e, review, attend: { ...e.attend, ...patch.attend } });
+    const paused = patch.paused === undefined ? e.paused : patch.paused || undefined;
+    const merged = newRepoEntry(repos[idx]!.ref, { ...e, paused, review, attend: { ...e.attend, ...patch.attend } });
     entries[idx] = merged;
     await saveRepos(reposFile(this.o.dirs), entries);
     this.emit({ type: "changed", what: "repos" });
@@ -269,6 +279,64 @@ export class CrewDaemon {
     await saveRepos(reposFile(this.o.dirs), [...repos.map(({ ref: _r, ...x }) => x), p.entry]);
     this.emit({ type: "changed", what: "repos" });
     return { repo: { ...p.entry, ref: p.ref }, user: p.user, openRepos: p.openRepos };
+  }
+
+  // ---- settings the dashboard changes (config.toml) and the desktop app's own (open at login) ----
+
+  /** Set by `run --desktop`: what the app said about itself, and how to ask it for a change. */
+  desktop?: { autostart?: boolean; request: (msg: Record<string, unknown>) => void };
+
+  /** The app told the crew something about itself (over stdin). */
+  desktopSays(msg: { autostart?: unknown }): void {
+    if (!this.desktop || typeof msg.autostart !== "boolean") return;
+    this.desktop.autostart = msg.autostart;
+    this.emit({ type: "changed", what: "settings" });
+  }
+
+  /** Every setting the dashboard can change, as it would write it, and the app's own when it runs inside it. */
+  settings() {
+    const c = this.o.config;
+    const values: Record<EditableKey, unknown> = {
+      "schedule.interval": durationText(c.schedule.interval),
+      "schedule.offHoursInterval": durationText(c.schedule.offHoursInterval),
+      "schedule.peakHours": c.schedule.peakHours,
+      "schedule.maxReviewsPerCycle": c.schedule.maxReviewsPerCycle,
+      "schedule.keepAwake": c.schedule.keepAwake,
+      "limits.maxConcurrentAgents": c.limits.maxConcurrentAgents ?? null,
+      "limits.agentTimeout": durationText(c.limits.agentTimeout),
+      "limits.stallTimeout": durationText(c.limits.stallTimeout),
+      "limits.maxDiffLines": c.limits.maxDiffLines,
+      "limits.dailyRuns": c.limits.dailyRuns ?? null,
+      "review.settle": durationText(c.review.settle),
+      "review.ciMaxWait": durationText(c.review.ciMaxWait),
+      "review.policy.allowApprove": c.review.policy.allowApprove,
+      "attend.quiet": durationText(c.attend.quiet),
+      "attend.maxPerCycle": c.attend.maxPerCycle,
+      "harness.default": c.harness.default,
+      "harness.verifier": c.harness.verifier ?? null,
+      "updates.check": c.updates.check,
+    };
+    return { values, harnesses: ["auto", ...this.o.registry.keys()], configPath: this.o.configPath, desktop: this.desktop ? { autostart: this.desktop.autostart ?? null } : null };
+  }
+
+  /**
+   * Change settings: config.toml line by line, then the crew uses them at once (the next check, the next agent).
+   * `autostart` goes to the desktop app, which answers with its new state.
+   */
+  async updateSettings(patch: { values?: Record<string, unknown>; autostart?: unknown }): Promise<{ ok: true } | { error: string; key?: string }> {
+    if (patch.autostart !== undefined) {
+      if (typeof patch.autostart !== "boolean") return { error: "autostart: on or off", key: "autostart" };
+      if (!this.desktop) return { error: "not-desktop", key: "autostart" };
+      this.desktop.request({ autostart: patch.autostart });
+    }
+    if (patch.values && Object.keys(patch.values).length) {
+      const r = await editConfig(this.o.configPath ?? configFile(this.o.dirs), patch.values);
+      if ("error" in r) return r;
+      this.o.config = r.config;
+      this.emit({ type: "changed", what: "settings" });
+      this.emit({ type: "status", status: this.status() });
+    }
+    return { ok: true };
   }
 
   /** Whether an account can post a repository's reviews, and who it is. */

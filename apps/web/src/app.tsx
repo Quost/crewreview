@@ -23,7 +23,7 @@ export interface Live {
   log: LogEntry[];
   connected: boolean;
   /** Bumped when the daemon says a list changed. */
-  version: { inbox: number; repos: number; history: number };
+  version: { inbox: number; repos: number; history: number; settings: number };
 }
 
 export function App() {
@@ -31,7 +31,7 @@ export function App() {
   const t = useMemo(() => createTranslator(locale), [locale]);
   const [token, setToken] = useState(() => takeToken());
   const [page, setPage] = useState<Page>(pageFromHash);
-  const [live, setLive] = useState<Live>({ agents: [], log: [], connected: false, version: { inbox: 0, repos: 0, history: 0 } });
+  const [live, setLive] = useState<Live>({ agents: [], log: [], connected: false, version: { inbox: 0, repos: 0, history: 0, settings: 0 } });
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -167,7 +167,7 @@ export function App() {
           {page === "inbox" && <InboxPage version={live.version.inbox} />}
           {page === "history" && <HistoryPage version={live.version.history} />}
           {page === "repos" && <ReposPage version={live.version.repos} />}
-          {page === "limits" && <LimitsPage />}
+          {page === "limits" && <LimitsPage version={live.version.settings} />}
           {page === "account" && <AccountPage />}
         </main>
       </div>

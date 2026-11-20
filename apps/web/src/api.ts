@@ -113,6 +113,8 @@ export interface Repo {
   scope?: "repo" | "org";
   include?: string[];
   exclude?: string[];
+  /** Linked but left alone: no reviews or answers until resumed. */
+  paused?: boolean;
   /** `account`: reviews post as this account (a gh login, or env:VARIABLE) instead of you. */
   review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine"; account?: string };
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean };

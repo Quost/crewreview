@@ -72,8 +72,21 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-fn autostart_on(app: &AppHandle) -> bool {
+pub fn autostart_on(app: &AppHandle) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+/// Open the app at login, or not: from the menu or from the dashboard. The crew hears the new state either way.
+pub fn set_autostart(app: &AppHandle, on: bool) {
+    let launcher = app.autolaunch();
+    let _ = if on { launcher.enable() } else { launcher.disable() };
+    refresh(app);
+    tell_autostart(app);
+}
+
+/// Let the crew know whether the app opens at login, for the dashboard's settings.
+pub fn tell_autostart(app: &AppHandle) {
+    crate::crew::tell(app, &serde_json::json!({ "desktop": { "autostart": autostart_on(app) } }));
 }
 
 fn on_menu(app: &AppHandle, event: MenuEvent) {
@@ -87,11 +100,7 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
                 });
             }
         }
-        "autostart" => {
-            let launcher = app.autolaunch();
-            let _ = if autostart_on(app) { launcher.disable() } else { launcher.enable() };
-            refresh(app);
-        }
+        "autostart" => set_autostart(app, !autostart_on(app)),
         "updates" => updates::check(app, true),
         "quit" => app.exit(0),
         _ => {}

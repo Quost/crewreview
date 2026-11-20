@@ -5,7 +5,7 @@
 //! the main thread, which may itself be waiting for the lock (the navigation check reads it).
 use std::collections::HashSet;
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -81,6 +81,15 @@ pub fn start(app: AppHandle) {
 pub fn resume(app: AppHandle) {
     shared(&app).lock().stopping = false;
     thread::spawn(move || supervise(app));
+}
+
+/// Tell the crew this app started one thing, as a JSON line on its stdin. Nothing when it isn't ours or has stopped.
+pub fn tell(app: &AppHandle, msg: &Value) {
+    let s = shared(app);
+    let mut inner = s.lock();
+    if let Some(stdin) = inner.child.as_mut().and_then(|c| c.stdin.as_mut()) {
+        let _ = writeln!(stdin, "{msg}").and_then(|_| stdin.flush());
+    }
 }
 
 /// Stop the crew this app started. It stops when its stdin closes; a review in progress gets a few seconds, then it
@@ -170,6 +179,8 @@ fn run_crew(app: &AppHandle) -> Result<Option<Conn>, String> {
     let stdout = child.stdout.take().ok_or("the crew has no stdout")?;
     // The crew runs as long as its stdin stays open; keep the child where `stop` can reach it.
     s.lock().child = Some(child);
+    // What the dashboard shows about the app itself, and changes through the crew.
+    tray::tell_autostart(app);
 
     for line in BufReader::new(stdout).lines() {
         let Ok(line) = line else { break };
@@ -190,6 +201,9 @@ fn run_crew(app: &AppHandle) -> Result<Option<Conn>, String> {
             let conn = Conn::from_info(info, false).ok_or("the crew sent an unreadable address")?;
             connected(app, conn.clone());
             return Ok(Some(conn));
+        } else if let Some(on) = msg.get("autostart").and_then(Value::as_bool) {
+            // The dashboard asked to open (or not) at login.
+            tray::set_autostart(app, on);
         } else if let Some(error) = msg.get("error").and_then(Value::as_str) {
             reap(&s);
             return Err(error.to_string());

@@ -70,6 +70,8 @@ const RepoEntry = z
     include: z.array(z.string()).optional(),
     /** For an organization: leave out repositories whose path in it matches one of these. */
     exclude: z.array(z.string()).optional(),
+    /** Linked but left alone: no reviews, no answers, until it's resumed. For an organization, all of it. */
+    paused: z.boolean().optional(),
     review: ReviewSettings.prefault({}),
     attend: AttendSettings.prefault({}),
   })
@@ -138,7 +140,7 @@ export function serializeRepos(repos: readonly RepoEntry[]): string {
   const out = ["# Repositories linked to Crewreview. `crewreview repo add` and the dashboard write this file.", ""];
   for (const r of repos) {
     out.push("[[repo]]");
-    for (const k of ["id", "url", "kind", "clone", "scope", "include", "exclude"] as const) if (r[k] !== undefined) out.push(`${k} = ${tomlValue(r[k])}`);
+    for (const k of ["id", "url", "kind", "clone", "scope", "include", "exclude", "paused"] as const) if (r[k] !== undefined) out.push(`${k} = ${tomlValue(r[k])}`);
     out.push("", "[repo.review]");
     for (const [k, v] of Object.entries(r.review)) if (v !== undefined) out.push(`${k} = ${tomlValue(v)}`);
     out.push("", "[repo.attend]");
@@ -169,6 +171,7 @@ export function newRepoEntry(
     scope: overrides.scope === "org" ? "org" : undefined,
     include: overrides.include?.length ? overrides.include : undefined,
     exclude: overrides.exclude?.length ? overrides.exclude : undefined,
+    paused: overrides.paused || undefined,
     review,
     attend,
   });

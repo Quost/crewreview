@@ -7,7 +7,7 @@ import { posterFor } from "./account.ts";
 import type { Config } from "./config.ts";
 import { attendPullRequest, type AttendDeps, type AttendOutcome } from "./attend.ts";
 import { reviewPullRequest, type PrDeps, type PrOutcome, type PrTarget } from "./pr.ts";
-import { expandOrgs, type LinkedRepo } from "./repos.ts";
+import { expandOrgs, isOrg, type LinkedRepo } from "./repos.ts";
 
 export type DaemonEvent =
   | { type: "repo-error"; repo: string; error: string; code?: "no-token" }
@@ -67,10 +67,15 @@ export async function runCycle(
   /** Which repositories of an organization link have open pull requests (tests swap this too). */
   listOrg: (org: LinkedRepo) => Promise<string[]> = (o) => openInOrg(o, d.version),
 ): Promise<{ reviewed: number; waiting: number }> {
-  // Organizations become their repositories with open pull requests, found with one search each.
-  const repos = await expandOrgs(links, listOrg, (org, e) =>
-    log(e instanceof NoToken ? { type: "repo-error", repo: org.id, error: "no-token", code: "no-token" } : { type: "repo-error", repo: org.id, error: e instanceof HostError ? e.message : String(e) }),
+  // Organizations become their repositories with open pull requests, found with one search each. A paused
+  // organization isn't searched; a paused repository stays paused even inside an active organization.
+  const expanded = await expandOrgs(
+    links.filter((l) => !(isOrg(l) && l.paused)),
+    listOrg,
+    (org, e) =>
+      log(e instanceof NoToken ? { type: "repo-error", repo: org.id, error: "no-token", code: "no-token" } : { type: "repo-error", repo: org.id, error: e instanceof HostError ? e.message : String(e) }),
   );
+  const repos = expanded.filter((r) => !r.paused);
   const due: Due[] = [];
   const targets = new Map<string, PrTarget | { error: "no-token" }>();
   const reach = async (repo: LinkedRepo) => {

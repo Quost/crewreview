@@ -1,5 +1,6 @@
 export * from "./paths.ts";
 export * from "./config.ts";
+export * from "./config-edit.ts";
 export * from "./git.ts";
 export * from "./lenses.ts";
 export * from "./prompts.ts";

@@ -946,3 +946,48 @@ tr:last-child td {
   background: none;
   padding: 0;
 }
+
+/* ---- settings ---- */
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.settings-form fieldset {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 16px 10px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 4px 24px;
+}
+.settings-form legend {
+  font-weight: 650;
+  padding: 0 6px;
+}
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.field > span {
+  min-width: 0;
+}
+.field input,
+.field select {
+  width: 120px;
+  flex: none;
+  text-align: right;
+}
+.field select {
+  text-align: left;
+}
+.field input.invalid {
+  border-color: var(--bad);
+  outline: 2px solid var(--bad-soft);
+}

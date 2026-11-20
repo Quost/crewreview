@@ -16,6 +16,7 @@ export interface RepoArgs {
   conflicts?: string;
   ci?: string;
   account?: string;
+  paused?: string;
 }
 
 const onOff = (v: string | undefined, current: boolean) => (v === undefined ? current : v === "on");
@@ -65,7 +66,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     check(c, "--attend", a.attend, REVIEW_MODES) ??
     check(c, "--polish", a.polish, ["on", "off"]) ??
     check(c, "--conflicts", a.conflicts, ["on", "off"]) ??
-    check(c, "--ci", a.ci, ["on", "off"]);
+    check(c, "--ci", a.ci, ["on", "off"]) ??
+    check(c, "--paused", a.paused, ["on", "off"]);
   if (bad) return (c.err(bad), 2);
   const repos = await loadRepos(file);
   const entries = (): RepoEntry[] => repos.map(({ ref: _ref, ...e }) => e);
@@ -153,6 +155,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
   }
   list[idx] = {
     ...e,
+    paused: a.paused === undefined ? e.paused : a.paused === "on" || undefined,
     clone: a.clone ?? e.clone,
     include: isOrg(e) ? (patterns(a.include) ?? e.include) : e.include,
     exclude: isOrg(e) ? (patterns(a.exclude) ?? e.exclude) : e.exclude,

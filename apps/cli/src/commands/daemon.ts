@@ -38,7 +38,9 @@ export type DesktopMessage =
   | { strings: Record<string, string>; locale: string; updateCheck: boolean }
   | { ready: ApiInfo }
   | { attach: ApiInfo }
-  | { error: string };
+  | { error: string }
+  /** The dashboard asked to turn open at login on or off; the app answers on our stdin with its new state. */
+  | { autostart: boolean };
 
 function tellDesktop(m: DesktopMessage): void {
   process.stdout.write(`${JSON.stringify(m)}\n`);
@@ -94,9 +96,23 @@ export async function daemon(c: Ctx, a: DaemonArgs): Promise<number> {
   process.on("SIGINT", onSignal);
   process.on("SIGTERM", onSignal);
   if (a.desktop) {
+    // The app talks to us in JSON lines on stdin (its own state, like open at login), and closes it to stop us.
+    crew.desktop = { request: (msg) => typeof msg.autostart === "boolean" && tellDesktop({ autostart: msg.autostart }) };
     void (async () => {
+      let buffer = "";
       try {
-        for await (const _ of Bun.stdin.stream());
+        for await (const chunk of Bun.stdin.stream()) {
+          buffer += new TextDecoder().decode(chunk);
+          let nl: number;
+          while ((nl = buffer.indexOf("\n")) !== -1) {
+            const line = buffer.slice(0, nl).trim();
+            buffer = buffer.slice(nl + 1);
+            try {
+              const msg = line ? JSON.parse(line) : undefined;
+              if (msg?.desktop && typeof msg.desktop === "object") crew.desktopSays(msg.desktop);
+            } catch {}
+          }
+        }
       } catch {}
       if (!stop.signal.aborted) stop.abort();
     })();

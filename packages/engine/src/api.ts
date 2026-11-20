@@ -113,7 +113,7 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
           user = check.user;
         } else account = null;
       }
-      const updated = await crew.updateRepo(repoMatch[1]!, { review: { ...clean(review), ...(account !== undefined ? { account } : {}) }, attend: clean(attend) });
+      const updated = await crew.updateRepo(repoMatch[1]!, { review: { ...clean(review), ...(account !== undefined ? { account } : {}) }, attend: clean(attend), paused: flag(b.paused) });
       return updated ? json({ ok: true, ...(user ? { user } : {}) }) : json({ error: "not-found" }, 404);
     }
     const previewMatch = /^\/api\/repos\/([a-z0-9._-]+)\/preview$/.exec(p);
@@ -161,6 +161,12 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
     if (inboxMatch?.[2] === "discard" && m === "POST") return json({ ok: await crew.discard(inboxMatch[1]!) });
     if (p === "/api/history" && m === "GET") return json(crew.history(Math.min(200, Number(url.searchParams.get("limit") ?? 50))));
     if (p === "/api/harnesses" && m === "GET") return json(await crew.harnesses());
+    if (p === "/api/settings" && m === "GET") return json(crew.settings());
+    if (p === "/api/settings" && m === "PATCH") {
+      const b = await body();
+      const r = await crew.updateSettings({ values: b.values && typeof b.values === "object" ? b.values : undefined, autostart: b.autostart });
+      return "error" in r ? json(r, r.error === "not-desktop" ? 409 : 400) : json(r);
+    }
     if (p === "/api/limits" && m === "GET") return json({ ...crew.limits(), usageToday: await crew.usageToday() });
     return json({ error: "not-found" }, 404);
   }

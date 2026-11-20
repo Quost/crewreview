@@ -20,6 +20,10 @@ The app runs `crewreview run --desktop` and reads one JSON object per line from 
 | `{"ready": {"url", "port", "token", "pid", "version"}}` | the crew started and its dashboard is up | opens the dashboard; this crew stops when the app quits |
 | `{"attach": {...same fields}}` | a crew already runs (the background service, or a terminal) | shows that crew instead of starting another; the process exits |
 | `{"error": "…"}` | the crew can't start | shows the message and tries again later |
+| `{"autostart": true}` | the dashboard turned open at login on (or `false`: off) | turns it on or off, then tells the crew |
+
+The app writes JSON lines to the crew's stdin too: `{"desktop": {"autostart": true}}` right after it starts the crew,
+and again whenever open at login changes (from the menu or the dashboard), so the dashboard's settings show it.
 
 The crew stops when its stdin closes: when the app quits, and also when it crashes. The app restarts a crew that
 stops on its own, sooner if it ran for a while, less and less often if it keeps failing. In desktop mode the CLI never

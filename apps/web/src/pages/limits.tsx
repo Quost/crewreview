@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type HarnessInfo, type Limits } from "../api.ts";
 import { duration, useT } from "../i18n.ts";
 import { Card, Empty, Pill } from "../ui.tsx";
+import { SettingsCard } from "./settings.tsx";
 
 function Check({ value }: { value?: string }) {
   const t = useT();
@@ -10,7 +11,7 @@ function Check({ value }: { value?: string }) {
   return <Pill>{t.t("doctor.untested")}</Pill>;
 }
 
-export function LimitsPage() {
+export function LimitsPage({ version }: { version: number }) {
   const t = useT();
   const [harnesses, setHarnesses] = useState<HarnessInfo[] | undefined>();
   const [limits, setLimits] = useState<Limits | undefined>();
@@ -18,21 +19,6 @@ export function LimitsPage() {
     api.get<HarnessInfo[]>("/api/harnesses").then(setHarnesses, () => setHarnesses([]));
     api.get<Limits>("/api/limits").then(setLimits, () => {});
   }, []);
-  const rows: [string, string][] = limits
-    ? [
-        [t.t("web.limits.agents"), String(limits.limits.maxConcurrentAgents ?? t.t("web.limits.auto"))],
-        [t.t("web.limits.agentTimeout"), duration(limits.limits.agentTimeout)],
-        [t.t("web.limits.stall"), duration(limits.limits.stallTimeout)],
-        [t.t("web.limits.maxDiff"), String(limits.limits.maxDiffLines)],
-        [t.t("web.limits.interval"), `${duration(limits.schedule.interval)} · ${duration(limits.schedule.offHoursInterval)}`],
-        [t.t("web.limits.peak"), limits.schedule.peakHours],
-        [t.t("web.limits.perCycle"), `${limits.schedule.maxReviewsPerCycle} · ${limits.attend.maxPerCycle}`],
-        [t.t("web.limits.settle"), `${duration(limits.review.settle)} · ${duration(limits.attend.quiet)}`],
-        [t.t("web.limits.ciWait"), duration(limits.review.ciMaxWait)],
-        [t.t("web.limits.harness"), `${limits.harness.default}${limits.harness.verifier ? ` → ${limits.harness.verifier}` : ""}${limits.harness.fallback?.length ? ` · ${t.t("web.limits.fallback")}: ${limits.harness.fallback.join(", ")}` : ""}`],
-        [t.t("web.limits.approve"), limits.review.policy.allowApprove ? t.t("web.on") : t.t("web.off")],
-      ]
-    : [];
   const u = limits?.usageToday;
   return (
     <>
@@ -111,17 +97,7 @@ export function LimitsPage() {
         )}
         <p className="muted small">{t.t("doctor.conformanceHint")}</p>
       </Card>
-      <Card title={t.t("web.limits.title")}>
-        <dl className="kv">
-          {rows.map(([k, v]) => (
-            <div key={k}>
-              <dt>{k}</dt>
-              <dd className="mono">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        {limits?.configPath && <p className="muted small">{t.t("web.limits.edit", { path: limits.configPath })}</p>}
-      </Card>
+      <SettingsCard version={version} />
     </>
   );
 }
