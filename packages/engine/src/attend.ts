@@ -207,7 +207,9 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     // A conflict: merge the base here (never a rebase: the push stays a fast-forward) and let the agent resolve it.
     let merging: { conflicted: string[] } | undefined;
     if (items.some((i) => i.kind === "conflict")) {
-      await git(["merge", "--no-ff", "--no-commit", fetched.baseSha], worktree);
+      // Some git versions want an identity even for a merge that doesn't commit yet: the same one the commit gets.
+      const who = d.identity ? ["-c", `user.name=${d.identity.name}`, "-c", `user.email=${d.identity.email}`] : [];
+      await git([...who, "merge", "--no-ff", "--no-commit", fetched.baseSha], worktree);
       if ((await git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], worktree)).code === 0) {
         const conflicted = (await git(["diff", "--name-only", "--diff-filter=U"], worktree)).stdout.split("\n").filter(Boolean);
         merging = { conflicted };
