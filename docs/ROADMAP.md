@@ -14,6 +14,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.2** ✅ | Public launch: notarized macOS binaries, installers, Homebrew and Scoop, Claude Code plugin, MCP server and skill, website in five languages | released 2026-11-19 |
 | **M5** ✅ | Desktop app for macOS, Windows and Linux, signed updates, simpler install on the site → **v0.3.0** | released 2026-11-19; installers checked on macOS and Linux, Windows not yet run |
 | **v0.4** ✅ | Organizations and groups, limits that act, "what would run now", keep-awake, login checks, the attendant on conflicts and red CI | released 2026-11-20 |
+| **v0.5** ✅ | First-run setup in the dashboard and the desktop app; a Docker image for a shared team machine | released 2026-11-20 |
 
 ## Owed from the first plan ✅ (v0.4.0)
 
@@ -49,13 +50,13 @@ People search for a pain, not for a name. Every page answers one:
 
 Released in v0.3.0: a Tauri 2 window around the dashboard; menu bar or tray icon with the inbox count; notifications for new inbox items; check now, open at login, quit; runs the crew it bundles (`crewreview run --desktop`) or shows the service's; restarts a crew that stops; signed updates with the release key, bound to the version. Notarized `.dmg` for macOS, NSIS for Windows, AppImage, `.deb` and `.rpm` for Linux, x64 and arm64.
 
-Next: Windows code signing (Azure Trusted Signing). Done on `main`: a first-run setup that checks the agents and the host login and links a repository.
+Next: Windows code signing (Azure Trusted Signing). Released in v0.5.0: a first-run setup that checks the agents and the host login and links a repository.
 
 ## M6: breadth
 
 Bitbucket (Cloud and Data Center), Azure DevOps, Gitea/Forgejo; verified OpenCode, Pi, Gemini CLI, Cursor, Copilot CLI and Antigravity; a terminal UI (`crewreview top`); webhooks for instant reviews.
 
-Done on `main`: a Docker image for a shared team machine ([guide](team-machine.md)).
+Released in v0.5.0: a Docker image for a shared team machine ([guide](team-machine.md)).
 
 ## M7: mobile companion
 

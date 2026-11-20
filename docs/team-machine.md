@@ -64,7 +64,7 @@ When the team trusts it, switch a repository to auto in the dashboard or with `c
 The daemon tells you, in the dashboard, when a new release is out. To move to it, rebuild with the new version:
 
 ```bash
-docker compose build --build-arg VERSION=0.5.0 && docker compose up -d
+docker compose build --build-arg VERSION=0.6.0 && docker compose up -d   # the version you move to
 ```
 
 `CLAUDE_CODE_VERSION` and `CODEX_VERSION` pin the agents' versions the same way; they default to the latest.

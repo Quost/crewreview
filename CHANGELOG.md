@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.5.0 — 2026-11-20
+
+Easier to start, alone or as a team: a first-run setup, and a Docker image for a shared team machine.
+
 ### Added
 
 - A first-run setup in the dashboard and the desktop app. While nothing is linked it opens by itself and goes through the agents and their login, access to GitHub or GitLab (and as whom), a preview of what a repository or organization would start, and linking it in inbox mode. Later it's one click away, under Repositories.

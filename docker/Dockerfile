@@ -6,7 +6,7 @@
 # same key `crewreview update` uses. The guide: docs/team-machine.md.
 FROM node:22-bookworm-slim
 
-ARG VERSION=0.4.0
+ARG VERSION=0.5.0
 ARG CLAUDE_CODE_VERSION=latest
 ARG CODEX_VERSION=latest
 

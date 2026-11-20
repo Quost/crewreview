@@ -97,7 +97,7 @@ Builds are reproducible: the same commit and Bun version give the same bytes.
 
 </details>
 
-You'll need git, at least one coding agent signed in (Claude Code, Codex or Kiro) and `gh` or `glab` signed in. Then:
+You'll need git, at least one coding agent signed in (Claude Code, Codex or Kiro) and `gh` or `glab` signed in. The first time you open the app or the dashboard, a setup page checks all of that, shows what a repository would start, and links it. From the terminal:
 
 ```bash
 crewreview doctor                                      # what's installed and what each harness can do
