@@ -1,0 +1,25 @@
+# Crewreview on a shared team machine. The guide: docs/team-machine.md
+#
+#   docker compose up -d --build
+#   docker compose exec crewreview crewreview doctor
+services:
+  crewreview:
+    build: .
+    image: crewreview:local
+    restart: unless-stopped
+    # The dashboard listens on 127.0.0.1:4620 of this machine only. Reach it with an SSH tunnel, never by opening the
+    # port to the network.
+    network_mode: host
+    environment:
+      # The git host token, for the orchestrator only: agents never receive it.
+      GH_TOKEN: ${GH_TOKEN:-}
+      GITLAB_TOKEN: ${GITLAB_TOKEN:-}
+      # The agents' logins. Leave them empty to sign in inside the container instead (kept in the volume).
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - crewreview:/data
+
+volumes:
+  crewreview:

@@ -53,7 +53,9 @@ Next: Windows code signing (Azure Trusted Signing). Done on `main`: a first-run 
 
 ## M6: breadth
 
-Bitbucket (Cloud and Data Center), Azure DevOps, Gitea/Forgejo; verified OpenCode, Pi, Gemini CLI, Cursor, Copilot CLI and Antigravity; a terminal UI (`crewreview top`); webhooks for instant reviews.; a Docker image for a shared team machine.
+Bitbucket (Cloud and Data Center), Azure DevOps, Gitea/Forgejo; verified OpenCode, Pi, Gemini CLI, Cursor, Copilot CLI and Antigravity; a terminal UI (`crewreview top`); webhooks for instant reviews.
+
+Done on `main`: a Docker image for a shared team machine ([guide](team-machine.md)).
 
 ## M7: mobile companion
 

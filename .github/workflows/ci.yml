@@ -33,6 +33,7 @@ jobs:
       - run: bun test --timeout 60000
       - run: bun run check:l10n
       - run: bun run check:changelog
+      - run: bun run check:versions
       - name: Build and start the binary
         shell: bash
         run: |
@@ -87,3 +88,24 @@ jobs:
         run: bunx tauri build --target x86_64-unknown-linux-gnu --bundles deb,rpm,appimage --verbose --config "$(bun scripts/linux-config.ts x86_64-unknown-linux-gnu)"
       - name: The bundled CLI starts inside each package
         run: bash apps/desktop/scripts/check-linux.sh apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle
+
+  docker:
+    name: Team machine image (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # The latest published release: on a release commit the Dockerfile already names a version that the tag is
+      # about to publish.
+      - name: Build it from the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          docker build --build-arg VERSION="${v#v}" -t crewreview:ci docker
+      - name: It starts, and finds its agents
+        run: |
+          docker run --rm crewreview:ci --version
+          docker run --rm crewreview:ci doctor | tee doctor.txt
+          grep -E '^ +claude +installed' doctor.txt
+          grep -E '^ +codex +installed' doctor.txt

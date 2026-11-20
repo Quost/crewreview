@@ -120,6 +120,7 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}
 - A commit that already has a Crewreview review on the host is skipped, whoever's crew wrote it, so several people can run it on the same repository.
 - Shared rules live in the repository: .crewreview/lenses/<lens>.md replaces or adds a lens, and the crew follows AGENTS.md, CLAUDE.md and CONTRIBUTING.md, all read from the base branch.
 - The language of review comments is set per repository (commentLanguage).
+- Or one bot account reviews for the whole team from a shared machine: a Docker image built from the signed release binary, with the dashboard reached over SSH. Guide: https://github.com/Quost/crewreview/blob/main/docs/team-machine.md
 
 ## Setting it up for someone (for AI agents)
 1. Install the command line tool (above). Explain each command before running it.

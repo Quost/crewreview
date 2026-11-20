@@ -81,7 +81,7 @@
   "teams.t1": "As regras do time, no repositório",
   "teams.t1d_html": "Adicione ou substitua lentes em <code>.crewreview/lenses/</code>; a equipe também segue o <code>AGENTS.md</code>, o <code>CLAUDE.md</code> e o <code>CONTRIBUTING.md</code>. Tudo lido da branch base, então um pull request não consegue mudar as regras com que ele é julgado.",
   "teams.t2": "Cada um com o seu agente",
-  "teams.t2d": "Cada dev roda a equipe com o plano de agente de código que já tem, e as reviews saem da própria conta. Sem licença por usuário, sem chave de API compartilhada.",
+  "teams.t2d_html": "Cada dev roda a equipe com o plano de agente de código que já tem, e as reviews saem da própria conta. Ou um bot revisa para o time todo a partir de uma <a href=\"https://github.com/Quost/crewreview/blob/main/docs/team-machine.md\">máquina compartilhada</a>, com a imagem Docker.",
   "teams.t3": "Sem review duplicada",
   "teams.t3d": "Quando várias pessoas rodam no mesmo repositório, um commit que já tem review do Crewreview é pulado, não importa de quem é a equipe que revisou.",
   "teams.t4": "O GitLab da sua empresa também",

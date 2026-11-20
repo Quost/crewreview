@@ -7,6 +7,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Added
 
 - A first-run setup in the dashboard and the desktop app. While nothing is linked it opens by itself and goes through the agents and their login, access to GitHub or GitLab (and as whom), a preview of what a repository or organization would start, and linking it in inbox mode. Later it's one click away, under Repositories.
+- A Docker image for a shared team machine, where one bot account reviews the team's pull requests ([guide](docs/team-machine.md)). It installs the release binary only after checking its signature, comes with Claude Code and Codex, keeps the config, history and agent logins in one volume, and the dashboard is reached over SSH.
 - The local API answers `GET /api/hosts` (which git hosts this machine can reach, and as whom) and `POST /api/preview` (what an address that isn't linked yet would start).
 
 ## 0.4.0 — 2026-11-20

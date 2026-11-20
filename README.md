@@ -152,6 +152,7 @@ Every repository starts in **inbox** mode: reviews and answers wait for your app
 - **GitHub and GitLab, cloud or self-managed**, with the `gh` or `glab` login you already have.
 - **Comments in your team's language**, set per repository (`commentLanguage`), whatever language each person's dashboard is in.
 - **Inbox first, auto when you trust it.** Nothing is posted or pushed without approval until you switch a repository to auto.
+- **Or one bot for the whole team.** A Docker image runs the crew on a shared machine with a bot account, built from the signed release binary; you approve from your laptop over SSH. See [A shared team machine](docs/team-machine.md).
 
 ## Safe by design
 
