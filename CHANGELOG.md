@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.7.0 — 2026-11-20
+
+The second account, set up from the app: you create it and type one code; the app does the rest.
+
 ### Added
 
 - A guided setup in the app for the second account that posts your reviews (Repositories → Post reviews as → Set it up step by step, or from the first-run setup). GitHub only lets a person create the account and type its sign-in code; the app does the rest:
