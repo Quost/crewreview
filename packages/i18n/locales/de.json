@@ -536,5 +536,6 @@
   "desktop.cancel": "Abbrechen",
   "desktop.posted": "Auf {pr} gepostet.",
   "desktop.stale": "{pr} hat sich seit dem Review geändert; es wurde zurückgestellt.",
-  "desktop.failed": "Posten auf {pr} fehlgeschlagen: {error}"
+  "desktop.failed": "Posten auf {pr} fehlgeschlagen: {error}",
+  "web.setup.useForReviews": "Für Reviews nutzen"
 }

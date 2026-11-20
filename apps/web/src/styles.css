@@ -991,3 +991,8 @@ tr:last-child td {
   border-color: var(--bad);
   outline: 2px solid var(--bad-soft);
 }
+
+.btn.sm {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}

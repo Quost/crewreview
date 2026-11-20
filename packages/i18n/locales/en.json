@@ -536,5 +536,6 @@
   "desktop.cancel": "Cancel",
   "desktop.posted": "Posted on {pr}.",
   "desktop.stale": "{pr} changed since the review; it was set aside.",
-  "desktop.failed": "Couldn't post on {pr}: {error}"
+  "desktop.failed": "Couldn't post on {pr}: {error}",
+  "web.setup.useForReviews": "Use for reviews"
 }

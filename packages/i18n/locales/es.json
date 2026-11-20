@@ -536,5 +536,6 @@
   "desktop.cancel": "Cancelar",
   "desktop.posted": "Publicado en {pr}.",
   "desktop.stale": "{pr} cambió desde la revisión; se dejó de lado.",
-  "desktop.failed": "No se pudo publicar en {pr}: {error}"
+  "desktop.failed": "No se pudo publicar en {pr}: {error}",
+  "web.setup.useForReviews": "Usar en las revisiones"
 }

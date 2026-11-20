@@ -527,5 +527,6 @@
   "desktop.cancel": "取消",
   "desktop.posted": "已在 {pr} 上发布。",
   "desktop.stale": "{pr} 在审查后有了变化；这条审查已搁置。",
-  "desktop.failed": "无法在 {pr} 上发布：{error}"
+  "desktop.failed": "无法在 {pr} 上发布：{error}",
+  "web.setup.useForReviews": "用于审查"
 }

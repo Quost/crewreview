@@ -107,6 +107,18 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
   };
 
   const chosenInfo = harnesses?.find((h) => h.chosen);
+  // Pick the agent for reviews here: it's harness.default in config.toml, used from the next review on.
+  const choose = async (id: string) => {
+    setBusy(true);
+    try {
+      await api.patch("/api/settings", { values: { "harness.default": id } });
+      loadAgents();
+    } catch (err) {
+      setError(failure(err, "link"));
+    } finally {
+      setBusy(false);
+    }
+  };
   const agentsDone = harnesses ? usable(chosenInfo) : undefined;
   const hostsDone = hosts ? hosts.some((h) => h.user) : undefined;
   const recheck = (onClick: () => void) => (
@@ -136,6 +148,11 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
                     <strong>{h.name}</strong> <code>{h.id}</code> {h.chosen && <Pill tone="accent">{t.t("web.setup.default")}</Pill>}
                   </span>
                   <span className="check-state">
+                    {usable(h) && !h.chosen && (
+                      <button className="btn ghost sm" onClick={() => choose(h.id)} disabled={busy}>
+                        {t.t("web.setup.useForReviews")}
+                      </button>
+                    )}
                     {r === "ready" && <Pill tone="ok">{t.t("web.setup.ready")}</Pill>}
                     {r === "ready" && h.signIn?.expiresAt && <span className="muted small">{t.t("doctor.until", { date: new Date(h.signIn.expiresAt).toLocaleDateString(t.locale, { month: "short", day: "numeric" }) })}</span>}
                     {r === "unknown" && <Pill>{t.t("web.setup.installed")}</Pill>}

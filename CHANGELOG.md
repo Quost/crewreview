@@ -12,6 +12,7 @@ Run it from the app: settings, open at login, pausing repositories, and approval
 
 - Settings in the app: everything under Limits and schedule is now a form (how often to check, peak hours, reviews and answers per check, keep-awake, agents at once, runs per day, time limits, the agent for reviews and the verifier, waits after a push or new comments, automatic approvals, update checks). Saving changes only those lines of config.toml, your comments included, and the crew uses the new values at once.
 - Open at login, from the app's settings as well as its menu.
+- Choose the agent for reviews right in the setup: a "Use for reviews" button on each agent that's ready. The settings have it too.
 - Approve from the menu bar (macOS) or the tray: Inbox lists what waits for you, each item with Approve (after a confirmation that names the pull request, since it posts on the host), Open (that item in the dashboard) and Discard. A notification says how it went.
 - Pause a repository or a whole organization without unlinking it (the Active switch, or `crewreview repo set <id> --paused on`): no reviews or answers until it's back on. A repository paused on its own stays paused inside an active organization.
 
