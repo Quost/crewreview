@@ -115,8 +115,12 @@ export async function runProcess(o: ProcessOptions): Promise<ProcessResult> {
 
 /** Find an executable on PATH. */
 /** Where `name` is on this PATH, or on another one (the PATH a background service starts with). */
-export function which(name: string, path?: string): string | undefined {
-  return (path === undefined ? Bun.which(name) : Bun.which(name, { PATH: path })) ?? undefined;
+/**
+ * Find an executable on PATH. Always the current PATH: Bun.which alone uses the one the process started with, and the
+ * desktop app sets a fuller one later (an app opened from the Dock starts with a bare PATH).
+ */
+export function which(name: string, path: string = process.env.PATH ?? ""): string | undefined {
+  return Bun.which(name, { PATH: path }) ?? undefined;
 }
 
 /** First line of `<exe> --version`, or undefined. */

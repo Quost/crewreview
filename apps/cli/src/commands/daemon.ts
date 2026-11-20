@@ -1,4 +1,4 @@
-import { acquireLock, compareVersions, ConformanceStore, CrewDaemon, dashboardUrl, fetchVerified, isCompiledBinary, latestRelease, LockedError, loadRepos, managedByDesktop, readApiInfo, registryFor, replaceBinary, reposFile, startApi, type ApiInfo } from "@crewreview/engine";
+import { acquireLock, compareVersions, ConformanceStore, CrewDaemon, dashboardUrl, fetchVerified, isCompiledBinary, latestRelease, LockedError, loadRepos, loginShellEnv, managedByDesktop, readApiInfo, registryFor, replaceBinary, reposFile, startApi, type ApiInfo } from "@crewreview/engine";
 import { repoRef, resolveToken } from "@crewreview/hosts";
 import { templates } from "@crewreview/i18n";
 import dashboard from "../../../web/index.html";
@@ -46,6 +46,8 @@ function tellDesktop(m: DesktopMessage): void {
 
 export async function daemon(c: Ctx, a: DaemonArgs): Promise<number> {
   const { t } = c;
+  // Opened from the Dock or a launcher, the app gives us a bare PATH: take your shell's, or the agents and gh go missing.
+  if (a.desktop && process.platform !== "win32") Object.assign(process.env, await loginShellEnv());
   if (a.desktop) tellDesktop({ strings: templates(t.locale, "desktop."), locale: t.locale, updateCheck: c.config.updates.check });
   const repos = await loadRepos(reposFile(c.dirs));
   const watched = repos.filter((r) => r.review.mode !== "off" || r.attend.mode !== "off");

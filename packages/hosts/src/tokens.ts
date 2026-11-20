@@ -1,7 +1,8 @@
 import type { RepoRef } from "./types.ts";
 
 async function run(argv: string[]): Promise<string | undefined> {
-  const exe = Bun.which(argv[0]!);
+  // The current PATH: Bun.which alone uses the one the process started with.
+  const exe = Bun.which(argv[0]!, { PATH: process.env.PATH ?? "" });
   if (!exe) return undefined;
   const proc = Bun.spawn([exe, ...argv.slice(1)], { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1", GLAB_NO_PROMPT: "1" } });
   const timer = setTimeout(() => proc.kill(), 15_000);

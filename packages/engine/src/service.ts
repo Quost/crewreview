@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { SHELL_KEEP } from "./shell-env.ts";
 import type { AppDirs } from "./paths.ts";
 
 /** Start the daemon with your login session: launchd on macOS, systemd --user on Linux, a logon task on Windows. */
@@ -35,7 +36,8 @@ export function serviceSpec(dirs: AppDirs, env: Record<string, string | undefine
   return { name: `crewreview${suffix}`, program, env: keep, logFile: join(dirs.state, "daemon.log") };
 }
 
-const SERVICE_KEEP = ["PATH", "LANG", "CREWREVIEW_HOME", "CREWREVIEW_LANG", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"];
+/** The same variables the desktop app takes from your shell. */
+const SERVICE_KEEP = SHELL_KEEP;
 
 /** What every process gets from launchd, systemd --user or the Windows task scheduler, before the service file's own. */
 const SESSION_VARS: Record<ServicePlatform, string[]> = {

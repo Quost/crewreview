@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- The desktop app found no agent and no GitHub login when opened from the Dock, Finder or a desktop launcher: such an app starts with a bare PATH (/usr/bin:/bin), not your terminal's. The crew it starts now takes PATH, and the few variables the background service keeps, from your login shell, plus the usual install folders. Program lookups now always use the current PATH.
+
 ## 0.7.0 — 2026-11-20
 
 The second account, set up from the app: you create it and type one code; the app does the rest.
