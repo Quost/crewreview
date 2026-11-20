@@ -500,6 +500,7 @@ dialog.next::backdrop{background:rgb(12 14 30/45%);backdrop-filter:blur(3px)}
 <footer>
   <div class="wrap">
     <span>{{footer.license_html}}</span>
+    <span class="counted">{{footer.counted_html}}</span>
     <span>v{{version}} · <a href="https://github.com/Quost/crewreview">GitHub</a> · <a href="https://github.com/Quost/crewreview/releases">{{footer.releases}}</a> · <a href="https://github.com/sponsors/Quost">{{sponsor.short}}</a> · <a href="/llms.txt">llms.txt</a></span>
   </div>
 </footer>
@@ -561,11 +562,17 @@ tablist([...document.querySelectorAll(".gallery [role=tab]")], (tab) => {
     for (const el of document.querySelectorAll("[data-os-show]")) el.classList.toggle("os-off", !el.dataset.osShow.split(" ").includes(os));
     for (const a of document.querySelectorAll(".get-other a")) a.classList.toggle("on", a.dataset.os === os && a.dataset.arch === arch);
   }
+  // An event in GoatCounter (downloads, copies), when it loaded: blockers and local previews simply skip it.
+  function count(path) {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path, title: path, event: true }); } catch {}
+  }
+
   // After a download click: the next steps for that system, animated. The download itself goes on.
   const next = $("next");
   for (const id of ["dl-btn", "hero-dl"]) {
     $(id).addEventListener("click", () => {
       const href = $(id).getAttribute("href");
+      if (href && !href.startsWith("#")) count(`download-${os}-${arch}`);
       if (!href || href.startsWith("#") || !next || !next.showModal) return;
       $("next-again").href = href;
       // The mini window's drag distance follows its width.
@@ -633,11 +640,13 @@ tablist([...document.querySelectorAll(".gallery [role=tab]")], (tab) => {
   }
   for (const c of document.querySelectorAll(".cmd")) {
     const b = c.querySelector(".copy"), code = c.querySelector("code");
-    b.addEventListener("click", () => copy(b, code.textContent, t.copy));
+    b.addEventListener("click", () => { copy(b, code.textContent, t.copy); count("copy-" + (/install\.(sh|ps1)/.exec(code.textContent)?.[0] || (code.textContent.includes("brew") ? "homebrew" : code.textContent.includes("scoop") ? "scoop" : "command"))); });
   }
   const ai = $("ai-copy"), aiLabel = ai.textContent;
-  ai.addEventListener("click", () => copy(ai, $("ai-prompt").content.textContent.trim(), aiLabel));
+  ai.addEventListener("click", () => { copy(ai, $("ai-prompt").content.textContent.trim(), aiLabel); count("copy-ai-prompt"); });
 })();
 </script>
+<!-- Visits are counted with GoatCounter: no cookies, no personal data. Pinned to one version of its script. -->
+<script data-goatcounter="https://crewreview.goatcounter.com/count" async src="https://gc.zgo.at/count.v5.js" crossorigin="anonymous" integrity="sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ"></script>
 </body>
 </html>

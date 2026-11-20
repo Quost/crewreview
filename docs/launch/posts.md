@@ -26,9 +26,11 @@ How it works:
 
 It's AGPL-3.0, TypeScript on Bun, single binary for macOS/Linux/Windows, five interface languages, updates signed with minisign, and the builds are reproducible.
 
-Repo: https://github.com/Quost/crewreview · Site: https://crewreview.web.app
+Repo: https://github.com/Quost/crewreview · Site: https://crewreview.web.app/?ref=hn
 
 Happy to hear what breaks, and which hosts or harnesses you'd want next.
+
+Links to the site carry `?ref=<where>` (hn, reddit, linkedin, x, devto, producthunt) so GoatCounter shows where visits come from.
 
 ## Reddit (r/ClaudeAI, r/ChatGPTCoding, r/selfhosted)
 
@@ -46,7 +48,7 @@ Ele roda na sua máquina, com os agentes de IA que você já assina (Claude Code
 📋 tudo passa por um inbox para você aprovar, num painel em português (e mais 4 idiomas).
 
 Gratuito, AGPL-3.0, para macOS, Linux e Windows. Feedback é muito bem-vindo 🙏
-https://crewreview.web.app
+https://crewreview.web.app/?ref=linkedin
 
 ## X / Bluesky thread
 
@@ -54,7 +56,7 @@ https://crewreview.web.app
 2. Reviewer: parallel read-only lenses → evidence check (file:line or it's gone) → a verifier tries to refute each finding → a fixed rule decides. [screenshot of a review]
 3. Attendant: on your PRs, it fixes in a worktree, runs your checks, signs the commit, replies, resolves, asks for re-review. The agent never gets your git token. [screenshot of replies]
 4. "Read-only" is proven, not promised: a canary asks each harness to write a file. Kiro's fs_write escaped the folder, so it reviews but doesn't attend.
-5. AGPL-3.0, single binary, five languages, signed updates. crewreview.web.app
+5. AGPL-3.0, single binary, five languages, signed updates. crewreview.web.app/?ref=x
 
 ## dev.to article outline
 

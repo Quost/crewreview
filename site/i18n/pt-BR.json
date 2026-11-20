@@ -169,6 +169,7 @@
   "sponsor.button": "♥ Patrocinar no GitHub",
   "sponsor.short": "Patrocinar",
   "footer.license_html": "Software livre sob a <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>. Feito por Matheus Quost.",
+  "footer.counted_html": "As visitas são contadas com o <a href=\"https://www.goatcounter.com\">GoatCounter</a>: sem cookies, nada pessoal.",
   "footer.releases": "Versões",
   "next.started": "Seu download começou",
   "next.title": "Três passos e a equipe começa a trabalhar",

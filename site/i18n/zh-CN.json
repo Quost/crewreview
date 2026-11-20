@@ -169,6 +169,7 @@
   "sponsor.button": "♥ 在 GitHub 上赞助",
   "sponsor.short": "赞助",
   "footer.license_html": "基于 <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a> 的自由软件。由 Matheus Quost 制作。",
+  "footer.counted_html": "访问量由 <a href=\"https://www.goatcounter.com\">GoatCounter</a> 统计：不使用 Cookie，不收集个人信息。",
   "footer.releases": "版本",
   "next.started": "下载已开始",
   "next.title": "三步之后，团队就开始工作",

@@ -23,7 +23,7 @@
     "publisher": "Matheus Quost",
     "copyright": "© 2026 Matheus Quost. Free software under the AGPL-3.0.",
     "license": "AGPL-3.0-only",
-    "homepage": "https://crewreview.web.app",
+    "homepage": "https://crewreview.web.app/?ref=app",
     "shortDescription": "A crew of AI agents that reviews pull requests and answers the reviews on yours",
     "longDescription": "Crewreview runs on your machine with the coding agents you already use. It reviews other people's pull requests and answers the reviews on yours: fixes, replies, resolves and asks for another look. This app keeps the crew running in the menu bar or tray, shows its dashboard and tells you when something waits for your approval.",
     "createUpdaterArtifacts": false,

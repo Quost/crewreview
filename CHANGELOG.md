@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Changed
+
+- The website counts visits with GoatCounter (no cookies, nothing personal; a line in the footer says so), including downloads and copied install commands as events, so it's clear where people come from and what they do next. Links to it from the README, the Claude Code plugin, Homebrew, Scoop, the app and the launch posts carry `?ref=` for that.
+
 ## 0.9.0 — 2026-11-20
 
 Run it from the app: settings, open at login, pausing repositories, and approvals from the menu bar.
