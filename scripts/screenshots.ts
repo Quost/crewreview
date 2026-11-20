@@ -4,11 +4,10 @@
 //   bun scripts/screenshots.ts [--lang en] [--page now]
 // Writes site/static/shots/<language>/<page>-<light|dark>.webp, and og.png (the link preview, 1200×630) from the
 // website's own title. Run it again after a visible dashboard change or a new title.
-import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { LOCALES } from "../packages/i18n/src/index.ts";
+import { openBrowser } from "./lib/browser.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const OUT = join(ROOT, "site", "static", "shots");
@@ -33,21 +32,6 @@ const langs = arg("lang") ? [arg("lang")!] : [...LOCALES];
 const only = arg("page");
 const pages = only ? (only === "og" ? [] : [only]) : Object.keys(PAGES);
 
-function browserPath(): string {
-  const candidates = [
-    process.env.CHROME,
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-    "/usr/bin/microsoft-edge",
-  ];
-  const found = candidates.find((c) => c && existsSync(c));
-  if (!found) throw new Error("no Chrome, Edge or Chromium found; set CHROME=/path/to/browser");
-  return found;
-}
-
 // ---- the demo dashboard ----
 const demo = Bun.spawn(["bun", join(ROOT, "scripts", "demo-dashboard.ts")], { stdout: "pipe", stderr: "inherit" });
 
@@ -63,74 +47,12 @@ async function firstLine(stream: ReadableStream<Uint8Array>): Promise<string> {
   return text.split("\n")[0]!.trim();
 }
 
-// ---- a headless browser driven over the DevTools protocol ----
-class Page {
-  private id = 0;
-  private waiting = new Map<number, (v: any) => void>();
-  private constructor(private ws: WebSocket) {
-    ws.onmessage = (e) => {
-      const m = JSON.parse(String(e.data));
-      if (m.id && this.waiting.has(m.id)) {
-        this.waiting.get(m.id)!(m.error ? Promise.reject(new Error(m.error.message)) : m.result);
-        this.waiting.delete(m.id);
-      }
-    };
-  }
-  static async open(url: string): Promise<Page> {
-    const ws = new WebSocket(url);
-    await new Promise((ok, fail) => {
-      ws.onopen = ok;
-      ws.onerror = fail;
-    });
-    return new Page(ws);
-  }
-  send(method: string, params: Record<string, unknown> = {}): Promise<any> {
-    const id = ++this.id;
-    this.ws.send(JSON.stringify({ id, method, params }));
-    return new Promise((resolve) => this.waiting.set(id, resolve));
-  }
-  async eval<T>(expression: string): Promise<T> {
-    const r = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-    return r.result?.value as T;
-  }
-  async waitFor(expression: string, timeout = 5000): Promise<void> {
-    const end = Date.now() + timeout;
-    while (Date.now() < end) {
-      if (await this.eval<boolean>(`Boolean(${expression})`)) return;
-      await Bun.sleep(100);
-    }
-    throw new Error(`timed out waiting for ${expression}`);
-  }
-  close() {
-    this.ws.close();
-  }
-}
-
-const profile = await mkdtemp(join(tmpdir(), "crewreview-shots-"));
-const browser = Bun.spawn(
-  [browserPath(), "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--hide-scrollbars", "about:blank"],
-  { stdout: "ignore", stderr: "pipe" },
-);
+const b = await openBrowser();
+const profile = b.profile;
 
 try {
   const base = (await firstLine(demo.stdout)).replace(/#.*$/, "");
-  let devtools = "";
-  {
-    const reader = browser.stderr.getReader();
-    let text = "";
-    while (!/DevTools listening on (ws:\S+)/.test(text)) {
-      const { value, done } = await reader.read();
-      if (done) throw new Error(`the browser stopped before it was ready:\n${text}`);
-      text += new TextDecoder().decode(value);
-    }
-    devtools = /DevTools listening on (ws:\S+)/.exec(text)![1]!;
-    reader.releaseLock();
-  }
-  const http = devtools.replace(/^ws:/, "http:").replace(/\/devtools\/browser\/.*$/, "");
-  const target = (await (await fetch(`${http}/json/new?about:blank`, { method: "PUT" })).json()) as { webSocketDebuggerUrl: string };
-  const page = await Page.open(target.webSocketDebuggerUrl);
-  await page.send("Page.enable");
-  await page.send("Runtime.enable");
+  const page = b.page;
   await page.send("Emulation.setDeviceMetricsOverride", { width: WIDTH, height: HEIGHT, deviceScaleFactor: 2, mobile: false });
 
   let count = 0;
@@ -180,9 +102,8 @@ try {
   page.close();
   console.log(`${count} images in site/static/shots`);
 } finally {
-  browser.kill();
+  await b.close();
   demo.kill();
-  await rm(profile, { recursive: true, force: true }).catch(() => {});
 }
 
 function ogCard(t: Record<string, string>, shot: string): string {
