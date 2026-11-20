@@ -58,7 +58,8 @@ async function settled(s: AccountSignIn): Promise<SignInState> {
   return s.status();
 }
 
-describe("signing a second account in to gh from the app", () => {
+// The stand-in for gh is a shell script, which Windows can't run directly; the flow itself is the same there.
+describe.skipIf(process.platform === "win32")("signing a second account in to gh from the app", () => {
   test("shows the code, then signs it in and puts gh back on your account", async () => {
     const gh = await fakeGh();
     const s = gh.make();
