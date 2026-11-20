@@ -8,7 +8,7 @@ Drafts for launch day. Adjust the numbers to what's true that day; never claim w
 2. Version bumped, CHANGELOG section written, tag pushed; the release has 5 binaries, `SHA256SUMS` and `.minisig`, and the Homebrew/Scoop manifests updated on main.
 3. Repository public; description, topics (`code-review`, `ai`, `pull-requests`, `github`, `gitlab`, `claude-code`, `codex`, `mcp`, `open-source`) and the social preview image set.
 4. Site `crewreview` created in Firebase project `crewreview-prd`, deployed; `crewreview.web.app` answers; `install.sh` works anonymously.
-5. Install checks on a clean machine: `curl … | sh`, `brew install Quost/crewreview/crewreview`, `scoop install crewreview`, the Claude Code plugin.
+5. Install checks on a clean machine: `curl … | sh`, `brew tap Quost/crewreview https://github.com/Quost/crewreview && brew trust quost/crewreview && brew install Quost/crewreview/crewreview`, `scoop install crewreview`, the Claude Code plugin.
 6. Google Search Console and Bing Webmaster Tools: add the site, submit `sitemap.xml`.
 7. Posts below, one channel at a time; answer every comment the first day.
 

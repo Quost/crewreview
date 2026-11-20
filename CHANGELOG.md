@@ -14,6 +14,10 @@ Easier to start, alone or as a team: a first-run setup, and a Docker image for a
 - A Docker image for a shared team machine, where one bot account reviews the team's pull requests ([guide](docs/team-machine.md)). It installs the release binary only after checking its signature, comes with Claude Code and Codex, keeps the config, history and agent logins in one volume, and the dashboard is reached over SSH.
 - The local API answers `GET /api/hosts` (which git hosts this machine can reach, and as whom) and `POST /api/preview` (what an address that isn't linked yet would start).
 
+### Fixed
+
+- The Homebrew instructions in the README, on the site and in the setup prompt: `brew install Quost/crewreview/crewreview` looked for a tap repository that doesn't exist. It's now `brew tap Quost/crewreview https://github.com/Quost/crewreview`, `brew trust quost/crewreview` (recent Homebrew asks for it) and `brew install Quost/crewreview/crewreview`.
+
 ## 0.4.0 — 2026-11-20
 
 For teams: link a whole organization, limits that act on their own, and an attendant that fixes conflicts and red CI.

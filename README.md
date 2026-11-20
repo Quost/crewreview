@@ -50,7 +50,11 @@ The macOS app is signed and notarized. Windows may warn about an unknown publish
 
 ```bash
 curl -fsSL https://crewreview.web.app/install.sh | sh     # macOS, Linux
-brew install Quost/crewreview/crewreview                  # or Homebrew
+
+# or Homebrew: the formula lives in this repository, and recent Homebrew asks you to trust taps outside its own
+brew tap Quost/crewreview https://github.com/Quost/crewreview
+brew trust quost/crewreview
+brew install Quost/crewreview/crewreview
 ```
 
 ```powershell
@@ -66,7 +70,7 @@ Paste this into your coding agent. It installs Crewreview, checks your setup, as
 Set up Crewreview for me. It's a free, open source crew of AI agents that reviews pull requests and answers the reviews on mine: https://github.com/Quost/crewreview. Its guide for agents: https://crewreview.web.app/llms.txt
 
 1. Install the command line tool:
-   - macOS or Linux: curl -fsSL https://crewreview.web.app/install.sh | sh (with Homebrew: brew install Quost/crewreview/crewreview)
+   - macOS or Linux: curl -fsSL https://crewreview.web.app/install.sh | sh (with Homebrew: brew tap Quost/crewreview https://github.com/Quost/crewreview && brew trust quost/crewreview && brew install Quost/crewreview/crewreview)
    - Windows, in PowerShell: irm https://crewreview.web.app/install.ps1 | iex
 2. Run crewreview doctor. It needs git, at least one coding agent signed in (Claude Code, Codex or Kiro) and gh (GitHub) or glab (GitLab) signed in. If something is missing, tell me how to fix it and wait for me.
 3. Ask me which repositories Crewreview should watch, or whether to link a whole organization or group. Link each in inbox mode, so nothing is posted without my approval: crewreview repo add <repository or organization URL> --attend inbox

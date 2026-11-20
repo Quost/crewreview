@@ -391,7 +391,7 @@ footer a{color:var(--muted)}
           <p class="hint">{{start.termHint_html}}</p>
         </div>
         <div class="panel" id="panel-pkg" role="tabpanel" aria-labelledby="tab-pkg" data-panel="pkg">
-          <div data-os-show="macos linux"><div class="cmd"><code data-p="$">brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
+          <div data-os-show="macos linux"><div class="cmd"><code data-p="$">brew tap Quost/crewreview https://github.com/Quost/crewreview &amp;&amp; brew trust quost/crewreview &amp;&amp; brew install Quost/crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
           <div class="cmds" data-os-show="windows"><div class="cmd"><code data-p="PS&gt;">scoop bucket add crewreview https://github.com/Quost/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div><div class="cmd"><code data-p="PS&gt;">scoop install crewreview/crewreview</code><button class="copy" type="button">{{start.copy}}</button></div></div>
           <p class="hint">{{start.pkgHint}}</p>
         </div>

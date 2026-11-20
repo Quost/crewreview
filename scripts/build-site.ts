@@ -112,7 +112,7 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}
 
 ## Install
 - Desktop app (macOS, Windows, Linux): ${SITE}/#start, or the latest release: https://github.com/Quost/crewreview/releases/latest (Crewreview-macos-arm64.dmg, Crewreview-macos-x64.dmg, Crewreview-windows-x64-setup.exe, Crewreview-linux-x64.AppImage and .deb/.rpm, the same for linux-arm64). It bundles the crew and keeps it running from the menu bar or tray.
-- Command line, macOS or Linux: curl -fsSL ${SITE}/install.sh | sh (Homebrew: brew install Quost/crewreview/crewreview)
+- Command line, macOS or Linux: curl -fsSL ${SITE}/install.sh | sh (Homebrew: brew tap Quost/crewreview https://github.com/Quost/crewreview && brew trust quost/crewreview && brew install Quost/crewreview/crewreview)
 - Command line, Windows (PowerShell): irm ${SITE}/install.ps1 | iex (Scoop: scoop bucket add crewreview https://github.com/Quost/crewreview; scoop install crewreview/crewreview)
 
 ## Using it with a team
