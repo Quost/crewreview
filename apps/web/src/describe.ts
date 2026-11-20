@@ -40,6 +40,9 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
 }
 
 function harnessLine(t: Translator, e: { repo: string; number: number }, error: any): { text: string; tone: "bad" } {
+  if (error?.error === "paused")
+    return { text: t.t("web.log.paused", { repo: e.repo, number: e.number, name: error.name, when: new Date(error.until).toLocaleString(t.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }) }), tone: "bad" };
+  if (error?.error === "budget") return { text: t.t("web.log.budget", { repo: e.repo, number: e.number, limit: error.limit }), tone: "bad" };
   if (error?.error === "signed-out") return { text: t.t("web.log.signedOut", { repo: e.repo, number: e.number, name: error.name, command: error.command ?? "" }), tone: "bad" };
   return { text: t.t("web.log.noHarness", { repo: e.repo, number: e.number }), tone: "bad" };
 }

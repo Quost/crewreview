@@ -16,6 +16,7 @@ import { gitAuthEnv, type Permission } from "@crewreview/hosts";
 import { createTranslator, languageName, matchLocale, type Translator } from "@crewreview/i18n";
 import { diffText, git, mergeBase } from "./git.ts";
 import { isPickError, pickReviewer, pickWriter, type PickError } from "./harnesses.ts";
+import { pickLimits, watchQuota } from "./quota.ts";
 import { fetchPull } from "./mirror.ts";
 import type { PrDeps, PrTarget } from "./pr.ts";
 import { attendPrompt } from "./prompts.ts";
@@ -128,6 +129,7 @@ async function runAgent(h: Harness, d: AttendDeps, cwd: string, access: "read" |
  * check its work, then publish (auto) or park it in the inbox. The agent never pushes or posts.
  */
 export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: number, mode: AttendMode): Promise<AttendOutcome> {
+  d = { ...d, onEvent: watchQuota(d.quota, d.onEvent) };
   const { repo, host } = x;
   const s = repo.attend;
   const now = d.now?.() ?? Date.now();
@@ -163,7 +165,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   if (items.length === 0) return { kind: "nothing" };
   if (mode !== "dry-run" && !settled(items, now, d.config.attend.quiet)) return { kind: "waiting", reason: "settling" };
 
-  const pick = s.fix ? await pickWriter(d.registry, s.harness ?? d.config.harness.default, d.conformance) : await pickReviewer(d.registry, s.harness ?? d.config.harness.default, d.conformance);
+  const limits = pickLimits(d.config, d.quota);
+  const pick = s.fix ? await pickWriter(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits) : await pickReviewer(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits);
   if (isPickError(pick)) return { kind: "harness", error: pick };
   const harness = pick;
 

@@ -29,7 +29,7 @@ export function LimitsPage() {
         [t.t("web.limits.perCycle"), `${limits.schedule.maxReviewsPerCycle} · ${limits.attend.maxPerCycle}`],
         [t.t("web.limits.settle"), `${duration(limits.review.settle)} · ${duration(limits.attend.quiet)}`],
         [t.t("web.limits.ciWait"), duration(limits.review.ciMaxWait)],
-        [t.t("web.limits.harness"), `${limits.harness.default}${limits.harness.verifier ? ` → ${limits.harness.verifier}` : ""}`],
+        [t.t("web.limits.harness"), `${limits.harness.default}${limits.harness.verifier ? ` → ${limits.harness.verifier}` : ""}${limits.harness.fallback?.length ? ` · ${t.t("web.limits.fallback")}: ${limits.harness.fallback.join(", ")}` : ""}`],
         [t.t("web.limits.approve"), limits.review.policy.allowApprove ? t.t("web.on") : t.t("web.off")],
       ]
     : [];
@@ -53,6 +53,15 @@ export function LimitsPage() {
             <span className="muted small">{t.t("web.limits.costToday")}</span>
             <strong>US$ {u.costUsd.toFixed(2)}</strong>
           </div>
+          {limits?.quota && (
+            <div className="stat">
+              <span className="muted small">{t.t("web.limits.runsToday")}</span>
+              <strong>
+                {limits.quota.runsToday}
+                {limits.limits.dailyRuns ? <span className="muted small"> / {limits.limits.dailyRuns}</span> : null}
+              </strong>
+            </div>
+          )}
         </div>
       )}
       <Card title={t.t("doctor.harnesses")}>
@@ -82,6 +91,9 @@ export function LimitsPage() {
                     <td>{h.installed && (h.capabilities.write ? <Check value={h.conformance?.writeScope} /> : <Pill>{t.t("doctor.no")}</Pill>)}</td>
                     <td>{h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no")}</td>
                     <td>
+                      {h.pausedUntil && (
+                        <Pill tone="warn">{t.t("web.limits.pausedUntil", { when: new Date(h.pausedUntil).toLocaleString(t.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }) })}</Pill>
+                      )}{" "}
                       {h.installed && h.signIn?.state === "yes" && (
                         <Pill tone="ok">{h.signIn.expiresAt ? t.t("doctor.until", { date: new Date(h.signIn.expiresAt).toLocaleDateString(t.locale, { month: "short", day: "numeric" }) }) : t.t("doctor.yes")}</Pill>
                       )}

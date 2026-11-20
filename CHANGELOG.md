@@ -6,6 +6,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Added
 
+- Limits that act. A harness that hits its usage limit is paused until the time its message gives ("resets 3pm", "try again in 2 hours"; an hour when it doesn't say) and resumes by itself; meanwhile `harness.fallback` (or, with `auto`, the other installed harnesses) takes over. `limits.dailyRuns` caps the agent runs of a day. The dashboard shows paused harnesses and today's runs.
 - The computer stays awake while agents work, so a review or an answer isn't cut off by sleep; the screen still turns off as usual. It uses `caffeinate` on macOS, `systemd-inhibit` on Linux and the system's own request on Windows, tied to the daemon's process. Turn it off with `keepAwake = false` in `[schedule]`.
 - Link a whole GitHub organization or GitLab group: `crewreview repo add https://github.com/acme`, or the same address in the dashboard. Every repository in it is watched with the organization's settings, new ones too and archived ones never; `--include` and `--exclude` filter by name. One search per cycle finds the repositories with open pull requests. A repository linked on its own keeps its own settings.
 - `doctor` shows whether each harness is signed in, here and as the background service would see it, with when Claude Code's login expires and the command that signs it in. The dashboard shows it too.

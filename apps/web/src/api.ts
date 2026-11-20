@@ -194,14 +194,17 @@ export interface HarnessInfo {
   conformance?: { readOnly: string; writeScope?: string; structured: string; at: string };
   signIn?: { state: "yes" | "no" | "unknown"; reason?: string; expiresAt?: string };
   loginCommand?: string;
+  /** Paused at its usage limit until then. */
+  pausedUntil?: number;
 }
 
 export interface Limits {
-  limits: { maxConcurrentAgents?: number; agentTimeout: number; stallTimeout: number; maxDiffLines: number };
+  limits: { maxConcurrentAgents?: number; agentTimeout: number; stallTimeout: number; maxDiffLines: number; dailyRuns?: number };
   schedule: { interval: number; offHoursInterval: number; peakHours: string; maxReviewsPerCycle: number };
   review: { settle: number; ciMaxWait: number; maxFailures: number; lenses: string[]; policy: { allowApprove: boolean; requestChangesAt: string } };
   attend: { quiet: number; validateTimeout: number; maxPerCycle: number };
-  harness: { default: string; verifier?: string };
+  harness: { default: string; verifier?: string; fallback?: string[] };
+  quota?: { runsToday: number; paused: { harness: string; until: number; reason: string }[] };
   usageToday: { reviews: number; inputTokens: number; outputTokens: number; costUsd: number };
   configPath?: string;
 }

@@ -265,6 +265,7 @@ language = "pt-BR"            # interface language
 [harness]
 default = "claude"            # or auto, codex, kiro, an ACP agent, a custom one
 verifier = "codex"            # a different vendor makes a stronger check
+fallback = ["codex", "kiro"]  # who takes over while a harness is paused at its usage limit
 
 [harness.claude]
 model = "opus"
@@ -289,6 +290,7 @@ channel = "stable"            # or "beta"
 maxConcurrentAgents = 3
 agentTimeout = "20m"
 maxDiffLines = 4000
+dailyRuns = 200               # most agent runs a day (each lens, verifier or attendant run counts one)
 
 [review]
 settle = "3m"                 # wait after a new push

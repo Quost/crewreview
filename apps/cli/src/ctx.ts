@@ -49,6 +49,8 @@ export function pickErrorText(c: Ctx, e: PickError): string {
   if (e.error === "needs-write-check") return c.t.t("error.needsWriteCheck", { name: e.name });
   if (e.error === "write-escapes") return c.t.t("error.writeEscapes", { name: e.name });
   if (e.error === "signed-out") return c.t.t("error.signedOut", { name: e.name, command: e.command ?? "" });
+  if (e.error === "paused") return c.t.t("error.paused", { name: e.name, when: new Date(e.until).toLocaleString(c.t.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }) });
+  if (e.error === "budget") return c.t.t("error.budget", { limit: e.limit });
   return c.t.t("error.harnessNotReadOnly", { name: e.name });
 }
 

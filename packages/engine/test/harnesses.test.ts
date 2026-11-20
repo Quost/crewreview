@@ -61,4 +61,23 @@ describe("harness login", () => {
     await signInOf(h, 1_000 + 6 * 60_000);
     expect((h as any).asked).toBe(2);
   });
+
+  test("limits: the budget stops new jobs, a paused harness hands over to the fallback", async () => {
+    const store = await proven(["claude", "codex", "kiro"]);
+    const registry = new Map<string, Harness>([
+      ["claude", fake("claude", { state: "yes" })],
+      ["codex", fake("codex", { state: "yes" })],
+      ["kiro", fake("kiro", { state: "yes" })],
+    ]);
+    const until = Date.now() + 3_600_000;
+    const paused = (ids: string[]) => (h: string) => (ids.includes(h) ? until : undefined);
+    expect(await pickReviewer(registry, "claude", store, { budget: { used: 40, limit: 40 } })).toEqual({ error: "budget", limit: 40 });
+    expect(((await pickReviewer(registry, "claude", store, { pausedUntil: paused(["claude"]), fallback: ["kiro", "codex"] })) as Harness).id).toBe("kiro");
+    expect(((await pickReviewer(registry, "claude", store, { pausedUntil: paused(["claude", "kiro"]), fallback: ["kiro", "codex"] })) as Harness).id).toBe("codex");
+    // "auto" falls back to the other installed harnesses on its own; a harness named explicitly needs a fallback list.
+    expect(((await pickReviewer(registry, "auto", store, { pausedUntil: paused(["claude"]) })) as Harness).id).toBe("codex");
+    expect(await pickReviewer(registry, "claude", store, { pausedUntil: paused(["claude"]) })).toEqual({ error: "paused", name: "claude", until });
+    expect(await pickWriter(registry, "claude", store, { pausedUntil: paused(["claude", "codex", "kiro"]), fallback: ["codex", "kiro"] })).toEqual({ error: "paused", name: "claude", until });
+  });
 });
+

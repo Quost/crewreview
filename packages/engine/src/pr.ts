@@ -8,6 +8,7 @@ import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { diffText, mergeBase, resolveRef } from "./git.ts";
 import { isPickError, pickReviewer, type PickError } from "./harnesses.ts";
+import { pickLimits, watchQuota, type QuotaBook } from "./quota.ts";
 import { BUILTIN_LENS_IDS, loadLenses } from "./lenses.ts";
 import { fetchPull, isAncestor } from "./mirror.ts";
 import type { AppDirs } from "./paths.ts";
@@ -30,6 +31,8 @@ export interface PrDeps {
   onEvent?: (e: ReviewEvent) => void;
   /** Like onEvent, with the job it belongs to (the daemon uses it for the live board). */
   onJobEvent?: (job: JobRef, e: ReviewEvent) => void;
+  /** Usage limits: paused harnesses and today's agent runs. */
+  quota?: QuotaBook;
 }
 
 export interface JobRef {
@@ -104,6 +107,7 @@ export function commentTranslator(repo: LinkedRepo, config: Config, ui: Translat
 
 /** Review one pull request: fetch it into the mirror, run the crew, then post or park it in the inbox. */
 export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, mode: PrMode, opts: { force?: boolean } = {}): Promise<PrOutcome> {
+  d = { ...d, onEvent: watchQuota(d.quota, d.onEvent) };
   const { repo, host } = x;
   const pr = await host.getPullRequest(number);
   const [threads, reviews] = await Promise.all([host.listThreads(number), host.listReviews(number)]);
@@ -113,10 +117,11 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
     return { kind: "skipped", reason: "already-on-host", reviewId: id };
   }
 
-  const harness = await pickReviewer(d.registry, repo.review.harness ?? d.config.harness.default, d.conformance);
+  const limits = pickLimits(d.config, d.quota);
+  const harness = await pickReviewer(d.registry, repo.review.harness ?? d.config.harness.default, d.conformance, limits);
   if (isPickError(harness)) return { kind: "harness", error: harness };
   const verifierId = repo.review.verifier ?? d.config.harness.verifier;
-  const verifier = verifierId ? await pickReviewer(d.registry, verifierId, d.conformance) : harness;
+  const verifier = verifierId ? await pickReviewer(d.registry, verifierId, d.conformance, { ...limits, budget: undefined }) : harness;
   if (isPickError(verifier)) return { kind: "harness", error: verifier };
 
   const reviewId = mode === "dry-run" ? undefined : d.store.start({ repo: repo.id, number, title: pr.title, url: pr.url, headSha: pr.headSha });

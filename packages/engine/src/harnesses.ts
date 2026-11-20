@@ -1,4 +1,4 @@
-import { buildRegistry, resolveHarness, type Harness, type SignIn } from "@crewreview/harness";
+import { BUILTIN_ORDER, buildRegistry, resolveHarness, type Harness, type SignIn } from "@crewreview/harness";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 
@@ -31,7 +31,33 @@ export type PickError =
   | { error: "cannot-write"; name: string }
   | { error: "needs-write-check"; name: string }
   | { error: "write-escapes"; name: string }
-  | { error: "signed-out"; name: string; command?: string };
+  | { error: "signed-out"; name: string; command?: string }
+  | { error: "paused"; name: string; until: number }
+  | { error: "budget"; limit: number };
+
+/** What the limits allow right now: paused harnesses, who takes over, and the daily budget of agent runs. */
+export interface PickLimits {
+  /** When a harness that hit its usage limit can be used again. */
+  pausedUntil?: (harness: string) => number | undefined;
+  /** Harnesses to try, in order, while the chosen one is paused. Unset with `auto`: the other installed ones. */
+  fallback?: readonly string[];
+  /** Agent runs used today and the most allowed. */
+  budget?: { used: number; limit: number };
+}
+
+async function withLimits(registry: Map<string, Harness>, id: string, limits: PickLimits, pick: (id: string) => Promise<Harness | PickError>): Promise<Harness | PickError> {
+  if (limits.budget && limits.budget.used >= limits.budget.limit) return { error: "budget", limit: limits.budget.limit };
+  const first = await pick(id);
+  if (isPickError(first)) return first;
+  const until = limits.pausedUntil?.(first.id);
+  if (until === undefined) return first;
+  for (const alt of limits.fallback ?? (id === "auto" ? BUILTIN_ORDER : [])) {
+    if (alt === first.id || !registry.has(alt) || limits.pausedUntil?.(alt) !== undefined) continue;
+    const h = await pick(alt);
+    if (!isPickError(h)) return h;
+  }
+  return { error: "paused", name: first.id, until };
+}
 
 const signIns = new Map<string, { at: number; result: SignIn }>();
 const SIGN_IN_TTL = 5 * 60_000;
@@ -51,7 +77,11 @@ async function signedOut(h: Harness): Promise<PickError | undefined> {
   return (await signInOf(h)).state === "no" ? { error: "signed-out", name: h.id, ...(h.loginCommand ? { command: h.loginCommand } : {}) } : undefined;
 }
 
-export async function pickReviewer(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
+export async function pickReviewer(registry: Map<string, Harness>, id: string, store: ConformanceStore, limits: PickLimits = {}): Promise<Harness | PickError> {
+  return withLimits(registry, id, limits, (x) => reviewerOnce(registry, x, store));
+}
+
+async function reviewerOnce(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
   if (id !== "auto" && !registry.has(id)) return { error: "unknown-harness", name: id };
   const h = await resolveHarness(registry, id);
   if (!h || !(await h.detect()).installed) return { error: "no-harness" };
@@ -65,7 +95,11 @@ export async function pickReviewer(registry: Map<string, Harness>, id: string, s
  * The attendant edits files, so its harness must have proven on this machine, for this version, that it can write
  * inside the worktree and can't write outside it (`crewreview doctor --conformance`). No exceptions by flags.
  */
-export async function pickWriter(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
+export async function pickWriter(registry: Map<string, Harness>, id: string, store: ConformanceStore, limits: PickLimits = {}): Promise<Harness | PickError> {
+  return withLimits(registry, id, limits, (x) => writerOnce(registry, x, store));
+}
+
+async function writerOnce(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
   if (id !== "auto" && !registry.has(id)) return { error: "unknown-harness", name: id };
   const h = await resolveHarness(registry, id);
   if (!h || !(await h.detect()).installed) return { error: "no-harness" };

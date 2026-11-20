@@ -15,6 +15,7 @@ export * from "./pr.ts";
 export * from "./daemon.ts";
 export * from "./harnesses.ts";
 export * from "./awake.ts";
+export * from "./quota.ts";
 export * from "./link.ts";
 export * from "./conformance-store.ts";
 export * from "./worktree.ts";

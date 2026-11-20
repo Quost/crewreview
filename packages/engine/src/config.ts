@@ -65,6 +65,8 @@ export const ConfigSchema = z
         default: z.string().default("auto"),
         /** Harness for the verifier. A different vendor than the lenses makes a stronger check. */
         verifier: z.string().optional(),
+        /** Harnesses that take over, in order, while the chosen one is paused at its usage limit. */
+        fallback: z.array(z.string()).optional(),
         claude: HarnessSettings.optional(),
         codex: HarnessSettings.optional(),
         kiro: HarnessSettings.optional(),
@@ -79,6 +81,8 @@ export const ConfigSchema = z
         agentTimeout: Duration.default(20 * 60_000),
         stallTimeout: Duration.default(8 * 60_000),
         maxDiffLines: z.number().int().min(1).default(4000),
+        /** Most agent runs a day (each lens, verifier and attendant run counts one). Unset: no limit. */
+        dailyRuns: z.number().int().min(1).optional(),
       })
       .strict()
       .prefault({}),

@@ -1,4 +1,4 @@
-import { connect, registryFor, renderTerminal, reviewPullRequest, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
+import { connect, QuotaBook, registryFor, renderTerminal, reviewPullRequest, type AttendDeps, type DaemonEvent, type PrOutcome } from "@crewreview/engine";
 import { HostError } from "@crewreview/hosts";
 import { conformanceStore, openStore, pickErrorText, progress, type Ctx } from "../ctx.ts";
 import { attendText } from "./attend.ts";
@@ -17,6 +17,7 @@ export function deps(c: Ctx, signal?: AbortSignal, quiet = false): AttendDeps & 
     ui: c.t,
     signal,
     onEvent: quiet ? undefined : progress(c),
+    quota: QuotaBook.in(c.dirs.state),
     close: () => store.close(),
   };
 }

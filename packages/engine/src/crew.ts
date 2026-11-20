@@ -11,6 +11,7 @@ import { signInOf } from "./harnesses.ts";
 import { prepareLink } from "./link.ts";
 import type { AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
+import { QuotaBook } from "./quota.ts";
 import { findLinked, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
 import type { ReviewEvent, ReviewReport } from "./review.ts";
 import type { Store } from "./state.ts";
@@ -73,6 +74,11 @@ export class CrewDaemon {
   private agents = new Map<string, LiveAgent>();
   /** Holds the computer awake from the first agent of a cycle to its end (`schedule.keepAwake`). */
   private awake?: KeepAwake;
+  private book?: QuotaBook;
+  /** Paused harnesses and today's agent runs, shared with the CLI through a file. */
+  get quota(): QuotaBook {
+    return (this.book ??= QuotaBook.in(this.o.dirs.state));
+  }
   private log: LogEntry[] = [];
   private listeners = new Set<(e: CrewEvent) => void>();
   private cycleRunning = false;
@@ -157,7 +163,7 @@ export class CrewDaemon {
 
   private deps(signal?: AbortSignal): AttendDeps {
     const { dirs, config, store, conformance, registry, version, ui, signing } = this.o;
-    return { dirs, config, store, conformance, registry, version, ui, signing, signal, onJobEvent: (job, e) => this.onJobEvent(job, e) };
+    return { dirs, config, store, conformance, registry, version, ui, signing, signal, quota: this.quota, onJobEvent: (job, e) => this.onJobEvent(job, e) };
   }
 
   /** Run one cycle now (or right after the current one). */
@@ -338,7 +344,7 @@ export class CrewDaemon {
       const det = await h.detect();
       const conf = det.installed ? await this.o.conformance.get(h.id, det.version) : undefined;
       const signIn = det.installed ? await signInOf(h) : undefined;
-      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand });
+      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand, pausedUntil: this.quota.pausedUntil(h.id) });
     }
     return out;
   }
@@ -363,6 +369,6 @@ export class CrewDaemon {
 
   limits() {
     const c = this.o.config;
-    return { configPath: this.o.configPath, limits: c.limits, schedule: c.schedule, review: { settle: c.review.settle, ciMaxWait: c.review.ciMaxWait, maxFailures: c.review.maxFailures, lenses: c.review.lenses, policy: c.review.policy }, attend: c.attend, harness: { default: c.harness.default, verifier: c.harness.verifier } };
+    return { configPath: this.o.configPath, limits: c.limits, schedule: c.schedule, review: { settle: c.review.settle, ciMaxWait: c.review.ciMaxWait, maxFailures: c.review.maxFailures, lenses: c.review.lenses, policy: c.review.policy }, attend: c.attend, harness: { default: c.harness.default, verifier: c.harness.verifier, fallback: c.harness.fallback }, quota: this.quota.status() };
   }
 }
