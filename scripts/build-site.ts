@@ -6,6 +6,9 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import pkg from "../package.json";
 
+/** The version the site names: the package's, or SITE_VERSION while a newer one isn't published yet. */
+const version = process.env.SITE_VERSION ?? pkg.version;
+
 const ROOT = join(import.meta.dir, "..");
 const SITE = "https://crewreview.web.app";
 const LOCALES: Record<string, { path: string; lang: string; name: string }> = {
@@ -44,7 +47,7 @@ for (const [loc, info] of Object.entries(LOCALES)) {
     name: "Crewreview",
     applicationCategory: "DeveloperApplication",
     operatingSystem: "macOS, Linux, Windows",
-    softwareVersion: pkg.version,
+    softwareVersion: version,
     license: "https://www.gnu.org/licenses/agpl-3.0.html",
     description: t["meta.description"],
     url: `${SITE}${info.path}`,
@@ -61,7 +64,7 @@ for (const [loc, info] of Object.entries(LOCALES)) {
     url: `${SITE}${info.path}`,
     home: info.path,
     alternates,
-    version: esc(pkg.version),
+    version: esc(version),
     jsonld: graph,
     shots: `/shots/${loc}`,
     pathsJson: JSON.stringify(paths),
@@ -97,7 +100,7 @@ await writeFile(
 
 > ${en["meta.description"]}
 
-Version ${pkg.version}. Free software (AGPL-3.0). Source: https://github.com/Quost/crewreview
+Version ${version}. Free software (AGPL-3.0). Source: https://github.com/Quost/crewreview
 
 ## What it does
 - Reviewer: ${en["jobs.reviewerLead"]} ${en["jobs.r1"]} ${en["jobs.r2"]} ${en["jobs.r3"]} ${en["jobs.r4"]}
@@ -142,4 +145,4 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `- ${en[`safety.f${i}`]}: ${en[`safety.f${i}d`]}
 No hosted service, no account, no telemetry. It doesn't merge pull requests and never force-pushes.
 `,
 );
-console.log(`site built in site/public (${Object.keys(LOCALES).length} languages, v${pkg.version})`);
+console.log(`site built in site/public (${Object.keys(LOCALES).length} languages, v${version})`);
