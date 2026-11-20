@@ -126,6 +126,30 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       return "error" in pv ? json(pv, 400) : json(pv);
     }
     if (p === "/api/hosts" && m === "GET") return json(await crew.hosts());
+    // A second account to post reviews as: check it, invite it, sign it in to gh, accept the invitations.
+    if (p === "/api/account/user" && m === "GET") {
+      const r = await crew.accountUser(url.searchParams.get("login") ?? "", url.searchParams.get("host") ?? undefined);
+      return "error" in r ? json(r, r.error === "not-found" ? 404 : 400) : json(r);
+    }
+    const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+    if (p === "/api/account/invite" && m === "POST") {
+      const b = await body();
+      return json(await crew.accountInvite(String(b.login ?? ""), ids(b.repos)));
+    }
+    if (p === "/api/account/signin" && m === "POST") {
+      const b = await body();
+      return json(await crew.accountSignIn(String(b.login ?? ""), typeof b.host === "string" ? b.host : undefined));
+    }
+    if (p === "/api/account/signin" && m === "GET") return json(crew.signInStatus());
+    if (p === "/api/account/signin" && m === "DELETE") {
+      crew.cancelSignIn();
+      return json({ ok: true });
+    }
+    if (p === "/api/account/accept" && m === "POST") {
+      const b = await body();
+      const r = await crew.accountAccept(String(b.login ?? ""), ids(b.repos));
+      return "error" in r ? json(r, 400) : json(r);
+    }
     if (repoMatch && m === "DELETE") return (await crew.removeRepo(repoMatch[1]!)) ? json({ ok: true }) : json({ error: "not-found" }, 404);
     if (p === "/api/inbox" && m === "GET") return json(crew.inbox());
     const inboxMatch = /^\/api\/inbox\/([rf]\d+)(?:\/(approve|discard))?$/.exec(p);

@@ -161,7 +161,7 @@
   "faq.q8": "Can my whole team use it?",
   "faq.a8": "Yes. Each person installs it and links the team's repositories, or the whole organization or group at once; reviews post from their own account, and a commit someone's crew already reviewed is skipped. Shared lenses go in .crewreview/lenses/ in the repository.",
   "faq.q10": "I work alone. Can it approve my own pull requests?",
-  "faq.a10": "Yes, with a second account. GitHub doesn't let you approve your own pull requests, so give the crew another account with write access, sign it in to gh, and set it under Repositories → Post reviews as (or crewreview repo set <id> --account my-bot). Its reviews, approvals included, post as that account; everything else still runs as you.",
+  "faq.a10": "Yes, with a second account. GitHub doesn't let you approve your own pull requests, so the crew posts its reviews as another account whose approvals count. The app walks you through it (Repositories → Post reviews as → Set it up step by step): you create the account and type one sign-in code; the app checks it, invites it with write access, signs it in to gh, accepts the invitations and points your repositories at it.",
   "faq.q9": "Why AGPL?",
   "faq.a9": "So it stays open: anyone who ships a modified version, or runs one as a service for others, must share the source.",
   "sponsor.title": "Keep the crew working",

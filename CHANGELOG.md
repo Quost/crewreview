@@ -4,6 +4,15 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- A guided setup in the app for the second account that posts your reviews (Repositories → Post reviews as → Set it up step by step, or from the first-run setup). GitHub only lets a person create the account and type its sign-in code; the app does the rest:
+  - it checks the username and refuses your own;
+  - with your account, it invites the new one to your GitHub repositories with write access;
+  - it signs the new account in to gh with a one-time code you type at github.com/login/device. No browser is opened for you, so you can use a private window. Then it switches gh back to your account, whatever happened;
+  - with the new account's token, it accepts the invitations and points the repositories at it.
+- The local API answers `/api/account/user`, `/api/account/invite`, `/api/account/signin` (start, follow, cancel) and `/api/account/accept`.
+
 ## 0.6.0 — 2026-11-20
 
 For anyone working alone: reviews can post as a second account, so your own pull requests can be approved.

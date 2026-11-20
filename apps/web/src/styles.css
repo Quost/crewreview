@@ -917,3 +917,32 @@ tr:last-child td {
 .ok-text {
   color: var(--ok);
 }
+
+/* ---- second account ---- */
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.step > .pick {
+  margin-bottom: 12px;
+}
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  margin-bottom: 12px;
+}
+.step .device-code {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: none;
+  padding: 0;
+}

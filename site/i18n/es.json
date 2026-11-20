@@ -161,7 +161,7 @@
   "faq.q8": "¿Puede usarlo todo mi equipo?",
   "faq.a8": "Sí. Cada persona lo instala y vincula los repositorios del equipo, o la organización o grupo entero de una vez; las reviews salen de su propia cuenta, y un commit que ya revisó el equipo de otra persona se salta. Las lentes compartidas van en .crewreview/lenses/ en el repositorio.",
   "faq.q10": "Trabajo solo. ¿Puede aprobar mis propios pull requests?",
-  "faq.a10": "Sí, con una segunda cuenta. GitHub no te deja aprobar tus propios pull requests, así que dale al equipo otra cuenta con permiso de escritura, inicia su sesión en gh y configúrala en Repositorios → Publicar revisiones como (o crewreview repo set <id> --account mi-bot). Sus revisiones, aprobaciones incluidas, salen como esa cuenta; todo lo demás sigue corriendo como tú.",
+  "faq.a10": "Sí, con una segunda cuenta. GitHub no te deja aprobar tus propios pull requests, así que el equipo publica sus revisiones como otra cuenta cuyas aprobaciones cuentan. La app te guía (Repositorios → Publicar revisiones como → Configurarlo paso a paso): tú creas la cuenta y escribes un código de inicio de sesión; la app la comprueba, la invita con permiso de escritura, inicia su sesión en gh, acepta las invitaciones y apunta tus repositorios a ella.",
   "faq.q9": "¿Por qué AGPL?",
   "faq.a9": "Para que siga abierto: quien distribuya una versión modificada, o la ofrezca como servicio, debe compartir el código.",
   "sponsor.title": "Mantén al equipo trabajando",

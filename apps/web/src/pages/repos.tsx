@@ -131,7 +131,9 @@ export function ReposPage({ version }: { version: number }) {
             <div className="setting">
               <div>
                 <strong>{t.t("web.repos.account")}</strong>
-                <p className="muted small">{t.t("web.repos.accountHint")}</p>
+                <p className="muted small">
+                  {t.t("web.repos.accountHint")} <a href="#/account">{t.t("web.account.setupLink")}</a>
+                </p>
               </div>
               <AccountField repo={r} />
             </div>

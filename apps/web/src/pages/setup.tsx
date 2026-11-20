@@ -223,7 +223,9 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
           <li>{t.t("web.setup.next1")}</li>
           <li>{t.t("web.setup.next2")}</li>
           <li>{t.t("web.setup.next3")}</li>
-          <li>{t.t("web.setup.next4")}</li>
+          <li>
+            {t.t("web.setup.next4")} <a href="#/account">{t.t("web.account.setupLink")}</a>
+          </li>
         </ul>
         <div className="row">
           <button

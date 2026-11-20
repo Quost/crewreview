@@ -20,6 +20,7 @@ export * from "./preview.ts";
 export * from "./link.ts";
 export * from "./access.ts";
 export * from "./account.ts";
+export * from "./account-setup.ts";
 export * from "./conformance-store.ts";
 export * from "./worktree.ts";
 export * from "./attend.ts";

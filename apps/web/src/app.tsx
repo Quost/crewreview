@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type Repo, type Status } from "./api.ts";
 import { createTranslator, I18n, initialLocale, LANGUAGE_NAMES, LOCALES, relative, saveLocale, type Locale } from "./i18n.ts";
+import { AccountPage } from "./pages/account.tsx";
 import { HistoryPage } from "./pages/history.tsx";
 import { InboxPage } from "./pages/inbox.tsx";
 import { LimitsPage } from "./pages/limits.tsx";
@@ -8,7 +9,7 @@ import { NowPage } from "./pages/now.tsx";
 import { ReposPage } from "./pages/repos.tsx";
 import { SetupPage } from "./pages/setup.tsx";
 
-const PAGES = ["setup", "now", "inbox", "history", "repos", "limits"] as const;
+const PAGES = ["setup", "now", "inbox", "history", "repos", "limits", "account"] as const;
 type Page = (typeof PAGES)[number];
 
 function pageFromHash(): Page {
@@ -116,6 +117,7 @@ export function App() {
     { id: "history", label: t.t("web.nav.history") },
     { id: "repos", label: t.t("web.nav.repos") },
     { id: "limits", label: t.t("web.nav.limits") },
+    ...(page === "account" ? [{ id: "account" as const, label: t.t("web.account.title") }] : []),
   ];
 
   return (
@@ -166,6 +168,7 @@ export function App() {
           {page === "history" && <HistoryPage version={live.version.history} />}
           {page === "repos" && <ReposPage version={live.version.repos} />}
           {page === "limits" && <LimitsPage />}
+          {page === "account" && <AccountPage />}
         </main>
       </div>
     </I18n.Provider>

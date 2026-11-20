@@ -1,12 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { resolveHarness, type Harness, type HarnessEvent } from "@crewreview/harness";
+import { acceptInvitations, createHost, githubUser, hostTransport, inviteCollaborator, repoRef, resolveAccountToken, resolveToken } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { hostAccess, linkFromUrl, type HostAccess } from "./access.ts";
 import { checkAccount, type AccountProblem } from "./account.ts";
+import { AccountSignIn, type SignInState } from "./account-setup.ts";
 import { keepAwake, type KeepAwake } from "./awake.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
 import { signInOf } from "./harnesses.ts";
@@ -18,6 +20,9 @@ import { QuotaBook } from "./quota.ts";
 import { findLinked, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
 import type { ReviewEvent, ReviewReport } from "./review.ts";
 import type { Store } from "./state.ts";
+
+/** A GitHub login: letters, digits and single hyphens, never an option. */
+const LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 
 /** One agent working right now, as the live board shows it. */
 export interface LiveAgent {
@@ -270,6 +275,83 @@ export class CrewDaemon {
   async checkAccount(id: string, account: string): Promise<{ user: string } | AccountProblem | undefined> {
     const link = (await this.repos()).find((r) => r.id === id);
     return link ? checkAccount(link.ref, account, this.o.version) : undefined;
+  }
+
+  // ---- a second account to post reviews as (the guided setup in the dashboard) ----
+
+  private signIn?: AccountSignIn;
+
+  /** The GitHub repositories these ids name, all on one host. */
+  private async githubLinks(ids: readonly string[]): Promise<LinkedRepo[]> {
+    const links = (await this.repos()).filter((r) => ids.includes(r.id) && r.ref.kind === "github" && r.scope !== "org");
+    const host = links[0]?.ref.host;
+    return links.filter((r) => r.ref.host === host);
+  }
+
+  /** A transport with your own token for a GitHub host. */
+  private async yourTransport(host: string) {
+    const ref = repoRef("github", host, "crewreview");
+    const tk = await resolveToken(ref);
+    return tk ? { ref, t: hostTransport(ref, tk.token, `crewreview/${this.o.version}`) } : undefined;
+  }
+
+  /** Whether a GitHub login exists. */
+  async accountUser(login: string, host = "github.com"): Promise<{ login: string; type: string } | { error: "no-token" | "not-found" | "bad-name" | "same-account"; name?: string }> {
+    if (!LOGIN.test(login)) return { error: "bad-name" };
+    const you = await this.yourTransport(host);
+    if (!you) return { error: "no-token" };
+    const user = await githubUser(you.t, login);
+    if (!user) return { error: "not-found" };
+    // Your own account still couldn't approve your pull requests: say so now, not at the last step.
+    const me = await createHost(you.ref, you.t).whoami().catch(() => undefined);
+    return me?.toLowerCase() === user.login.toLowerCase() ? { error: "same-account", name: user.login } : user;
+  }
+
+  /** Invite the account to these repositories with write access, with your token. */
+  async accountInvite(login: string, ids: readonly string[]): Promise<{ id: string; result?: "invited" | "already"; error?: string }[]> {
+    if (!LOGIN.test(login)) return [];
+    const links = await this.githubLinks(ids);
+    const you = links[0] && (await this.yourTransport(links[0].ref.host));
+    return Promise.all(
+      links.map(async (r) => {
+        if (!you) return { id: r.id, error: "no-token" };
+        try {
+          return { id: r.id, result: await inviteCollaborator(you.t, r.ref.slug, login) };
+        } catch (e) {
+          return { id: r.id, error: e instanceof Error ? e.message : String(e) };
+        }
+      }),
+    );
+  }
+
+  /** Sign the account in to gh: returns the one-time code to show, then `signInStatus` follows it. */
+  async accountSignIn(login: string, host = "github.com"): Promise<SignInState> {
+    if (!LOGIN.test(login)) return { state: "failed", login, error: "failed", detail: "not a login" };
+    const ref = repoRef("github", host, "crewreview");
+    this.signIn?.cancel();
+    this.signIn = new AccountSignIn(ref, { whoami: (token) => createHost(ref, hostTransport(ref, token, `crewreview/${this.o.version}`)).whoami() });
+    return this.signIn.start(login);
+  }
+
+  signInStatus(): SignInState {
+    return this.signIn?.status() ?? { state: "idle" };
+  }
+
+  cancelSignIn(): void {
+    this.signIn?.cancel();
+  }
+
+  /** With the account's own token (from gh): accept its invitations to these repositories. */
+  async accountAccept(login: string, ids: readonly string[]): Promise<{ accepted: string[] } | AccountProblem | { error: "none" }> {
+    const links = await this.githubLinks(ids);
+    if (!links[0]) return { error: "none" };
+    const tk = await resolveAccountToken(links[0].ref, login);
+    if ("error" in tk) return tk;
+    try {
+      return { accepted: await acceptInvitations(hostTransport(links[0].ref, tk.token, `crewreview/${this.o.version}`), links.map((r) => r.ref.slug)) };
+    } catch (e) {
+      return { error: "host", name: login, message: (e instanceof Error ? e.message : String(e)).slice(0, 200) };
+    }
   }
 
   /** What the crew would do with a link right now, without doing it. */
