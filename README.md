@@ -278,6 +278,7 @@ interval = "3m"               # how often `crewreview run` checks, during peak h
 offHoursInterval = "20m"
 peakHours = "8-19"
 maxReviewsPerCycle = 2
+keepAwake = true              # keep the computer from sleeping (not the screen) while agents work
 
 [updates]
 check = true                  # look for a new release once a day

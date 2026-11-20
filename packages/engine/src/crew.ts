@@ -5,6 +5,7 @@ import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
+import { keepAwake, type KeepAwake } from "./awake.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
 import { signInOf } from "./harnesses.ts";
 import { prepareLink } from "./link.ts";
@@ -70,6 +71,8 @@ const LOG_SIZE = 200;
 export class CrewDaemon {
   readonly startedAt = Date.now();
   private agents = new Map<string, LiveAgent>();
+  /** Holds the computer awake from the first agent of a cycle to its end (`schedule.keepAwake`). */
+  private awake?: KeepAwake;
   private log: LogEntry[] = [];
   private listeners = new Set<(e: CrewEvent) => void>();
   private cycleRunning = false;
@@ -130,6 +133,7 @@ export class CrewDaemon {
     const key = (role: string) => `${job.repo}#${job.number}:${role}`;
     const start = (role: string, harness: string) => {
       this.agents.set(key(role), { id: key(role), job, role, harness, startedAt: Date.now(), status: "running", tools: 0 });
+      (this.awake ??= keepAwake({ enabled: this.o.config.schedule.keepAwake })).on();
     };
     const end = (role: string, ok: boolean, detail?: string) => {
       const a = this.agents.get(key(role));
@@ -171,6 +175,7 @@ export class CrewDaemon {
     } catch (e) {
       this.record({ type: "repo-error", repo: "*", error: e instanceof Error ? e.message : String(e) });
     } finally {
+      this.awake?.off();
       this.cycleRunning = false;
       this.lastCycleAt = Date.now();
       this.emit({ type: "status", status: this.status() });

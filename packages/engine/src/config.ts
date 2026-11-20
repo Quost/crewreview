@@ -91,6 +91,8 @@ export const ConfigSchema = z
         /** Local hours, "8-19". Weekends count as off hours. */
         peakHours: z.string().regex(/^\d{1,2}-\d{1,2}$/).default("8-19"),
         maxReviewsPerCycle: z.number().int().min(1).max(50).default(2),
+        /** Keep the computer from sleeping (not the screen) while agents work, so a job isn't cut off halfway. */
+        keepAwake: z.boolean().default(true),
       })
       .strict()
       .prefault({}),
