@@ -2,11 +2,12 @@
 #
 #   docker build -t crewreview https://github.com/Quost/crewreview.git#main:docker
 #
-# It installs the release binary for VERSION after checking it against the release's signed checksums, with the
-# same key `crewreview update` uses. The guide: docs/team-machine.md.
+# It installs the release binary for VERSION (the latest published release unless you pin one, e.g.
+# --build-arg VERSION=0.10.0) after checking it against the release's signed checksums, with the same key
+# `crewreview update` uses. The guide: docs/team-machine.md.
 FROM node:22-bookworm-slim
 
-ARG VERSION=0.10.0
+ARG VERSION=latest
 ARG CLAUDE_CODE_VERSION=latest
 ARG CODEX_VERSION=latest
 
@@ -20,7 +21,8 @@ RUN set -eu; \
     arm64) arch=arm64 ;; \
     *) echo "Crewreview has no Linux build for $(dpkg --print-architecture)" >&2; exit 1 ;; \
   esac; \
-  base="https://github.com/Quost/crewreview/releases/download/v${VERSION}"; \
+  if [ "$VERSION" = latest ]; then base="https://github.com/Quost/crewreview/releases/latest/download"; \
+  else base="https://github.com/Quost/crewreview/releases/download/v${VERSION#v}"; fi; \
   cd /tmp; \
   curl -fsSL -O "$base/SHA256SUMS" -O "$base/SHA256SUMS.minisig" -O "$base/crewreview-linux-$arch"; \
   minisign -Vm SHA256SUMS -P RWTk8l0TkAFZQOxVkYWEHrU6Nj+j1UTCGOMps627c4qsvaX3fvRFzhpx; \

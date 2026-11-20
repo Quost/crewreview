@@ -101,14 +101,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      # The latest published release: on a release commit the Dockerfile already names a version that the tag is
-      # about to publish.
+      # With no VERSION it installs the latest published release, as a team machine does.
       - name: Build it from the latest release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          v="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
-          docker build --build-arg VERSION="${v#v}" -t crewreview:ci docker
+        run: docker build -t crewreview:ci docker
       - name: It starts, and finds its agents
         run: |
           docker run --rm crewreview:ci --version

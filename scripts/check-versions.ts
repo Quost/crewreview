@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
-// One version everywhere: the workspace packages, the Claude Code plugin and marketplace, and the release the
-// Docker image installs. A release bumps them together; this catches the one that was forgotten.
+// One version everywhere: the workspace packages and the Claude Code plugin and marketplace. A release bumps them
+// together; this catches the one that was forgotten. The Docker image installs the latest published release, so a
+// version bumped on main before its tag is out never points it at a release that doesn't exist yet.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Glob } from "bun";
@@ -12,7 +13,6 @@ const found: [string, string | undefined][] = [];
 for (const p of new Glob("{packages,apps}/*/package.json").scanSync(root)) found.push([p, JSON.parse(read(p)).version]);
 found.push(["plugins/crewreview/.claude-plugin/plugin.json", JSON.parse(read("plugins/crewreview/.claude-plugin/plugin.json")).version]);
 for (const pl of JSON.parse(read(".claude-plugin/marketplace.json")).plugins as { name: string; version: string }[]) found.push([`.claude-plugin/marketplace.json (${pl.name})`, pl.version]);
-found.push(["docker/Dockerfile (ARG VERSION)", /^ARG VERSION=(\S+)$/m.exec(read("docker/Dockerfile"))?.[1]]);
 const wrong = found.filter(([, v]) => v !== want);
 if (wrong.length) {
   console.error(`every version should be ${want} (package.json):\n${wrong.map(([p, v]) => `  ${p}: ${v ?? "missing"}`).join("\n")}`);
