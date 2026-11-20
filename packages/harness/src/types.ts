@@ -52,6 +52,15 @@ export interface Capabilities {
 
 export type HarnessKind = "native" | "acp" | "custom";
 
+/** Whether the harness's own login works: `yes`, `no`, or `unknown` when it couldn't be asked. */
+export interface SignIn {
+  state: "yes" | "no" | "unknown";
+  /** `missing`: the executable isn't on that PATH at all. */
+  reason?: "missing";
+  /** When the login stops working, when the harness says (ISO time). */
+  expiresAt?: string;
+}
+
 export interface Harness {
   id: string;
   name: string;
@@ -59,6 +68,13 @@ export interface Harness {
   capabilities: Capabilities;
   detect(): Promise<Detection>;
   run(request: RunRequest): Promise<RunResult>;
+  /**
+   * Ask the harness whether it is signed in, with the environment a run gets from `env` (default: this process).
+   * Absent when the harness has no way to tell.
+   */
+  signIn?(env?: Record<string, string | undefined>): Promise<SignIn>;
+  /** The command a person runs to sign this harness in, when there is one. */
+  loginCommand?: string;
 }
 
 /** Native adapters also expose their command line, so tests can check it for forbidden flags. */

@@ -12,6 +12,8 @@ export function kiroHarness(options: NativeOptions = {}) {
       executable: "kiro-cli",
       capabilities: { readOnly: "enforced", write: true, streaming: false, costReport: false, modelSelect: true },
       authEnv: [/^KIRO_/],
+      signInArgs: ["whoami"],
+      loginCommand: "kiro-cli login",
       build(req) {
         const tools = req.access === "read" ? "fs_read,grep,glob" : "fs_read,fs_write,grep,glob";
         const flags = ["chat", "--no-interactive", `--trust-tools=${tools}`, "--wrap", "never"];

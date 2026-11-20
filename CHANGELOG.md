@@ -4,7 +4,14 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- `doctor` shows whether each harness is signed in, here and as the background service would see it, with when Claude Code's login expires and the command that signs it in. The dashboard shows it too.
+- The crew checks a harness's login before it starts a job: a signed-out harness is reported once per pull request with the command to fix it, instead of failing every run.
+
 ### Changed
+
+- The background service keeps `CLAUDE_CONFIG_DIR` and `CODEX_HOME`, so it uses the same Claude Code and Codex login as the terminal it was installed from. Run `crewreview service install` again to pick this up.
 
 - The dashboard shows the built-in lenses' names in your language, and code in findings and replies as code.
 

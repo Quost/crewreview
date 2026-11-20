@@ -188,6 +188,8 @@ export interface HarnessInfo {
   version?: string;
   capabilities: { readOnly: string; write: boolean; costReport: boolean };
   conformance?: { readOnly: string; writeScope?: string; structured: string; at: string };
+  signIn?: { state: "yes" | "no" | "unknown"; reason?: string; expiresAt?: string };
+  loginCommand?: string;
 }
 
 export interface Limits {

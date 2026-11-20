@@ -18,7 +18,7 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       if (o.kind === "pending") return { text: t.t("web.log.reviewWaiting", { ...ref(e), findings: o.findings }), tone: "warn" };
       if (o.kind === "skipped") return { text: o.reason === "merge-only" ? t.t("review.mergeOnly", ref(e)) : t.t("review.alreadyOnHost", ref(e)), tone: "neutral" };
       if (o.kind === "stale") return { text: t.t("review.stale", { id: `r${o.reviewId}` }), tone: "warn" };
-      if (o.kind === "harness") return { text: t.t("web.log.noHarness", ref(e)), tone: "bad" };
+      if (o.kind === "harness") return harnessLine(t, e, o.error);
       return { text: t.t("review.failed", { ...ref(e), error: String(o.error ?? "").split("\n")[0]!.slice(0, 200) }), tone: "bad" };
     }
     case "attend-outcome": {
@@ -27,7 +27,7 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       if (o.kind === "pending") return { text: t.t("web.log.answerWaiting", { ...ref(e), fixed: o.fixed, replies: o.replies }), tone: "warn" };
       if (o.kind === "waiting") return { text: o.reason === "fork" ? t.t("attend.fork", ref(e)) : o.reason === "busy" ? t.t("attend.busy", ref(e)) : t.t("attend.settling", ref(e)), tone: "neutral" };
       if (o.kind === "stale") return { text: t.t("attend.stale", { id: `f${o.attendId}` }), tone: "warn" };
-      if (o.kind === "harness") return { text: t.t("web.log.noHarness", ref(e)), tone: "bad" };
+      if (o.kind === "harness") return harnessLine(t, e, o.error);
       return { text: t.t("attend.failed", { ...ref(e), error: String(o.error ?? "").split("\n")[0]!.slice(0, 200) }), tone: "bad" };
     }
     case "update":
@@ -37,4 +37,9 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
     default:
       return { text: JSON.stringify(e), tone: "neutral" };
   }
+}
+
+function harnessLine(t: Translator, e: { repo: string; number: number }, error: any): { text: string; tone: "bad" } {
+  if (error?.error === "signed-out") return { text: t.t("web.log.signedOut", { repo: e.repo, number: e.number, name: error.name, command: error.command ?? "" }), tone: "bad" };
+  return { text: t.t("web.log.noHarness", { repo: e.repo, number: e.number }), tone: "bad" };
 }

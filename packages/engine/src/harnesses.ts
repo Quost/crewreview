@@ -1,4 +1,4 @@
-import { buildRegistry, resolveHarness, type Harness } from "@crewreview/harness";
+import { buildRegistry, resolveHarness, type Harness, type SignIn } from "@crewreview/harness";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 
@@ -30,7 +30,26 @@ export type PickError =
   | { error: "not-read-only"; name: string }
   | { error: "cannot-write"; name: string }
   | { error: "needs-write-check"; name: string }
-  | { error: "write-escapes"; name: string };
+  | { error: "write-escapes"; name: string }
+  | { error: "signed-out"; name: string; command?: string };
+
+const signIns = new Map<string, { at: number; result: SignIn }>();
+const SIGN_IN_TTL = 5 * 60_000;
+
+/** The harness's own login, asked at most every few minutes. `unknown` never blocks a run. */
+export async function signInOf(h: Harness, now = Date.now()): Promise<SignIn> {
+  if (!h.signIn) return { state: "unknown" };
+  const hit = signIns.get(h.id);
+  if (hit && now - hit.at < SIGN_IN_TTL) return hit.result;
+  const result = await h.signIn().catch((): SignIn => ({ state: "unknown" }));
+  signIns.set(h.id, { at: now, result });
+  return result;
+}
+
+/** A signed-out harness would fail every run the same way: say so once, before any work. */
+async function signedOut(h: Harness): Promise<PickError | undefined> {
+  return (await signInOf(h)).state === "no" ? { error: "signed-out", name: h.id, ...(h.loginCommand ? { command: h.loginCommand } : {}) } : undefined;
+}
 
 export async function pickReviewer(registry: Map<string, Harness>, id: string, store: ConformanceStore): Promise<Harness | PickError> {
   if (id !== "auto" && !registry.has(id)) return { error: "unknown-harness", name: id };
@@ -39,7 +58,7 @@ export async function pickReviewer(registry: Map<string, Harness>, id: string, s
   const r = await reviewable(h, store);
   if (r === "needs-conformance") return { error: "needs-conformance", name: h.id };
   if (r !== "ok") return { error: "not-read-only", name: h.id };
-  return h;
+  return (await signedOut(h)) ?? h;
 }
 
 /**
@@ -54,7 +73,7 @@ export async function pickWriter(registry: Map<string, Harness>, id: string, sto
   const c = await store.get(h.id, (await h.detect()).version);
   if (c?.writeScope === "fail") return { error: "write-escapes", name: h.id };
   if (c?.writeScope !== "pass") return { error: "needs-write-check", name: h.id };
-  return h;
+  return (await signedOut(h)) ?? h;
 }
 
 export function isPickError(x: Harness | PickError): x is PickError {

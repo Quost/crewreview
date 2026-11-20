@@ -56,6 +56,8 @@ export function codexHarness(options: CodexOptions = {}) {
       executable: "codex",
       capabilities: { readOnly: "enforced", write: true, streaming: true, costReport: false, modelSelect: true },
       authEnv: [/^OPENAI_/, /^CODEX_/],
+      signInArgs: ["login", "status"],
+      loginCommand: "codex login",
       build(req, ctx) {
         const flags = [
           "exec",

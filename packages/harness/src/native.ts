@@ -6,7 +6,7 @@ import { scrubEnv } from "./env.ts";
 import { classifyFailure, lastLines } from "./failure.ts";
 import { assertSafeFlags, ForbiddenFlagError } from "./forbidden.ts";
 import { runProcess, versionOf, which } from "./process.ts";
-import type { Capabilities, CommandHarness, Detection, HarnessEvent, RunRequest, RunResult } from "./types.ts";
+import type { Capabilities, CommandHarness, Detection, HarnessEvent, RunRequest, RunResult, SignIn } from "./types.ts";
 
 /** What a native adapter turns stdout into. */
 export interface ParsedOutput {
@@ -28,6 +28,12 @@ export interface NativeSpec {
   /** Env vars this harness needs for its own login. */
   authEnv: RegExp[];
   versionArgs?: string[];
+  /** The harness's own "am I signed in" command: exit 0 means yes. */
+  signInArgs?: string[];
+  /** What to run to sign in, shown to people. */
+  loginCommand?: string;
+  /** Read more from that command's output: an explicit "no", and when the login expires. */
+  parseSignIn?(stdout: string): { loggedIn?: boolean; expiresAt?: string };
   /** Flags first, then how the prompt goes in. The prompt is never checked against the flag deny-list. */
   build(req: RunRequest, ctx: { executable: string; outputFile: string }): { flags: string[]; promptArg?: string; stdin?: string };
   parser(): StreamParser;
@@ -58,6 +64,7 @@ export function nativeHarness(spec: NativeSpec, options: NativeOptions = {}): Co
     name: spec.name,
     kind: "native",
     capabilities: spec.capabilities,
+    ...(spec.loginCommand ? { loginCommand: spec.loginCommand } : {}),
 
     async detect() {
       if (detected) return detected;
@@ -124,6 +131,21 @@ export function nativeHarness(spec: NativeSpec, options: NativeOptions = {}): Co
       }
     },
   };
+  if (spec.signInArgs) {
+    const args = spec.signInArgs;
+    harness.signIn = async (env = process.env): Promise<SignIn> => {
+      const path = env === process.env ? (await harness.detect()).path : which(exeName, env.PATH ?? "");
+      if (!path) return { state: "unknown", reason: "missing" };
+      const r = await runProcess({ argv: [path, ...args], cwd: tmpdir(), env: scrubEnv(env, { keep: spec.authEnv, passthrough: options.envPassthrough }), timeoutMs: 20_000 });
+      if (r.spawnError || r.timedOut) return { state: "unknown" };
+      let parsed: { loggedIn?: boolean; expiresAt?: string } = {};
+      try {
+        parsed = spec.parseSignIn?.(r.stdout) ?? {};
+      } catch {}
+      const yes = r.exitCode === 0 && parsed.loggedIn !== false;
+      return yes ? { state: "yes", ...(parsed.expiresAt ? { expiresAt: parsed.expiresAt } : {}) } : { state: "no" };
+    };
+  }
   return harness;
 }
 

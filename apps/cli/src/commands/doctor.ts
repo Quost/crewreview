@@ -1,6 +1,6 @@
 import { arch, platform } from "node:os";
-import { registryFor, reviewable } from "@crewreview/engine";
-import { runConformance, runProcess, which } from "@crewreview/harness";
+import { registryFor, reviewable, serviceEnvironment, serviceSpec } from "@crewreview/engine";
+import { runConformance, runProcess, which, type SignIn } from "@crewreview/harness";
 import { conformanceStore, table, type Ctx } from "../ctx.ts";
 
 async function gitVersion(): Promise<string | undefined> {
@@ -41,9 +41,24 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
 
   c.out(st.bold(t.t("doctor.harnesses")));
   const rows: string[][] = [];
+  const hints: string[] = [];
   let ready: string | undefined;
+  // A login that works in this terminal may not reach the background service, which starts with a bare environment.
+  const asService = serviceEnvironment(serviceSpec(c.dirs));
+  const day = (iso: string) => new Date(iso).toLocaleDateString(t.locale, { month: "short", day: "numeric" });
+  const loginCell = (s: SignIn | undefined) =>
+    !s ? "—" : s.state === "yes" ? st.green(s.expiresAt ? `${t.t("doctor.yes")} · ${t.t("doctor.until", { date: day(s.expiresAt) })}` : t.t("doctor.yes")) : s.state === "no" ? st.yellow(t.t("doctor.no")) : s.reason === "missing" ? st.yellow(t.t("doctor.notOnPath")) : st.dim("?");
   for (const h of registry.values()) {
     const det = await h.detect();
+    const [here, service] = det.installed && h.signIn ? await Promise.all([h.signIn(), h.signIn(asService)]) : [undefined, undefined];
+    const login = h.loginCommand ?? "";
+    if (here?.state === "no") hints.push(t.t("doctor.signInHint", { name: h.name, command: login }));
+    else if (here?.state === "yes" && service && service.state !== "yes" && (service.state === "no" || service.reason === "missing"))
+      hints.push(t.t("doctor.serviceHint", { name: h.name, why: t.t(service.state === "no" ? "doctor.why.notSignedIn" : "doctor.why.notOnPath") }));
+    if (here?.expiresAt && Date.parse(here.expiresAt) - Date.now() < 3 * 86_400_000) {
+      const days = Math.max(0, Math.round((Date.parse(here.expiresAt) - Date.now()) / 86_400_000));
+      hints.push(t.t("doctor.expiresSoon", { name: h.name, when: new Intl.RelativeTimeFormat(t.locale, { numeric: "auto" }).format(days, "day"), command: login }));
+    }
     const conf = det.installed ? await store.get(h.id, det.version) : undefined;
     const ro =
       h.capabilities.readOnly !== "enforced" ? t.t("doctor.no") : conf?.readOnly === "pass" ? t.t("doctor.verified") : conf?.readOnly === "fail" ? t.t("doctor.failedCheck") : t.t("doctor.byFlags");
@@ -54,10 +69,13 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
       det.installed ? ro : "—",
       !h.capabilities.write ? t.t("doctor.no") : !det.installed ? "—" : conf?.writeScope === "pass" ? t.t("doctor.verified") : conf?.writeScope === "fail" ? t.t("doctor.failedCheck") : t.t("doctor.untested"),
       h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no"),
+      det.installed ? loginCell(here) : "—",
+      det.installed ? loginCell(service) : "—",
     ]);
-    if (!ready && det.installed && (await reviewable(h, store)) === "ok") ready = h.id;
+    if (!ready && det.installed && here?.state !== "no" && (await reviewable(h, store)) === "ok") ready = h.id;
   }
-  table(c, [t.t("doctor.col.harness"), t.t("doctor.col.status"), t.t("doctor.col.version"), t.t("doctor.col.readOnly"), t.t("doctor.col.write"), t.t("doctor.col.cost")], rows);
+  table(c, [t.t("doctor.col.harness"), t.t("doctor.col.status"), t.t("doctor.col.version"), t.t("doctor.col.readOnly"), t.t("doctor.col.write"), t.t("doctor.col.cost"), t.t("doctor.col.login"), t.t("doctor.col.service")], rows);
+  for (const hint of hints) c.out(`  ${st.yellow("!")} ${hint}`);
   c.out();
   c.out(st.bold(t.t("doctor.hosts")));
   for (const cli of ["gh", "glab"]) {

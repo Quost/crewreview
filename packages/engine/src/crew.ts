@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Harness, HarnessEvent } from "@crewreview/harness";
+import { signInOf } from "./harnesses.ts";
 import { HostError } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
@@ -346,7 +347,8 @@ export class CrewDaemon {
     for (const h of this.o.registry.values()) {
       const det = await h.detect();
       const conf = det.installed ? await this.o.conformance.get(h.id, det.version) : undefined;
-      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf });
+      const signIn = det.installed ? await signInOf(h) : undefined;
+      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand });
     }
     return out;
   }

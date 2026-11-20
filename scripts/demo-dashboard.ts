@@ -118,9 +118,9 @@ const history = [
 ].sort((a, b) => b.at - a.at);
 
 const harnesses = [
-  { id: "claude", name: "Claude Code", kind: "claude", installed: true, version: "2.6.1", capabilities: { readOnly: "enforced", write: true, costReport: true }, conformance: { readOnly: "pass", writeScope: "pass", structured: "pass", at: new Date(ago(86400)).toISOString() } },
-  { id: "codex", name: "Codex CLI", kind: "codex", installed: true, version: "0.98.0", capabilities: { readOnly: "enforced", write: true, costReport: true }, conformance: { readOnly: "pass", writeScope: "pass", structured: "pass", at: new Date(ago(86400)).toISOString() } },
-  { id: "kiro", name: "Kiro CLI", kind: "kiro", installed: true, version: "1.24.0", capabilities: { readOnly: "enforced", write: true, costReport: false }, conformance: { readOnly: "pass", writeScope: "fail", structured: "pass", at: new Date(ago(86400)).toISOString() } },
+  { id: "claude", name: "Claude Code", kind: "claude", installed: true, version: "2.6.1", capabilities: { readOnly: "enforced", write: true, costReport: true }, conformance: { readOnly: "pass", writeScope: "pass", structured: "pass", at: new Date(ago(86400)).toISOString() }, signIn: { state: "yes", expiresAt: new Date(now + 6 * 86_400_000).toISOString() }, loginCommand: "claude auth login" },
+  { id: "codex", name: "Codex CLI", kind: "codex", installed: true, version: "0.98.0", capabilities: { readOnly: "enforced", write: true, costReport: true }, conformance: { readOnly: "pass", writeScope: "pass", structured: "pass", at: new Date(ago(86400)).toISOString() }, signIn: { state: "yes" }, loginCommand: "codex login" },
+  { id: "kiro", name: "Kiro CLI", kind: "kiro", installed: true, version: "1.24.0", capabilities: { readOnly: "enforced", write: true, costReport: false }, conformance: { readOnly: "pass", writeScope: "fail", structured: "pass", at: new Date(ago(86400)).toISOString() }, signIn: { state: "yes" }, loginCommand: "kiro-cli login" },
   { id: "gemini", name: "Gemini CLI (ACP)", kind: "acp", installed: false, capabilities: { readOnly: "enforced", write: true, costReport: false } },
 ];
 

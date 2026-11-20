@@ -68,6 +68,7 @@ export function LimitsPage() {
                   <th>{t.t("doctor.col.readOnly")}</th>
                   <th>{t.t("doctor.col.write")}</th>
                   <th>{t.t("doctor.col.cost")}</th>
+                  <th>{t.t("doctor.col.login")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,6 +81,16 @@ export function LimitsPage() {
                     <td>{h.installed && (h.capabilities.readOnly === "enforced" ? <Check value={h.conformance?.readOnly} /> : <Pill tone="bad">{t.t("doctor.no")}</Pill>)}</td>
                     <td>{h.installed && (h.capabilities.write ? <Check value={h.conformance?.writeScope} /> : <Pill>{t.t("doctor.no")}</Pill>)}</td>
                     <td>{h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no")}</td>
+                    <td>
+                      {h.installed && h.signIn?.state === "yes" && (
+                        <Pill tone="ok">{h.signIn.expiresAt ? t.t("doctor.until", { date: new Date(h.signIn.expiresAt).toLocaleDateString(t.locale, { month: "short", day: "numeric" }) }) : t.t("doctor.yes")}</Pill>
+                      )}
+                      {h.installed && h.signIn?.state === "no" && (
+                        <span title={h.loginCommand}>
+                          <Pill tone="bad">{t.t("doctor.no")}</Pill> {h.loginCommand && <code className="small">{h.loginCommand}</code>}
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

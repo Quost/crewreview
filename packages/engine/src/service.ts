@@ -28,10 +28,31 @@ export function serviceSpec(dirs: AppDirs, env: Record<string, string | undefine
   const custom = env.CREWREVIEW_HOME;
   const suffix = custom ? `-${createHash("sha256").update(custom).digest("hex").slice(0, 8)}` : "";
   const keep: Record<string, string> = {};
-  // A service starts with an almost empty environment: bring PATH (to find the harness CLIs and gh/glab) and
-  // the few settings Crewreview itself reads. Tokens are never copied into service files.
-  for (const k of ["PATH", "LANG", "CREWREVIEW_HOME", "CREWREVIEW_LANG", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME"]) if (env[k]) keep[k] = env[k]!;
+  // A service starts with an almost empty environment: bring PATH (to find the harness CLIs and gh/glab), the few
+  // settings Crewreview itself reads, and where the harnesses keep their login (the Claude desktop app, for one,
+  // points Claude Code at its own folder). Tokens are never copied into service files.
+  for (const k of SERVICE_KEEP) if (env[k]) keep[k] = env[k]!;
   return { name: `crewreview${suffix}`, program, env: keep, logFile: join(dirs.state, "daemon.log") };
+}
+
+const SERVICE_KEEP = ["PATH", "LANG", "CREWREVIEW_HOME", "CREWREVIEW_LANG", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"];
+
+/** What every process gets from launchd, systemd --user or the Windows task scheduler, before the service file's own. */
+const SESSION_VARS: Record<ServicePlatform, string[]> = {
+  darwin: ["HOME", "USER", "LOGNAME", "SHELL", "TMPDIR"],
+  linux: ["HOME", "USER", "LOGNAME", "SHELL", "XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS"],
+  win32: ["USERPROFILE", "USERNAME", "APPDATA", "LOCALAPPDATA", "HOMEDRIVE", "HOMEPATH", "SystemRoot", "SYSTEMROOT", "TEMP", "TMP", "ComSpec", "PATHEXT", "ProgramData", "ProgramFiles"],
+};
+
+/**
+ * The environment the daemon would run with as a service, as near as it can be told from here: the session's own
+ * variables plus what `service install` writes into the service file. `doctor` asks the harnesses about their login
+ * with it, since a login that works in your terminal may not be visible to a service.
+ */
+export function serviceEnvironment(spec: ServiceSpec, env: Record<string, string | undefined> = process.env, platform: ServicePlatform = process.platform as ServicePlatform): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of SESSION_VARS[platform] ?? SESSION_VARS.linux) if (env[k]) out[k] = env[k]!;
+  return { ...out, ...spec.env };
 }
 
 const xml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

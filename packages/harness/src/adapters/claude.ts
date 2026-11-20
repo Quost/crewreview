@@ -56,6 +56,12 @@ export function claudeHarness(options: NativeOptions = {}) {
       executable: "claude",
       capabilities: { readOnly: "enforced", write: true, streaming: true, costReport: true, modelSelect: true },
       authEnv: [/^ANTHROPIC_/, /^CLAUDE_CODE_/],
+      signInArgs: ["auth", "status"],
+      loginCommand: "claude auth login",
+      parseSignIn(stdout) {
+        const j = JSON.parse(stdout);
+        return { loggedIn: typeof j.loggedIn === "boolean" ? j.loggedIn : undefined, expiresAt: typeof j.loginExpiresAt === "string" ? j.loginExpiresAt : undefined };
+      },
       build(req) {
         const tools = req.access === "read" ? "Read,Grep,Glob" : "Read,Grep,Glob,Edit,Write";
         const flags = [

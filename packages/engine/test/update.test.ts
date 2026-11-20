@@ -15,6 +15,7 @@ import {
   parsePublicKey,
   parseSecretKey,
   replaceBinary,
+  serviceEnvironment,
   serviceSpec,
   signFile,
   systemdUnit,
@@ -140,6 +141,13 @@ describe("service files", () => {
     expect(spec.program).toEqual(["/usr/local/bin/crewreview", "run"]);
     expect(spec.env).toEqual({ PATH: "/usr/bin:/opt/homebrew/bin", CREWREVIEW_HOME: "/tmp/crew home" });
     expect(serviceSpec(appDirs({ HOME: "/h" }, "linux"), { PATH: "/bin" }, "/usr/local/bin/crewreview").name).toBe("crewreview");
+  });
+
+  test("the service keeps where harnesses sign in, and doctor sees what a service would", () => {
+    const env = { PATH: "/bin", HOME: "/Users/x", USER: "x", CLAUDE_CONFIG_DIR: "/Users/x/Library/Claude", CODEX_HOME: "/Users/x/.codex", ANTHROPIC_API_KEY: "secret", EDITOR: "vim" };
+    const s = serviceSpec(appDirs({ HOME: "/Users/x" }, "darwin"), env, "/usr/local/bin/crewreview");
+    expect(s.env).toEqual({ PATH: "/bin", CLAUDE_CONFIG_DIR: "/Users/x/Library/Claude", CODEX_HOME: "/Users/x/.codex" });
+    expect(serviceEnvironment(s, env, "darwin")).toEqual({ HOME: "/Users/x", USER: "x", PATH: "/bin", CLAUDE_CONFIG_DIR: "/Users/x/Library/Claude", CODEX_HOME: "/Users/x/.codex" });
   });
 
   test("launchd, systemd and Windows task", () => {

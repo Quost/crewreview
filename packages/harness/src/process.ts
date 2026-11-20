@@ -114,8 +114,9 @@ export async function runProcess(o: ProcessOptions): Promise<ProcessResult> {
 }
 
 /** Find an executable on PATH. */
-export function which(name: string): string | undefined {
-  return Bun.which(name) ?? undefined;
+/** Where `name` is on this PATH, or on another one (the PATH a background service starts with). */
+export function which(name: string, path?: string): string | undefined {
+  return (path === undefined ? Bun.which(name) : Bun.which(name, { PATH: path })) ?? undefined;
 }
 
 /** First line of `<exe> --version`, or undefined. */

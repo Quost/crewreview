@@ -48,6 +48,7 @@ export function pickErrorText(c: Ctx, e: PickError): string {
   if (e.error === "cannot-write") return c.t.t("error.cannotWrite", { name: e.name });
   if (e.error === "needs-write-check") return c.t.t("error.needsWriteCheck", { name: e.name });
   if (e.error === "write-escapes") return c.t.t("error.writeEscapes", { name: e.name });
+  if (e.error === "signed-out") return c.t.t("error.signedOut", { name: e.name, command: e.command ?? "" });
   return c.t.t("error.harnessNotReadOnly", { name: e.name });
 }
 
