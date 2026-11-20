@@ -227,6 +227,10 @@ export interface HarnessInfo {
   pausedUntil?: number;
   /** The one reviews use: the configured harness, or with \`auto\` the first installed one. */
   chosen?: boolean;
+  /** Whether it may review now, or first proves its read-only lock here (ACP and custom agents). */
+  review?: "ok" | "not-read-only" | "needs-conformance" | "failed-conformance";
+  /** The proof runs right now. */
+  proving?: boolean;
 }
 
 export interface Limits {

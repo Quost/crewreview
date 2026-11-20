@@ -537,5 +537,9 @@
   "desktop.posted": "Auf {pr} gepostet.",
   "desktop.stale": "{pr} hat sich seit dem Review geändert; es wurde zurückgestellt.",
   "desktop.failed": "Posten auf {pr} fehlgeschlagen: {error}",
-  "web.setup.useForReviews": "Für Reviews nutzen"
+  "web.setup.useForReviews": "Für Reviews nutzen",
+  "web.setup.prove": "Nur-Lesen beweisen",
+  "web.setup.proving": "wird geprüft… etwa eine Minute",
+  "web.setup.proofFailed": "Prüfung nicht bestanden",
+  "web.setup.proveHint": "Zwei winzige Prompts auf deinem Abo: Der Agent soll beim Review eine Datei anlegen, und es wird geprüft, dass er es nicht konnte; dann, dass er nur im Ordner schreibt."
 }

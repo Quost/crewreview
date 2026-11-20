@@ -537,5 +537,9 @@
   "desktop.posted": "Publicado en {pr}.",
   "desktop.stale": "{pr} cambió desde la revisión; se dejó de lado.",
   "desktop.failed": "No se pudo publicar en {pr}: {error}",
-  "web.setup.useForReviews": "Usar en las revisiones"
+  "web.setup.useForReviews": "Usar en las revisiones",
+  "web.setup.prove": "Probar que es solo lectura",
+  "web.setup.proving": "probando… cerca de un minuto",
+  "web.setup.proofFailed": "no pasó la prueba",
+  "web.setup.proveHint": "Dos prompts muy cortos en tu plan: pide al agente que cree un archivo mientras revisa y comprueba que no pudo, luego que solo escribe dentro de la carpeta."
 }

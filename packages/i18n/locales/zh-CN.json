@@ -528,5 +528,9 @@
   "desktop.posted": "已在 {pr} 上发布。",
   "desktop.stale": "{pr} 在审查后有了变化；这条审查已搁置。",
   "desktop.failed": "无法在 {pr} 上发布：{error}",
-  "web.setup.useForReviews": "用于审查"
+  "web.setup.useForReviews": "用于审查",
+  "web.setup.prove": "证明它是只读的",
+  "web.setup.proving": "正在证明…约一分钟",
+  "web.setup.proofFailed": "未通过证明",
+  "web.setup.proveHint": "在你的套餐上运行两个很小的提示：让代理在审查时创建文件并确认它做不到，然后确认它只在文件夹内写入。"
 }

@@ -257,10 +257,13 @@ For other agents, the skill is in [`plugins/crewreview/skills/crewreview/SKILL.m
 | Claude Code | `claude -p`, stream-json, tools limited to Read/Grep/Glob, user hooks and plugins off | flags + conformance test |
 | Codex CLI | `codex exec --json -s read-only`, user config ignored | sandbox + conformance test |
 | Kiro CLI | `kiro-cli chat --no-interactive`, only read tools trusted | flags + conformance test |
+| Antigravity (`agy`), OpenCode, Gemini CLI | built in over ACP (`agy acp`, `opencode acp`, `gemini --experimental-acp`): they show up when installed | enforced by Crewreview, must pass conformance (**Prove** in the app) |
 | Any ACP agent | Agent Client Protocol over stdio; Crewreview answers every permission request | enforced by Crewreview, must pass conformance |
 | Custom | Any CLI described in your config | must pass conformance |
 
-Write scope for the attendant, tested on 2026-11-19: Claude Code and Codex (with `/tmp` and `$TMPDIR` closed) pass; Kiro CLI's `fs_write` wrote outside its folder, so Kiro can review but not attend.
+Write scope for the attendant, tested on 2026-11-19: Claude Code and Codex (with `/tmp` and `$TMPDIR` closed) pass; Kiro CLI's `fs_write` wrote outside its folder, so Kiro can review but not attend. Antigravity 1.5.13 over ACP, tested on 2026-11-20, passes read-only and write scope, so it can do both.
+
+An agent that has to prove its lock gets a **Prove it's read-only** button in the app's setup and on Harnesses & limits: two tiny prompts on your plan, about a minute, and the result is kept for that version.
 
 Flags that switch a harness's safety off (`--dangerously-*`, `--yolo`, `--trust-all-tools`, `danger-full-access`…) are refused by a test on every command line Crewreview builds.
 

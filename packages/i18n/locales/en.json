@@ -537,5 +537,9 @@
   "desktop.posted": "Posted on {pr}.",
   "desktop.stale": "{pr} changed since the review; it was set aside.",
   "desktop.failed": "Couldn't post on {pr}: {error}",
-  "web.setup.useForReviews": "Use for reviews"
+  "web.setup.useForReviews": "Use for reviews",
+  "web.setup.prove": "Prove it's read-only",
+  "web.setup.proving": "proving… about a minute",
+  "web.setup.proofFailed": "didn't pass the proof",
+  "web.setup.proveHint": "Two tiny prompts on your plan: it asks the agent to create a file while reviewing and checks it couldn't, then that it writes only inside the folder."
 }

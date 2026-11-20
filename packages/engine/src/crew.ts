@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { resolveHarness, type Harness, type HarnessEvent } from "@crewreview/harness";
+import { resolveHarness, runConformance, type Harness, type HarnessEvent } from "@crewreview/harness";
 import { acceptInvitations, createHost, githubUser, hostTransport, inviteCollaborator, repoRef, resolveAccountToken, resolveToken } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
@@ -12,7 +12,7 @@ import { editConfig, type EditableKey } from "./config-edit.ts";
 import { AccountSignIn, type SignInState } from "./account-setup.ts";
 import { keepAwake, type KeepAwake } from "./awake.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
-import { signInOf } from "./harnesses.ts";
+import { reviewable, signInOf } from "./harnesses.ts";
 import { prepareLink } from "./link.ts";
 import { configFile, type AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
@@ -56,7 +56,7 @@ export type CrewEvent =
   | { type: "agents"; agents: LiveAgent[] }
   | { type: "log"; entry: LogEntry }
   | { type: "status"; status: CrewStatus }
-  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" };
+  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" | "harnesses" };
 
 export interface CrewStatus {
   version: string;
@@ -529,9 +529,38 @@ export class CrewDaemon {
       const det = await h.detect();
       const conf = det.installed ? await this.o.conformance.get(h.id, det.version) : undefined;
       const signIn = det.installed ? await signInOf(h) : undefined;
-      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand, pausedUntil: this.quota.pausedUntil(h.id), chosen: h.id === chosen?.id });
+      // Whether it may review now, or first has to prove its read-only lock on this machine (ACP and custom agents).
+      const review = det.installed ? await reviewable(h, this.o.conformance) : undefined;
+      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand, pausedUntil: this.quota.pausedUntil(h.id), chosen: h.id === chosen?.id, review, proving: this.proving.has(h.id) });
     }
     return out;
+  }
+
+  private proving = new Set<string>();
+
+  /**
+   * Prove a harness's locks from the dashboard, as `doctor --conformance` does: two tiny prompts on the user's plan.
+   * It runs in the background; the harness list says `proving` meanwhile and shows the result after.
+   */
+  async prove(id: string): Promise<{ ok: true } | { error: "unknown" | "not-installed" | "not-read-only" | "busy" }> {
+    const h = this.o.registry.get(id);
+    if (!h) return { error: "unknown" };
+    if (!(await h.detect()).installed) return { error: "not-installed" };
+    if (h.capabilities.readOnly !== "enforced") return { error: "not-read-only" };
+    if (this.proving.has(id)) return { error: "busy" };
+    this.proving.add(id);
+    this.emit({ type: "changed", what: "harnesses" });
+    void (async () => {
+      try {
+        await this.o.conformance.put(await runConformance(h, { write: h.capabilities.write }));
+      } catch {
+        // A run that couldn't start leaves no result: the button stays, the next try runs again.
+      } finally {
+        this.proving.delete(id);
+        this.emit({ type: "changed", what: "harnesses" });
+      }
+    })();
+    return { ok: true };
   }
 
   /** Tokens and cost of today's reviews, from their reports. */

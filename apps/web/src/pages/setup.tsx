@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { api, ApiError, unreachable, type HarnessInfo, type HostAccess, type Limits, type Preview } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, Pill } from "../ui.tsx";
+import { Card, Empty, Pill, ProveButton } from "../ui.tsx";
 import { PreviewBox } from "./repos.tsx";
 
 type Readiness = "ready" | "signin" | "missing" | "unknown";
@@ -12,8 +12,8 @@ function readiness(h: HarnessInfo): Readiness {
   return h.signIn?.state === "yes" ? "ready" : "unknown";
 }
 
-/** Usable for a review: installed and not known to be signed out. */
-const usable = (h?: HarnessInfo) => !!h && (readiness(h) === "ready" || readiness(h) === "unknown");
+/** Usable for a review: installed, not known to be signed out, and its read-only lock proven when it has to be. */
+const usable = (h?: HarnessInfo) => !!h && (readiness(h) === "ready" || readiness(h) === "unknown") && (h.review === undefined || h.review === "ok");
 
 function hostLogin(h: HostAccess): string {
   const cli = h.kind === "github" ? "gh" : "glab";
@@ -43,7 +43,7 @@ function Step({ n, title, done, children, actions }: { n: number; title: string;
 }
 
 /** First run: the agents, access to the host, one link, and what happens next. */
-export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos?: number }) {
+export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: () => void; repos?: number; agentsVersion?: number }) {
   const t = useT();
   const [harnesses, setHarnesses] = useState<HarnessInfo[] | undefined>();
   const [hosts, setHosts] = useState<HostAccess[] | undefined>();
@@ -67,6 +67,10 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
     loadHosts();
     api.get<Limits>("/api/limits").then(setLimits, () => {});
   }, []);
+  // A proof finished (or started): show it without the loading flash.
+  useEffect(() => {
+    if (agentsVersion) api.get<HarnessInfo[]>("/api/harnesses").then(setHarnesses, () => {});
+  }, [agentsVersion]);
 
   const failure = (err: unknown, what: "preview" | "link") => {
     if (unreachable(err)) return t.t("web.setup.unreachable");
@@ -153,6 +157,7 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
                         {t.t("web.setup.useForReviews")}
                       </button>
                     )}
+                    <ProveButton h={h} />
                     {r === "ready" && <Pill tone="ok">{t.t("web.setup.ready")}</Pill>}
                     {r === "ready" && h.signIn?.expiresAt && <span className="muted small">{t.t("doctor.until", { date: new Date(h.signIn.expiresAt).toLocaleDateString(t.locale, { month: "short", day: "numeric" }) })}</span>}
                     {r === "unknown" && <Pill>{t.t("web.setup.installed")}</Pill>}

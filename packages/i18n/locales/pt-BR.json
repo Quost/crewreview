@@ -537,5 +537,9 @@
   "desktop.posted": "Postado em {pr}.",
   "desktop.stale": "{pr} mudou desde a revisão; ela foi deixada de lado.",
   "desktop.failed": "Não deu para postar em {pr}: {error}",
-  "web.setup.useForReviews": "Usar nas revisões"
+  "web.setup.useForReviews": "Usar nas revisões",
+  "web.setup.prove": "Provar que é só leitura",
+  "web.setup.proving": "provando… cerca de um minuto",
+  "web.setup.proofFailed": "não passou na prova",
+  "web.setup.proveHint": "Dois prompts curtinhos no seu plano: pede ao agente para criar um arquivo enquanto revisa e confere que ele não conseguiu, depois que ele só escreve dentro da pasta."
 }

@@ -4,6 +4,11 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- Antigravity (`agy`), OpenCode and Gemini CLI built in, over the Agent Client Protocol: they show up when installed, with no config. Crewreview answers their permission requests, so read-only holds, and they review once they pass the read-only proof. Antigravity 1.5.13 passes read-only and write scope, so it can answer reviews too.
+- Prove an agent's read-only lock from the app (setup and Harnesses & limits), instead of `doctor --conformance` in a terminal. It runs in the background and the list shows the result.
+
 ### Changed
 
 - The website counts visits with GoatCounter (no cookies, nothing personal; a line in the footer says so), including downloads and copied install commands as events, so it's clear where people come from and what they do next. Links to it from the README, the Claude Code plugin, Homebrew, Scoop, the app and the launch posts carry `?ref=` for that.

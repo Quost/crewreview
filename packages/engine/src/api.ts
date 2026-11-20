@@ -161,6 +161,11 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
     if (inboxMatch?.[2] === "discard" && m === "POST") return json({ ok: await crew.discard(inboxMatch[1]!) });
     if (p === "/api/history" && m === "GET") return json(crew.history(Math.min(200, Number(url.searchParams.get("limit") ?? 50))));
     if (p === "/api/harnesses" && m === "GET") return json(await crew.harnesses());
+    const proveMatch = /^\/api\/harnesses\/([a-z0-9][a-z0-9-]*)\/prove$/.exec(p);
+    if (proveMatch && m === "POST") {
+      const r = await crew.prove(proveMatch[1]!);
+      return "error" in r ? json(r, r.error === "busy" ? 409 : 400) : json(r);
+    }
     if (p === "/api/settings" && m === "GET") return json(crew.settings());
     if (p === "/api/settings" && m === "PATCH") {
       const b = await body();

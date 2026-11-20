@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { api } from "./api.ts";
+import { useT } from "./i18n.ts";
 
 export function Pill({ tone = "neutral", children }: { tone?: "neutral" | "ok" | "warn" | "bad" | "accent" | "live"; children: ReactNode }) {
   return <span className={`pill pill-${tone}`}>{children}</span>;
@@ -65,5 +67,33 @@ export function Inline({ text }: { text: string }) {
         part.length > 2 && part.startsWith("`") && part.endsWith("`") ? <code key={i}>{part.slice(1, -1)}</code> : part,
       )}
     </>
+  );
+}
+
+/**
+ * An agent that must prove its read-only lock before it reviews (ACP and custom ones): the button runs the proof,
+ * "proving…" while it runs (the list updates when it's done), or the failed result.
+ */
+export function ProveButton({ h }: { h: { id: string; review?: string; proving?: boolean } }) {
+  const t = useT();
+  const [asked, setAsked] = useState(false);
+  // The click shows "proving" at once; the list takes over from there, and says when it's done.
+  useEffect(() => {
+    if (h.proving) setAsked(false);
+  }, [h.proving]);
+  if (h.proving || (asked && h.review === "needs-conformance")) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
+  if (h.review === "failed-conformance") return <Pill tone="bad">{t.t("web.setup.proofFailed")}</Pill>;
+  if (h.review !== "needs-conformance") return null;
+  return (
+    <button
+      className="btn ghost sm"
+      title={t.t("web.setup.proveHint")}
+      onClick={() => {
+        setAsked(true);
+        api.post(`/api/harnesses/${h.id}/prove`).catch(() => setAsked(false));
+      }}
+    >
+      {t.t("web.setup.prove")}
+    </button>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type HarnessInfo, type Limits } from "../api.ts";
 import { duration, useT } from "../i18n.ts";
-import { Card, Empty, Pill } from "../ui.tsx";
+import { Card, Empty, Pill, ProveButton } from "../ui.tsx";
 import { SettingsCard } from "./settings.tsx";
 
 function Check({ value }: { value?: string }) {
@@ -11,14 +11,14 @@ function Check({ value }: { value?: string }) {
   return <Pill>{t.t("doctor.untested")}</Pill>;
 }
 
-export function LimitsPage({ version }: { version: number }) {
+export function LimitsPage({ version, agentsVersion }: { version: number; agentsVersion?: number }) {
   const t = useT();
   const [harnesses, setHarnesses] = useState<HarnessInfo[] | undefined>();
   const [limits, setLimits] = useState<Limits | undefined>();
   useEffect(() => {
     api.get<HarnessInfo[]>("/api/harnesses").then(setHarnesses, () => setHarnesses([]));
     api.get<Limits>("/api/limits").then(setLimits, () => {});
-  }, []);
+  }, [agentsVersion]);
   const u = limits?.usageToday;
   return (
     <>
@@ -73,7 +73,9 @@ export function LimitsPage({ version }: { version: number }) {
                       <strong>{h.name}</strong> <span className="muted small mono">{h.id}</span>
                     </td>
                     <td className="mono small">{h.installed ? (h.version ?? "?").replace(/\s*\(.*\)$/, "") : t.t("doctor.notInstalled")}</td>
-                    <td>{h.installed && (h.capabilities.readOnly === "enforced" ? <Check value={h.conformance?.readOnly} /> : <Pill tone="bad">{t.t("doctor.no")}</Pill>)}</td>
+                    <td>
+                      {h.installed && (h.capabilities.readOnly === "enforced" ? <Check value={h.conformance?.readOnly} /> : <Pill tone="bad">{t.t("doctor.no")}</Pill>)} {h.installed && <ProveButton h={h} />}
+                    </td>
                     <td>{h.installed && (h.capabilities.write ? <Check value={h.conformance?.writeScope} /> : <Pill>{t.t("doctor.no")}</Pill>)}</td>
                     <td>{h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no")}</td>
                     <td>

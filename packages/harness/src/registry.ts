@@ -23,11 +23,24 @@ export interface RegistryConfig {
 /** Order used by `auto`: the first installed one wins. */
 export const BUILTIN_ORDER = ["claude", "codex", "kiro"] as const;
 
+/**
+ * Agents known to speak the Agent Client Protocol: they appear when installed, with no config. Our ACP client answers
+ * every permission request and serves file reads itself, so read-only holds whatever the agent would do on its own;
+ * they still review only after `doctor --conformance` (or the dashboard's Prove button) passes for their version.
+ * An `[[harness.acp]]` entry with the same id replaces the preset.
+ */
+export const ACP_PRESETS: readonly AcpAgentConfig[] = [
+  { id: "agy", name: "Antigravity", command: ["agy", "acp"] },
+  { id: "opencode", name: "OpenCode", command: ["opencode", "acp"] },
+  { id: "gemini", name: "Gemini CLI", command: ["gemini", "--experimental-acp"], authEnv: ["^GEMINI_API_KEY$", "^GOOGLE_API_KEY$", "^GOOGLE_GENAI_USE_VERTEXAI$", "^GOOGLE_CLOUD_PROJECT$"] },
+];
+
 export function buildRegistry(cfg: RegistryConfig = {}): Map<string, Harness> {
   const list: Harness[] = [
     claudeHarness(cfg.claude),
     codexHarness(cfg.codex),
     kiroHarness(cfg.kiro),
+    ...ACP_PRESETS.filter((p) => !(cfg.acp ?? []).some((a) => a.id === p.id)).map(acpHarness),
     ...(cfg.acp ?? []).map(acpHarness),
     ...(cfg.custom ?? []).map(customHarness),
   ];
