@@ -12,6 +12,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **M3** 🟡 | The attendant: fix, reply, decline or leave to you; checks, signed commits, push without force, re-review; polish loop | GitHub verified live; GitLab live check pending |
 | **M4** ✅ | Dashboard, local API, `service install`, signed `update` → **v0.1.0** | released 2026-11-19; a 0.0.9 binary updated itself to it, signature and checksum verified |
 | **v0.2** ✅ | Public launch: notarized macOS binaries, installers, Homebrew and Scoop, Claude Code plugin, MCP server and skill, website in five languages | released 2026-11-19 |
+| **M5** ✅ | Desktop app for macOS, Windows and Linux, signed updates, simpler install on the site → **v0.3.0** | released 2026-11-19; installers checked on macOS and Linux, Windows not yet run |
 
 ## Still owed from the first plan
 
@@ -38,11 +39,11 @@ People search for a pain, not for a name. Every page answers one:
 - **For AI assistants**: `llms.txt` and `llms-full.txt`, FAQ and HowTo structured data, a stable feature list, plain answers near the top of each page. Bing Webmaster Tools (ChatGPT search), Google Search Console, IndexNow on deploy.
 - **Proof**: a public benchmark of findings on seeded bugs per harness, with cost and time, rerun each release.
 
-## M5: desktop app 🟡
+## M5: desktop app ✅
 
-Built, released with v0.3: a Tauri 2 window around the dashboard; menu bar or tray icon with the inbox count; notifications for new inbox items; check now, open at login, quit; runs the crew it bundles (`crewreview run --desktop`) or shows the service's; restarts a crew that stops; signed updates with the release key, bound to the version. Notarized `.dmg` for macOS, NSIS for Windows, AppImage, `.deb` and `.rpm` for Linux, x64 and arm64.
+Released in v0.3.0: a Tauri 2 window around the dashboard; menu bar or tray icon with the inbox count; notifications for new inbox items; check now, open at login, quit; runs the crew it bundles (`crewreview run --desktop`) or shows the service's; restarts a crew that stops; signed updates with the release key, bound to the version. Notarized `.dmg` for macOS, NSIS for Windows, AppImage, `.deb` and `.rpm` for Linux, x64 and arm64.
 
-Next: a download page on the site, Windows code signing (Azure Trusted Signing), and a first-run screen that links a repository.
+Next: Windows code signing (Azure Trusted Signing), and a first-run screen that links a repository.
 
 ## M6: breadth
 
