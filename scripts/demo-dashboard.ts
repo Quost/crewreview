@@ -9,6 +9,7 @@ import { join } from "node:path";
 import dashboard from "../apps/web/index.html";
 import { dashboardUrl, startApi } from "../packages/engine/src/api.ts";
 import type { CrewDaemon } from "../packages/engine/src/crew.ts";
+import pkg from "../package.json";
 
 const TOKEN = "demo";
 const now = Date.now();
@@ -133,7 +134,7 @@ const limits = {
   configPath: "~/.config/crewreview/config.toml",
 };
 
-const status = { version: "0.3.0", pid: process.pid, startedAt: ago(7300), cycleRunning: false, lastCycleAt: ago(60), nextCycleAt: now + 240_000, inbox: inbox.length };
+const status = { version: pkg.version, pid: process.pid, startedAt: ago(7300), cycleRunning: false, lastCycleAt: ago(60), nextCycleAt: now + 240_000, inbox: inbox.length };
 
 const crew = {
   o: { version: status.version },

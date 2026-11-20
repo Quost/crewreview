@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-20
+
+For teams: link a whole organization, limits that act on their own, and an attendant that fixes conflicts and red CI.
+
 ### Added
 
 - The attendant can fix a conflict with the base and a red CI on your own pull requests (`--conflicts on`, `--ci on`, or the switches in the dashboard). A conflict is merged, never rebased: the base is merged in the work tree, the agent resolves the markers, and the merge commit is pushed as a fast-forward; a conflict it can't fully resolve is undone and left to you. For red CI the agent gets the failing jobs' logs, with secrets taken out. Both run your checks before anything is pushed.
@@ -17,7 +21,6 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Changed
 
 - The background service keeps `CLAUDE_CONFIG_DIR` and `CODEX_HOME`, so it uses the same Claude Code and Codex login as the terminal it was installed from. Run `crewreview service install` again to pick this up.
-
 - The dashboard shows the built-in lenses' names in your language, and code in findings and replies as code.
 
 ### Fixed

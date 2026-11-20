@@ -13,10 +13,11 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **M4** ✅ | Dashboard, local API, `service install`, signed `update` → **v0.1.0** | released 2026-11-19; a 0.0.9 binary updated itself to it, signature and checksum verified |
 | **v0.2** ✅ | Public launch: notarized macOS binaries, installers, Homebrew and Scoop, Claude Code plugin, MCP server and skill, website in five languages | released 2026-11-19 |
 | **M5** ✅ | Desktop app for macOS, Windows and Linux, signed updates, simpler install on the site → **v0.3.0** | released 2026-11-19; installers checked on macOS and Linux, Windows not yet run |
+| **v0.4** ✅ | Organizations and groups, limits that act, "what would run now", keep-awake, login checks, the attendant on conflicts and red CI | released 2026-11-20 |
 
-## Owed from the first plan ✅ (next release)
+## Owed from the first plan ✅ (v0.4.0)
 
-Done and on `main`, not released yet:
+Released in v0.4.0 on 2026-11-20:
 
 - **Limits that act**: a harness that hits its usage limit pauses until the time its message gives and resumes by itself; a fallback chain takes over; `limits.dailyRuns` caps the agent runs of a day; `crewreview repo preview` and the dashboard show what would run now before you switch to auto.
 - **The attendant fixes conflicts with the base (merge, never rebase) and red CI** on your own pull requests, opt-in per repository.
