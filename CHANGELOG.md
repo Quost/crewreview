@@ -4,6 +4,12 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- The setup page said the agent for reviews wasn't ready when `harness.default` is `auto`, the default. It now names the agent `auto` picks; `/api/harnesses` marks it as `chosen`.
+- A preview that failed said it couldn't link, and a dashboard that lost its crew showed "TypeError: Failed to fetch". Both now say what happened.
+- "Watching 0 repositories" and "0 repositório" read naturally in every language.
+
 ## 0.5.0 — 2026-11-20
 
 Easier to start, alone or as a team: a first-run setup, and a Docker image for a shared team machine.

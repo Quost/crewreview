@@ -31,6 +31,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return data as T;
 }
 
+/** The request never reached the daemon: it stopped, or the page outlived it. */
+export const unreachable = (err: unknown) => err instanceof TypeError;
+
 export const api = {
   get: <T,>(path: string) => call<T>("GET", path),
   post: <T,>(path: string, body?: unknown) => call<T>("POST", path, body ?? {}),
@@ -219,6 +222,8 @@ export interface HarnessInfo {
   loginCommand?: string;
   /** Paused at its usage limit until then. */
   pausedUntil?: number;
+  /** The one reviews use: the configured harness, or with \`auto\` the first installed one. */
+  chosen?: boolean;
 }
 
 export interface Limits {

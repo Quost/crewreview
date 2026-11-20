@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Harness, HarnessEvent } from "@crewreview/harness";
+import { resolveHarness, type Harness, type HarnessEvent } from "@crewreview/harness";
 import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
 import type { Config } from "./config.ts";
@@ -359,11 +359,13 @@ export class CrewDaemon {
 
   async harnesses() {
     const out = [];
+    // The one reviews use: the configured harness, or with `auto` the first installed one.
+    const chosen = await resolveHarness(this.o.registry, this.o.config.harness.default);
     for (const h of this.o.registry.values()) {
       const det = await h.detect();
       const conf = det.installed ? await this.o.conformance.get(h.id, det.version) : undefined;
       const signIn = det.installed ? await signInOf(h) : undefined;
-      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand, pausedUntil: this.quota.pausedUntil(h.id) });
+      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand, pausedUntil: this.quota.pausedUntil(h.id), chosen: h.id === chosen?.id });
     }
     return out;
   }

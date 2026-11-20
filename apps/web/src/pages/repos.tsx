@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, type Preview, type Repo } from "../api.ts";
+import { api, ApiError, unreachable, type Preview, type Repo } from "../api.ts";
 import { useT } from "../i18n.ts";
 import { Card, Empty, ExternalLink, Segmented, Toggle, Pill } from "../ui.tsx";
 
@@ -18,7 +18,7 @@ export function ReposPage({ version }: { version: number }) {
       const pv = await api.get<Preview>(`/api/repos/${id}/preview`);
       setPreviews((p) => ({ ...p, [id]: pv }));
     } catch (err) {
-      setPreviews((p) => ({ ...p, [id]: { failed: err instanceof ApiError ? (err.body?.message ?? err.message) : String(err) } }));
+      setPreviews((p) => ({ ...p, [id]: { failed: unreachable(err) ? t.t("web.setup.unreachable") : err instanceof ApiError ? (err.body?.message ?? err.message) : String(err) } }));
     }
   };
   const load = () => api.get<Repo[]>("/api/repos").then(setRepos, () => setRepos([]));
@@ -46,6 +46,7 @@ export function ReposPage({ version }: { version: number }) {
       load();
     } catch (err) {
       const code = err instanceof ApiError ? err.body?.error : "";
+      if (unreachable(err)) return setError(t.t("web.setup.unreachable"));
       setError(code === "exists" ? t.t("web.repos.exists") : code === "no-token" ? t.t("web.log.noToken") : t.t("web.repos.addFailed", { error: err instanceof ApiError ? (err.body?.message ?? code) : String(err) }));
     } finally {
       setBusy(false);

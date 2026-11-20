@@ -196,6 +196,7 @@
   "post.droppedByVerifier.other": "El verificador descartó {count} hallazgos tras comprobar el código.",
   "post.alreadyDiscussed.one": "{count} hallazgo omitido porque la conversación ya lo trata.",
   "post.alreadyDiscussed.other": "{count} hallazgos omitidos porque la conversación ya los trata.",
+  "run.repoCount.zero": "ningún repositorio",
   "run.repoCount.one": "{count} repositorio",
   "run.repoCount.other": "{count} repositorios",
   "pr.title": "Crewreview · {repo}#{number}",
@@ -432,5 +433,7 @@
   "web.setup.openRepos": "Abrir Repositorios",
   "web.setup.done": "hecho",
   "web.setup.todo": "pendiente",
-  "web.repos.setup": "Configuración guiada"
+  "web.repos.setup": "Configuración guiada",
+  "web.setup.previewFailed": "No se pudo ver la vista previa: {error}",
+  "web.setup.unreachable": "El panel no llega al equipo. ¿Sigue en marcha?"
 }

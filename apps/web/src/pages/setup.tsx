@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { api, ApiError, type HarnessInfo, type HostAccess, type Limits, type Preview } from "../api.ts";
+import { api, ApiError, unreachable, type HarnessInfo, type HostAccess, type Limits, type Preview } from "../api.ts";
 import { useT } from "../i18n.ts";
 import { Card, Empty, Pill } from "../ui.tsx";
 import { PreviewBox } from "./repos.tsx";
@@ -68,11 +68,13 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
     api.get<Limits>("/api/limits").then(setLimits, () => {});
   }, []);
 
-  const failure = (err: unknown) => {
+  const failure = (err: unknown, what: "preview" | "link") => {
+    if (unreachable(err)) return t.t("web.setup.unreachable");
     const code = err instanceof ApiError ? err.body?.error : "";
     if (code === "exists") return t.t("web.repos.exists");
     if (code === "no-token") return t.t("web.log.noToken");
-    return t.t("web.repos.addFailed", { error: err instanceof ApiError ? (err.body?.message ?? code) : String(err) });
+    const error = err instanceof ApiError ? (err.body?.message ?? code) : String(err);
+    return what === "preview" ? t.t("web.setup.previewFailed", { error }) : t.t("web.repos.addFailed", { error });
   };
   const showPreview = async () => {
     if (!url.trim()) return;
@@ -81,7 +83,7 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
     try {
       setPreview(await api.post<Preview>("/api/preview", { url: url.trim() }));
     } catch (err) {
-      setPreview({ failed: failure(err) });
+      setPreview({ failed: failure(err, "preview") });
     }
   };
   const link = async (e: FormEvent) => {
@@ -89,6 +91,8 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
     if (!url.trim()) return;
     setBusy(true);
     setError(undefined);
+    // A preview that failed says nothing about this attempt.
+    if (preview && preview !== "loading" && "failed" in preview) setPreview(undefined);
     try {
       const r = await api.post<{ id: string }>("/api/repos", { url: url.trim(), mode: "inbox" });
       setLinked(r.id);
@@ -96,14 +100,13 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
       setPreview(undefined);
       loadHosts();
     } catch (err) {
-      setError(failure(err));
+      setError(failure(err, "link"));
     } finally {
       setBusy(false);
     }
   };
 
-  const chosen = limits?.harness.default;
-  const chosenInfo = harnesses?.find((h) => h.id === chosen);
+  const chosenInfo = harnesses?.find((h) => h.chosen);
   const agentsDone = harnesses ? usable(chosenInfo) : undefined;
   const hostsDone = hosts ? hosts.some((h) => h.user) : undefined;
   const recheck = (onClick: () => void) => (
@@ -130,7 +133,7 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
               return (
                 <li key={h.id}>
                   <span>
-                    <strong>{h.name}</strong> <code>{h.id}</code> {h.id === chosen && <Pill tone="accent">{t.t("web.setup.default")}</Pill>}
+                    <strong>{h.name}</strong> <code>{h.id}</code> {h.chosen && <Pill tone="accent">{t.t("web.setup.default")}</Pill>}
                   </span>
                   <span className="check-state">
                     {r === "ready" && <Pill tone="ok">{t.t("web.setup.ready")}</Pill>}
@@ -152,8 +155,8 @@ export function SetupPage({ onCheckNow, repos }: { onCheckNow: () => void; repos
         {harnesses &&
           (agentsDone ? (
             <p className="notice ok">{t.t("web.setup.agentsOk", { name: chosenInfo!.name })}</p>
-          ) : harnesses.some(usable) ? (
-            <p className="notice warn">{t.t("web.setup.agentsDefaultMissing", { name: chosenInfo?.name ?? chosen ?? "?", path: limits?.configPath ?? "config.toml" })}</p>
+          ) : chosenInfo || (limits && limits.harness.default !== "auto") ? (
+            <p className="notice warn">{t.t("web.setup.agentsDefaultMissing", { name: chosenInfo?.name ?? limits?.harness.default ?? "?", path: limits?.configPath ?? "config.toml" })}</p>
           ) : (
             <p className="notice warn">{t.t("web.setup.agentsNone")}</p>
           ))}

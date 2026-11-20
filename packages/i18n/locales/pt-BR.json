@@ -196,6 +196,7 @@
   "post.droppedByVerifier.other": "O verificador descartou {count} achados depois de conferir o código.",
   "post.alreadyDiscussed.one": "{count} achado deixado de fora porque a conversa já trata dele.",
   "post.alreadyDiscussed.other": "{count} achados deixados de fora porque a conversa já trata deles.",
+  "run.repoCount.zero": "nenhum repositório",
   "run.repoCount.one": "{count} repositório",
   "run.repoCount.other": "{count} repositórios",
   "pr.title": "Crewreview · {repo}#{number}",
@@ -432,5 +433,7 @@
   "web.setup.openRepos": "Abrir Repositórios",
   "web.setup.done": "feito",
   "web.setup.todo": "falta",
-  "web.repos.setup": "Configuração guiada"
+  "web.repos.setup": "Configuração guiada",
+  "web.setup.previewFailed": "Não deu para ver a prévia: {error}",
+  "web.setup.unreachable": "O painel não alcança a equipe. Ela ainda está rodando?"
 }

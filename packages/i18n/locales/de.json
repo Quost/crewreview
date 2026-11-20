@@ -196,6 +196,7 @@
   "post.droppedByVerifier.other": "Der Prüfer hat nach Kontrolle des Codes {count} Befunde verworfen.",
   "post.alreadyDiscussed.one": "{count} Befund weggelassen, weil die Diskussion ihn schon abdeckt.",
   "post.alreadyDiscussed.other": "{count} Befunde weggelassen, weil die Diskussion sie schon abdeckt.",
+  "run.repoCount.zero": "keine Repositories",
   "run.repoCount.one": "{count} Repository",
   "run.repoCount.other": "{count} Repositories",
   "pr.title": "Crewreview · {repo}#{number}",
@@ -432,5 +433,7 @@
   "web.setup.openRepos": "Repositories öffnen",
   "web.setup.done": "erledigt",
   "web.setup.todo": "offen",
-  "web.repos.setup": "Geführte Einrichtung"
+  "web.repos.setup": "Geführte Einrichtung",
+  "web.setup.previewFailed": "Vorschau nicht möglich: {error}",
+  "web.setup.unreachable": "Das Dashboard erreicht die Crew nicht. Läuft sie noch?"
 }

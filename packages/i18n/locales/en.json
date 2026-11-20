@@ -196,6 +196,7 @@
   "post.droppedByVerifier.other": "The verifier discarded {count} findings after checking the code.",
   "post.alreadyDiscussed.one": "{count} finding left out because the discussion already covers it.",
   "post.alreadyDiscussed.other": "{count} findings left out because the discussion already covers them.",
+  "run.repoCount.zero": "no repositories",
   "run.repoCount.one": "{count} repository",
   "run.repoCount.other": "{count} repositories",
   "pr.title": "Crewreview · {repo}#{number}",
@@ -432,5 +433,7 @@
   "web.setup.openRepos": "Open Repositories",
   "web.setup.done": "done",
   "web.setup.todo": "to do",
-  "web.repos.setup": "Guided setup"
+  "web.repos.setup": "Guided setup",
+  "web.setup.previewFailed": "Couldn't preview it: {error}",
+  "web.setup.unreachable": "The dashboard can't reach the crew. Is it still running?"
 }

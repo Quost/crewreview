@@ -190,6 +190,7 @@
   "confidence.low": "低置信度",
   "post.droppedByVerifier.other": "验证者检查代码后丢弃了 {count} 条意见。",
   "post.alreadyDiscussed.other": "有 {count} 条意见已在讨论中提到，因此未列出。",
+  "run.repoCount.zero": "没有仓库",
   "run.repoCount.other": "{count} 个仓库",
   "pr.title": "Crewreview · {repo}#{number}",
   "post.stillOpen": "讨论中仍未解决",
@@ -423,5 +424,7 @@
   "web.setup.openRepos": "打开仓库",
   "web.setup.done": "完成",
   "web.setup.todo": "待办",
-  "web.repos.setup": "引导设置"
+  "web.repos.setup": "引导设置",
+  "web.setup.previewFailed": "无法预览：{error}",
+  "web.setup.unreachable": "仪表板无法连接到团队。它还在运行吗？"
 }
