@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, type Repo } from "../api.ts";
+import { api, ApiError, type Preview, type Repo } from "../api.ts";
 import { useT } from "../i18n.ts";
 import { Card, Empty, ExternalLink, Segmented, Toggle, Pill } from "../ui.tsx";
 
@@ -11,6 +11,16 @@ export function ReposPage({ version }: { version: number }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [previews, setPreviews] = useState<Record<string, Preview | "loading" | { failed: string }>>({});
+  const preview = async (id: string) => {
+    setPreviews((p) => ({ ...p, [id]: "loading" }));
+    try {
+      const pv = await api.get<Preview>(`/api/repos/${id}/preview`);
+      setPreviews((p) => ({ ...p, [id]: pv }));
+    } catch (err) {
+      setPreviews((p) => ({ ...p, [id]: { failed: err instanceof ApiError ? (err.body?.message ?? err.message) : String(err) } }));
+    }
+  };
   const load = () => api.get<Repo[]>("/api/repos").then(setRepos, () => setRepos([]));
   useEffect(() => {
     load();
@@ -77,6 +87,9 @@ export function ReposPage({ version }: { version: number }) {
           }
           actions={
             <>
+              <button className="btn ghost" onClick={() => preview(r.id)} disabled={previews[r.id] === "loading"}>
+                {t.t("web.repos.preview")}
+              </button>
               <ExternalLink href={r.webUrl}>{t.t("web.openOnHost")}</ExternalLink>
               <button className="btn ghost danger" onClick={() => remove(r.id)}>
                 {t.t("web.remove")}
@@ -84,6 +97,7 @@ export function ReposPage({ version }: { version: number }) {
             </>
           }
         >
+          {previews[r.id] && <PreviewBox value={previews[r.id]!} />}
           {r.scope === "org" && (
             <p className="muted small">
               {t.t("web.repos.orgHint")}
@@ -135,4 +149,39 @@ function deepMerge<T>(a: T, b: any): T {
   const out: any = Array.isArray(a) ? [...(a as any)] : { ...(a as any) };
   for (const [k, v] of Object.entries(b ?? {})) out[k] = v && typeof v === "object" && !Array.isArray(v) ? deepMerge(out[k] ?? {}, v) : v;
   return out;
+}
+
+function PreviewBox({ value }: { value: Preview | "loading" | { failed: string } }) {
+  const t = useT();
+  if (value === "loading") return <p className="notice">{t.t("web.loading")}</p>;
+  if ("failed" in value) return <p className="notice warn">{value.failed}</p>;
+  const p = value;
+  const skipped = Object.entries(p.skipped).map(([reason, n]) => `${t.t(`skip.${reason}` as never)} (${n})`);
+  return (
+    <div className="notice preview">
+      <strong>{t.t("preview.title", { link: p.link, prs: p.pullRequests, repos: p.repos })}</strong>
+      <p>{p.wouldReview.length ? t.t("preview.would", { count: p.wouldReview.length, perCycle: p.perCycle, runs: p.agentRuns }) : t.t("preview.none")}</p>
+      {p.wouldReview.length > 0 && (
+        <ul className="small">
+          {p.wouldReview.slice(0, 10).map((w) => (
+            <li key={w.url}>
+              <a href={w.url} target="_blank" rel="noreferrer noopener" className="mono">
+                {w.repo}#{w.number}
+              </a>{" "}
+              <span className="muted">{w.title}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {skipped.length > 0 && <p className="muted small">{t.t("preview.skipped", { list: skipped.join(", ") })}</p>}
+      {p.ownOpen > 0 && <p className="muted small">{t.t("preview.own", { count: p.ownOpen })}</p>}
+      {p.budget && <p className="muted small">{t.t("preview.budget", { used: p.budget.used, limit: p.budget.limit })}</p>}
+      {p.errors.map((e) => (
+        <p key={e.repo} className="bad-text small">
+          {t.t("preview.error", { repo: e.repo, error: e.error === "no-token" ? t.t("web.log.noToken") : e.error })}
+        </p>
+      ))}
+      <p className="muted small">{t.t("preview.note")}</p>
+    </div>
+  );
 }

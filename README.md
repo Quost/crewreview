@@ -174,6 +174,7 @@ Link a repository. Crewreview uses the login you already have in `gh` or `glab` 
 crewreview repo add https://github.com/acme/shop            # new repositories start in inbox mode
 crewreview repo add https://gitlab.com/acme/api --mode auto  # or post reviews right away
 crewreview repo add https://github.com/acme --exclude "legacy-*"   # every repository of an organization or group
+crewreview repo preview acme-shop                            # what would run now, before you switch to auto (changes nothing)
 crewreview review acme-shop 42                               # review one pull request now
 crewreview inbox                                             # what's waiting for you
 crewreview inbox approve 3                                   # post it

@@ -386,5 +386,14 @@
   "desktop.updateFailed": "Update fehlgeschlagen: {error}",
   "desktop.startFailed": "Die Crew konnte nicht starten.",
   "desktop.busy": "Ein anderes Crewreview läuft ohne Dashboard. Beende es oder starte es mit crewreview run neu.",
-  "desktop.managedUpdate": "Diese Kopie gehört zur Desktop-App, die sie aktuell hält."
+  "desktop.managedUpdate": "Diese Kopie gehört zur Desktop-App, die sie aktuell hält.",
+  "preview.title": "{link}: offene Pull Requests: {prs}, in Repositories: {repos}",
+  "preview.would": "Würde jetzt prüfen: {count}, {perCycle} pro Durchlauf (der Rest in den nächsten), etwa {runs} Agentenläufe.",
+  "preview.none": "Gerade nichts zu prüfen.",
+  "preview.skipped": "Übersprungen: {list}.",
+  "preview.own": "Deine offenen Pull Requests: {count}. Der Assistent beantwortet ihre Reviews, wenn er an ist.",
+  "preview.budget": "Heutiges Budget: {used} von {limit} Agentenläufen verbraucht.",
+  "preview.error": "Konnte {repo} nicht ansehen: {error}",
+  "preview.note": "Diese Vorschau ändert nichts: Nichts wird geprüft, veröffentlicht oder gespeichert.",
+  "web.repos.preview": "Was würde jetzt laufen?"
 }

@@ -803,3 +803,10 @@ tr:last-child td {
     display: none;
   }
 }
+.notice.preview p {
+  margin: 6px 0 0;
+}
+.notice.preview ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}

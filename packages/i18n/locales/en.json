@@ -386,5 +386,14 @@
   "desktop.updateFailed": "Couldn't update: {error}",
   "desktop.startFailed": "The crew couldn't start.",
   "desktop.busy": "Another Crewreview is running without its dashboard. Stop it, or restart it with crewreview run.",
-  "desktop.managedUpdate": "This copy came with the desktop app, which keeps it up to date."
+  "desktop.managedUpdate": "This copy came with the desktop app, which keeps it up to date.",
+  "preview.title": "{link}: open pull requests: {prs}, in repositories: {repos}",
+  "preview.would": "Would review now: {count}, {perCycle} per cycle (the rest in the next ones), about {runs} agent runs.",
+  "preview.none": "Nothing to review right now.",
+  "preview.skipped": "Skipped: {list}.",
+  "preview.own": "Your open pull requests: {count}. The attendant answers their reviews when it's on.",
+  "preview.budget": "Today's budget: {used} of {limit} agent runs used.",
+  "preview.error": "Couldn't look at {repo}: {error}",
+  "preview.note": "This preview changes nothing: nothing is reviewed, posted or recorded.",
+  "web.repos.preview": "What would run now?"
 }

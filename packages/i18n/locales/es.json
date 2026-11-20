@@ -386,5 +386,14 @@
   "desktop.updateFailed": "No se pudo actualizar: {error}",
   "desktop.startFailed": "El equipo no pudo iniciarse.",
   "desktop.busy": "Otro Crewreview se está ejecutando sin el panel. Detenlo o reinícialo con crewreview run.",
-  "desktop.managedUpdate": "Esta copia vino con la app de escritorio, que la mantiene actualizada."
+  "desktop.managedUpdate": "Esta copia vino con la app de escritorio, que la mantiene actualizada.",
+  "preview.title": "{link}: pull requests abiertos: {prs}, en repositorios: {repos}",
+  "preview.would": "Revisaría ahora: {count}, {perCycle} por ciclo (el resto en los siguientes), unas {runs} ejecuciones de agentes.",
+  "preview.none": "Nada que revisar ahora.",
+  "preview.skipped": "Saltados: {list}.",
+  "preview.own": "Tus pull requests abiertos: {count}. El asistente atiende sus reviews cuando está activo.",
+  "preview.budget": "Presupuesto de hoy: {used} de {limit} ejecuciones de agentes usadas.",
+  "preview.error": "No pude revisar {repo}: {error}",
+  "preview.note": "Esta vista previa no cambia nada: nada se revisa, publica ni registra.",
+  "web.repos.preview": "¿Qué correría ahora?"
 }

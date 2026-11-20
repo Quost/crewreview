@@ -377,5 +377,14 @@
   "desktop.updateFailed": "更新失败：{error}",
   "desktop.startFailed": "团队无法启动。",
   "desktop.busy": "另一个 Crewreview 正在运行，但没有面板。请停止它，或用 crewreview run 重新启动。",
-  "desktop.managedUpdate": "此副本随桌面应用安装，由桌面应用负责更新。"
+  "desktop.managedUpdate": "此副本随桌面应用安装，由桌面应用负责更新。",
+  "preview.title": "{link}：未关闭的合并请求：{prs}，涉及仓库：{repos}",
+  "preview.would": "现在会审查：{count} 个，每轮 {perCycle} 个（其余在之后几轮），约 {runs} 次代理运行。",
+  "preview.none": "现在没有需要审查的。",
+  "preview.skipped": "跳过：{list}。",
+  "preview.own": "你未关闭的合并请求：{count}。处理者开启后会回复其中的审查意见。",
+  "preview.budget": "今天的额度：已用 {used} / {limit} 次代理运行。",
+  "preview.error": "无法查看 {repo}：{error}",
+  "preview.note": "此预览不会改变任何内容：不会审查、发布或记录。",
+  "web.repos.preview": "现在会运行什么？"
 }

@@ -114,6 +114,20 @@ export interface Repo {
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[] };
 }
 
+export interface Preview {
+  link: string;
+  org: boolean;
+  repos: number;
+  pullRequests: number;
+  wouldReview: { repo: string; number: number; title: string; url: string }[];
+  skipped: Record<string, number>;
+  perCycle: number;
+  agentRuns: number;
+  ownOpen: number;
+  budget?: { used: number; limit: number };
+  errors: { repo: string; error: string }[];
+}
+
 export interface InboxItem {
   id: string;
   kind: "review" | "fix";

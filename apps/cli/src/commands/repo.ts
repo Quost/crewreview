@@ -1,5 +1,5 @@
-import { isOrg, loadRepos, newRepoEntry, prepareLink, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type RepoEntry } from "@crewreview/engine";
-import { parseRepoUrl, type HostKind } from "@crewreview/hosts";
+import { isOrg, loadRepos, newRepoEntry, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
+import { ownerOnly, parseOwnerUrl, parseRepoUrl, type HostKind } from "@crewreview/hosts";
 import { table, type Ctx } from "../ctx.ts";
 
 export interface RepoArgs {
@@ -36,8 +36,9 @@ export async function findRepo(c: Ctx, idOrUrl: string): Promise<LinkedRepo | st
   if (hit) return hit;
   if (!idOrUrl.includes("/")) return c.t.t("error.unknownRepo", { id: idOrUrl });
   try {
-    const ref = parseRepoUrl(idOrUrl);
-    return repos.find((r) => r.ref.webUrl === ref.webUrl) ?? { ...newRepoEntry(ref), ref };
+    const org = ownerOnly(idOrUrl);
+    const ref = org ? parseOwnerUrl(idOrUrl) : parseRepoUrl(idOrUrl);
+    return repos.find((r) => r.ref.webUrl === ref.webUrl) ?? { ...newRepoEntry(ref, org ? { scope: "org" } : {}), ref };
   } catch (e) {
     return c.t.t("error.repoUrl", { message: (e as Error).message });
   }
@@ -94,9 +95,24 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     return 0;
   }
 
+  if (sub === "preview") {
+    const target = rest[0];
+    if (!target) return (c.err(t.t("error.usage", { usage: "crewreview repo preview <id or url>" })), 2);
+    const link = await findRepo(c, target);
+    if (typeof link === "string") return (c.err(link), 2);
+    const { deps } = await import("./review.ts");
+    const d = deps(c, undefined, true);
+    try {
+      for (const line of previewText(c, await previewLink({ ...d, quota: QuotaBook.in(c.dirs.state) }, link))) c.out(line);
+    } finally {
+      d.close();
+    }
+    return 0;
+  }
+
   const id = rest[0];
   const idx = repos.findIndex((r) => r.id === id);
-  if (!id || (sub !== "set" && sub !== "remove")) return (c.err(t.t("error.usage", { usage: "crewreview repo [list | add <url> | set <id> --mode … | remove <id>]" })), 2);
+  if (!id || (sub !== "set" && sub !== "remove")) return (c.err(t.t("error.usage", { usage: "crewreview repo [list | add <url> | preview <id or url> | set <id> --mode … | remove <id>]" })), 2);
   if (idx === -1) return (c.err(t.t("error.unknownRepo", { id })), 2);
   const list = entries();
   if (sub === "remove") {
@@ -126,4 +142,23 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
   await saveRepos(file, list);
   c.out(t.t("repo.updated", { id }));
   return 0;
+}
+
+/** The preview as lines for the terminal; the dashboard shows the same texts. */
+export function previewText(c: Ctx, p: Preview): string[] {
+  const { t, style: st } = c;
+  const out = [st.bold(t.t("preview.title", { link: p.link, prs: p.pullRequests, repos: p.repos }))];
+  if (p.wouldReview.length === 0) out.push(t.t("preview.none"));
+  else {
+    out.push(t.t("preview.would", { count: p.wouldReview.length, perCycle: p.perCycle, runs: p.agentRuns }));
+    for (const r of p.wouldReview.slice(0, 15)) out.push(`  ${r.repo}#${r.number} ${st.dim(r.title)}`);
+    if (p.wouldReview.length > 15) out.push(st.dim(`  … +${p.wouldReview.length - 15}`));
+  }
+  const skipped = Object.entries(p.skipped).map(([reason, n]) => `${t.t(`skip.${reason}` as never)} (${n})`);
+  if (skipped.length) out.push(t.t("preview.skipped", { list: skipped.join(", ") }));
+  if (p.ownOpen) out.push(t.t("preview.own", { count: p.ownOpen }));
+  if (p.budget) out.push(t.t("preview.budget", { used: p.budget.used, limit: p.budget.limit }));
+  for (const e of p.errors) out.push(st.yellow(t.t("preview.error", { repo: e.repo, error: e.error === "no-token" ? t.t("web.log.noToken") : e.error })));
+  out.push(st.dim(t.t("preview.note")));
+  return out;
 }

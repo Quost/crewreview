@@ -102,6 +102,11 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const updated = await crew.updateRepo(repoMatch[1]!, { review: clean(review), attend: clean(attend) });
       return updated ? json({ ok: true }) : json({ error: "not-found" }, 404);
     }
+    const previewMatch = /^\/api\/repos\/([a-z0-9._-]+)\/preview$/.exec(p);
+    if (previewMatch && m === "GET") {
+      const pv = await crew.previewRepo(previewMatch[1]!);
+      return pv ? json(pv) : json({ error: "not-found" }, 404);
+    }
     if (repoMatch && m === "DELETE") return (await crew.removeRepo(repoMatch[1]!)) ? json({ ok: true }) : json({ error: "not-found" }, 404);
     if (p === "/api/inbox" && m === "GET") return json(crew.inbox());
     const inboxMatch = /^\/api\/inbox\/([rf]\d+)(?:\/(approve|discard))?$/.exec(p);

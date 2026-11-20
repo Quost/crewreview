@@ -3,7 +3,8 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseOwnerUrl, parseRepoUrl } from "@crewreview/hosts";
-import { expandOrgs, findLinked, loadRepos, newRepoEntry, parseConfig, runCycle, saveRepos, type DaemonEvent, type LinkedRepo, type PrDeps } from "../src/index.ts";
+import type { PullRequest } from "@crewreview/core";
+import { expandOrgs, findLinked, loadRepos, newRepoEntry, parseConfig, previewLink, runCycle, saveRepos, Store, type DaemonEvent, type LinkedRepo, type PrDeps, type PrTarget } from "../src/index.ts";
 
 const org = (url: string, extra: Parameters<typeof newRepoEntry>[1] = {}): LinkedRepo => {
   const ref = parseOwnerUrl(url);
@@ -61,4 +62,23 @@ describe("organization links", () => {
     expect(reached).toEqual(["acme-shop", "acme-api"]);
     expect(events.filter((e) => e.type === "repo-error").map((e) => (e as { repo: string }).repo)).toEqual(["acme-shop", "acme-api"]);
   });
+
+  test("the preview says what a cycle would review, without recording anything", async () => {
+    const store = new Store(":memory:");
+    const config = parseConfig({ review: { lenses: ["correctness", "security", "tests"], ciMaxWait: "0s" }, schedule: { maxReviewsPerCycle: 2 }, limits: { dailyRuns: 100 } });
+    const d = { config, store, version: "test" } as unknown as PrDeps;
+    const pr = (n: number, p: Partial<PullRequest> = {}): PullRequest => ({ number: n, title: `pr ${n}`, body: "", author: "ana", authorIsBot: false, draft: false, state: "open", headSha: `sha${n}`, headRef: "b", baseRef: "main", labels: [], updatedAt: "2026-11-01T00:00:00Z", url: `https://github.com/acme/x/pull/${n}`, fromFork: false, ...p });
+    const prs: Record<string, PullRequest[]> = {
+      "acme-shop": [pr(1), pr(2, { draft: true }), pr(3, { author: "me" }), pr(4, { authorIsBot: true, author: "dependabot[bot]" })],
+      "acme-api": [pr(5), pr(6, { updatedAt: new Date().toISOString() })],
+    };
+    const connectTo = async (r: LinkedRepo) => ({ repo: r, token: "t", host: { whoami: async () => "me", listOpenPullRequests: async () => prs[r.id] ?? [], getChecks: async () => ({ state: "green", failing: [] }) } }) as unknown as PrTarget;
+    const p = await previewLink(d, org("https://github.com/acme"), { connectTo, listOrg: async () => ["acme/shop", "acme/api"] });
+    expect(p.wouldReview.map((w) => `${w.repo}#${w.number}`)).toEqual(["acme/shop#1", "acme/api#5"]);
+    // Three lenses and the verifier per review; a push from a moment ago is still settling.
+    expect({ org: p.org, repos: p.repos, prs: p.pullRequests, runs: p.agentRuns, perCycle: p.perCycle, own: p.ownOpen, budget: p.budget }).toEqual({ org: true, repos: 2, prs: 6, runs: 8, perCycle: 2, own: 1, budget: { used: 0, limit: 100 } });
+    expect(p.skipped).toEqual({ draft: 1, own: 1, "bot-author": 1, settling: 1 });
+    expect(store.seenAt("acme-shop", 1, "sha1")).toBeUndefined();
+  });
 });
+

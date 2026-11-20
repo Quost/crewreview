@@ -11,6 +11,7 @@ import { signInOf } from "./harnesses.ts";
 import { prepareLink } from "./link.ts";
 import type { AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
+import { previewLink, type Preview } from "./preview.ts";
 import { QuotaBook } from "./quota.ts";
 import { findLinked, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
 import type { ReviewEvent, ReviewReport } from "./review.ts";
@@ -254,6 +255,12 @@ export class CrewDaemon {
     await saveRepos(reposFile(this.o.dirs), [...repos.map(({ ref: _r, ...x }) => x), p.entry]);
     this.emit({ type: "changed", what: "repos" });
     return { repo: { ...p.entry, ref: p.ref }, user: p.user, openRepos: p.openRepos };
+  }
+
+  /** What the crew would do with a link right now, without doing it. */
+  async previewRepo(id: string): Promise<Preview | undefined> {
+    const link = (await this.repos()).find((r) => r.id === id);
+    return link ? previewLink(this.deps(), link) : undefined;
   }
 
   async removeRepo(id: string): Promise<boolean> {
