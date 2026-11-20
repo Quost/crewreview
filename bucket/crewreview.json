@@ -1,12 +1,12 @@
 {
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Crew of AI agents that reviews pull requests and answers the reviews on yours",
   "homepage": "https://crewreview.web.app",
   "license": "AGPL-3.0-only",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/Quost/crewreview/releases/download/v0.5.1/crewreview-windows-x64.exe#/crewreview.exe",
-      "hash": "0707bfa443f597fcc43dfd39544d867795b0a66190e5b39e42cf6ae46a5465ad"
+      "url": "https://github.com/Quost/crewreview/releases/download/v0.6.0/crewreview-windows-x64.exe#/crewreview.exe",
+      "hash": "68c37cc6901abe21529a8b946dfb397e4ad64e81e0383b3700c7182d19b8b081"
     }
   },
   "bin": "crewreview.exe",
