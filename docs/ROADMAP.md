@@ -49,11 +49,11 @@ People search for a pain, not for a name. Every page answers one:
 
 Released in v0.3.0: a Tauri 2 window around the dashboard; menu bar or tray icon with the inbox count; notifications for new inbox items; check now, open at login, quit; runs the crew it bundles (`crewreview run --desktop`) or shows the service's; restarts a crew that stops; signed updates with the release key, bound to the version. Notarized `.dmg` for macOS, NSIS for Windows, AppImage, `.deb` and `.rpm` for Linux, x64 and arm64.
 
-Next: Windows code signing (Azure Trusted Signing), and a first-run screen that links a repository.
+Next: Windows code signing (Azure Trusted Signing). Done on `main`: a first-run setup that checks the agents and the host login and links a repository.
 
 ## M6: breadth
 
-Bitbucket (Cloud and Data Center), Azure DevOps, Gitea/Forgejo; verified OpenCode, Pi, Gemini CLI, Cursor, Copilot CLI and Antigravity; a terminal UI (`crewreview top`); webhooks for instant reviews; a Docker image for a shared team machine.
+Bitbucket (Cloud and Data Center), Azure DevOps, Gitea/Forgejo; verified OpenCode, Pi, Gemini CLI, Cursor, Copilot CLI and Antigravity; a terminal UI (`crewreview top`); webhooks for instant reviews.; a Docker image for a shared team machine.
 
 ## M7: mobile companion
 

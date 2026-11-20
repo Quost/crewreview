@@ -108,6 +108,11 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const pv = await crew.previewRepo(previewMatch[1]!);
       return pv ? json(pv) : json({ error: "not-found" }, 404);
     }
+    if (p === "/api/preview" && m === "POST") {
+      const pv = await crew.previewUrl(String((await body()).url ?? ""));
+      return "error" in pv ? json(pv, 400) : json(pv);
+    }
+    if (p === "/api/hosts" && m === "GET") return json(await crew.hosts());
     if (repoMatch && m === "DELETE") return (await crew.removeRepo(repoMatch[1]!)) ? json({ ok: true }) : json({ error: "not-found" }, 404);
     if (p === "/api/inbox" && m === "GET") return json(crew.inbox());
     const inboxMatch = /^\/api\/inbox\/([rf]\d+)(?:\/(approve|discard))?$/.exec(p);
@@ -126,6 +131,8 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
   const server = Bun.serve<WsData>({
     hostname: "127.0.0.1",
     port: o.port ?? 0,
+    // The page and its scripts are the same for everyone and carry no data or token, so they're served before the
+    // Host check below; everything with data is under /api/ and checked.
     routes: { "/": o.page as Bun.HTMLBundle },
     async fetch(req, srv) {
       const url = new URL(req.url);

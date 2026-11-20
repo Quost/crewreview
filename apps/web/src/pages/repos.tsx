@@ -61,6 +61,9 @@ export function ReposPage({ version }: { version: number }) {
     <>
       <header className="page-head">
         <h1>{t.t("web.nav.repos")}</h1>
+        <a className="btn ghost" href="#/setup">
+          {t.t("web.repos.setup")}
+        </a>
       </header>
       <Card title={t.t("web.repos.add")}>
         <form className="add" onSubmit={add}>
@@ -165,7 +168,7 @@ function deepMerge<T>(a: T, b: any): T {
   return out;
 }
 
-function PreviewBox({ value }: { value: Preview | "loading" | { failed: string } }) {
+export function PreviewBox({ value }: { value: Preview | "loading" | { failed: string } }) {
   const t = useT();
   if (value === "loading") return <p className="notice">{t.t("web.loading")}</p>;
   if ("failed" in value) return <p className="notice warn">{value.failed}</p>;

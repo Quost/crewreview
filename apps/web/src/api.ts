@@ -128,6 +128,15 @@ export interface Preview {
   errors: { repo: string; error: string }[];
 }
 
+/** Whether Crewreview can reach a git host from this machine, and as whom. */
+export interface HostAccess {
+  kind: "github" | "gitlab";
+  host: string;
+  source?: "env" | "gh" | "glab";
+  user?: string;
+  error?: string;
+}
+
 export interface InboxItem {
   id: string;
   kind: "review" | "fix";

@@ -1,5 +1,5 @@
-import { isOrg, loadRepos, newRepoEntry, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
-import { ownerOnly, parseOwnerUrl, parseRepoUrl, type HostKind } from "@crewreview/hosts";
+import { isOrg, linkFromUrl, loadRepos, prepareLink, previewLink, QuotaBook, REVIEW_MODES, reposFile, saveRepos, type LinkedRepo, type Preview, type RepoEntry } from "@crewreview/engine";
+import type { HostKind } from "@crewreview/hosts";
 import { table, type Ctx } from "../ctx.ts";
 
 export interface RepoArgs {
@@ -39,13 +39,8 @@ export async function findRepo(c: Ctx, idOrUrl: string): Promise<LinkedRepo | st
   const hit = repos.find((r) => r.id === idOrUrl);
   if (hit) return hit;
   if (!idOrUrl.includes("/")) return c.t.t("error.unknownRepo", { id: idOrUrl });
-  try {
-    const org = ownerOnly(idOrUrl);
-    const ref = org ? parseOwnerUrl(idOrUrl) : parseRepoUrl(idOrUrl);
-    return repos.find((r) => r.ref.webUrl === ref.webUrl) ?? { ...newRepoEntry(ref, org ? { scope: "org" } : {}), ref };
-  } catch (e) {
-    return c.t.t("error.repoUrl", { message: (e as Error).message });
-  }
+  const link = linkFromUrl(idOrUrl, repos);
+  return "error" in link ? c.t.t("error.repoUrl", { message: link.message }) : link;
 }
 
 export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: RepoArgs): Promise<number> {

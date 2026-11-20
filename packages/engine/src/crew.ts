@@ -5,6 +5,7 @@ import type { Translator } from "@crewreview/i18n";
 import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
+import { hostAccess, linkFromUrl, type HostAccess } from "./access.ts";
 import { keepAwake, type KeepAwake } from "./awake.ts";
 import { connect, nextInterval, runCycle, sleep, type DaemonEvent } from "./daemon.ts";
 import { signInOf } from "./harnesses.ts";
@@ -261,6 +262,17 @@ export class CrewDaemon {
   async previewRepo(id: string): Promise<Preview | undefined> {
     const link = (await this.repos()).find((r) => r.id === id);
     return link ? previewLink(this.deps(), link) : undefined;
+  }
+
+  /** The same, for an address that may not be linked yet: what linking it would start. */
+  async previewUrl(url: string): Promise<Preview | { error: "url"; message: string }> {
+    const link = linkFromUrl(url, await this.repos());
+    return "error" in link ? link : previewLink(this.deps(), link);
+  }
+
+  /** Whether this machine can reach GitHub, GitLab and the linked hosts, and as whom. */
+  async hosts(): Promise<HostAccess[]> {
+    return hostAccess(await this.repos(), { version: this.o.version });
   }
 
   async removeRepo(id: string): Promise<boolean> {

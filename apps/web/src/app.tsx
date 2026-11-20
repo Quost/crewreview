@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type Status } from "./api.ts";
+import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type Repo, type Status } from "./api.ts";
 import { createTranslator, I18n, initialLocale, LANGUAGE_NAMES, LOCALES, relative, saveLocale, type Locale } from "./i18n.ts";
 import { HistoryPage } from "./pages/history.tsx";
 import { InboxPage } from "./pages/inbox.tsx";
 import { LimitsPage } from "./pages/limits.tsx";
 import { NowPage } from "./pages/now.tsx";
 import { ReposPage } from "./pages/repos.tsx";
+import { SetupPage } from "./pages/setup.tsx";
 
-const PAGES = ["now", "inbox", "history", "repos", "limits"] as const;
+const PAGES = ["setup", "now", "inbox", "history", "repos", "limits"] as const;
 type Page = (typeof PAGES)[number];
 
 function pageFromHash(): Page {
@@ -67,6 +68,22 @@ export function App() {
     );
   }, [token]);
 
+  // Nothing linked yet: the setup page leads, and opens by itself unless the address asked for another page.
+  const [repoCount, setRepoCount] = useState<number | undefined>();
+  useEffect(() => {
+    if (!token) return;
+    api.get<Repo[]>("/api/repos").then(
+      (rs) => setRepoCount(rs.length),
+      () => {},
+    );
+  }, [token, live.version.repos]);
+  const [firstRun, setFirstRun] = useState(() => !location.hash.replace(/^#\/?/, ""));
+  useEffect(() => {
+    if (repoCount === undefined || !firstRun) return;
+    setFirstRun(false);
+    if (repoCount === 0) location.hash = "#/setup";
+  }, [repoCount, firstRun]);
+
   const checkNow = useCallback(() => api.post("/api/cycle").catch(() => {}), []);
 
   if (!token) {
@@ -93,6 +110,7 @@ export function App() {
         : t.t("web.status.idle");
 
   const nav: { id: Page; label: string; badge?: number }[] = [
+    ...(repoCount === 0 || page === "setup" ? [{ id: "setup" as const, label: t.t("web.nav.setup") }] : []),
     { id: "now", label: t.t("web.nav.now"), badge: live.agents.filter((a) => a.status === "running").length || undefined },
     { id: "inbox", label: t.t("web.nav.inbox"), badge: st?.inbox || undefined },
     { id: "history", label: t.t("web.nav.history") },
@@ -142,6 +160,7 @@ export function App() {
           </div>
         </aside>
         <main className="main">
+          {page === "setup" && <SetupPage onCheckNow={checkNow} repos={repoCount} />}
           {page === "now" && <NowPage live={live} onCheckNow={checkNow} />}
           {page === "inbox" && <InboxPage version={live.version.inbox} />}
           {page === "history" && <HistoryPage version={live.version.history} />}

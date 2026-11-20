@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 // The real dashboard and API with made-up data: agents at work, an inbox, history, repositories and limits.
 // For screenshots (scripts/screenshots.ts) and for working on the UI without a crew running.
-//   bun scripts/demo-dashboard.ts [--port 4620]
+//   bun scripts/demo-dashboard.ts [--port 4620] [--empty]
+// --empty starts with nothing linked, as on a first run.
 // It prints the dashboard's address. Nothing is read from or written to your Crewreview folder.
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,6 +13,7 @@ import type { CrewDaemon } from "../packages/engine/src/crew.ts";
 import pkg from "../package.json";
 
 const TOKEN = "demo";
+const empty = process.argv.includes("--empty");
 const now = Date.now();
 const ago = (s: number) => now - s * 1000;
 
@@ -142,8 +144,13 @@ const crew = {
   liveAgents: () => agents,
   recentLog: () => log,
   wake() {},
-  repos: async () => repos.map((r) => ({ ...r, ref: { kind: r.kind, webUrl: r.webUrl, host: r.host } })),
-  addRepo: async () => ({ error: "This is a demo: nothing is linked." }),
+  repos: async () => (empty ? [] : repos).map((r) => ({ ...r, ref: { kind: r.kind, webUrl: r.webUrl, host: r.host } })),
+  addRepo: async () => ({ error: "host", message: "this is a demo: nothing is linked" }),
+  hosts: async () => [
+    { kind: "github", host: "github.com", source: "gh", user: "ana" },
+    { kind: "gitlab", host: "gitlab.com" },
+  ],
+  previewUrl: async (url: string) => ({ ...(await crew.previewRepo("acme-web")), link: url.replace(/^https?:\/\//, "") }),
   updateRepo: async () => true,
   removeRepo: async () => false,
   previewRepo: async (id: string) => ({
