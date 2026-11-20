@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { makeMarker, parseMarker, type PullRequest } from "@crewreview/core";
 import type { Harness, RunRequest, RunResult } from "@crewreview/harness";
-import { repoRef, type HostAdapter, type Permission, type RepoRef, type Thread } from "@crewreview/hosts";
+import { repoRef, type Checks, type HostAdapter, type Permission, type RepoRef, type Thread } from "@crewreview/hosts";
 import { createTranslator } from "@crewreview/i18n";
 import { appDirs, attendPullRequest, ConformanceStore, git, newRepoEntry, parseConfig, publishAttend, Store, type AttendDeps, type LinkedRepo, type PrTarget } from "../src/index.ts";
 
@@ -73,8 +73,8 @@ class FakeHost implements HostAdapter {
   async listReviews() {
     return [{ id: "R1", author: "bia", state: "changes_requested" as const, body: "" }];
   }
-  async getChecks() {
-    return { state: "green" as const, failing: [] };
+  async getChecks(): Promise<Checks> {
+    return { state: "green", failing: [] };
   }
   async postReview(): Promise<never> {
     throw new Error("not used");
@@ -91,6 +91,10 @@ class FakeHost implements HostAdapter {
   }
   async permission(user: string) {
     return this.perms[user] ?? "none";
+  }
+  comments: string[] = [];
+  async comment(_pr: PullRequest, body: string) {
+    this.comments.push(body);
   }
   async requestReReview(_pr: PullRequest, users: string[]) {
     this.reReviews.push(users);
@@ -264,4 +268,79 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(shorten("a ".repeat(80), 20).length).toBeLessThanOrEqual(20);
     expect(commitLine({ key: "k", kind: "thread", path: "src/a.ts", line: 3, author: "quost", text: "quost: 🔴 **bloqueador** · security — **SQL injection em findUserByEmail**\n\nbody", createdAt: "", fromCrew: true }, "x")).toBe("- src/a.ts:3 SQL injection em findUserByEmail");
   });
+
+  test("a conflict with the base: merged here, resolved by the agent, pushed as a merge commit", async () => {
+    // The branch and main both rewrite the same line.
+    await sh(["checkout", "-q", "-B", "conflict-a", "main"], work);
+    await writeFile(join(work, "src", "cart.ts"), "export const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);\n");
+    await sh(["commit", "-qam", "total"], work);
+    await sh(["push", "-q", "-f", "origin", "conflict-a:refs/heads/conflict-a"], work);
+    const sha = await sh(["rev-parse", "conflict-a"], work);
+    await sh(["update-ref", "refs/pull/20/head", sha], remote);
+    await sh(["checkout", "-q", "main"], work);
+    await writeFile(join(work, "src", "cart.ts"), "export const VAT = 0.2;\n");
+    await sh(["commit", "-qam", "vat"], work);
+    await sh(["push", "-q", "origin", "main"], work);
+
+    const h = writer(async (req, items) => {
+      const text = await readFile(join(req.cwd, "src", "cart.ts"), "utf8");
+      expect(text).toContain("<<<<<<<");
+      await writeFile(join(req.cwd, "src", "cart.ts"), "export const VAT = 0.2;\nexport const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);\n");
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "Merged main and kept both VAT and total in src/cart.ts." })), summary: "Merge main" });
+    });
+    const { d, repo, ref } = await setup(h, { mode: "auto", conflicts: true });
+    const host = new FakeHost(ref, mkPr(20, sha, "conflict-a", { conflicts: true }), []);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 20, "auto");
+    expect(o).toMatchObject({ kind: "done", replies: 1 });
+    const pushed = await sh(["rev-parse", "refs/heads/conflict-a"], remote);
+    expect(pushed).not.toBe(sha);
+    // A merge commit on top of the branch (no rewrite), with main as its second parent.
+    expect((await sh(["rev-list", "--parents", "-n", "1", pushed], remote)).split(" ")).toEqual([pushed, sha, await sh(["rev-parse", "refs/heads/main"], remote)]);
+    expect(await sh(["log", "-1", "--format=%s", pushed], remote)).toBe("Merge main into conflict-a");
+    expect(await sh(["show", `${pushed}:src/cart.ts`], remote)).toContain("export const VAT = 0.2;");
+    expect(host.comments[0]).toContain("Merged main and kept both");
+    expect(h.prompts[0]).toContain('Items of kind "conflict"');
+  });
+
+  test("a conflict left half-resolved is undone and left to you", async () => {
+    await sh(["checkout", "-q", "-B", "conflict-b", "main~1"], work);
+    await writeFile(join(work, "src", "cart.ts"), "export const half = 1;\n");
+    await sh(["commit", "-qam", "half"], work);
+    await sh(["push", "-q", "-f", "origin", "conflict-b:refs/heads/conflict-b"], work);
+    const sha = await sh(["rev-parse", "conflict-b"], work);
+    await sh(["update-ref", "refs/pull/21/head", sha], remote);
+    const h = writer(async (_req, items) => JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "done" })), summary: "x" }));
+    const { d, repo, ref, store } = await setup(h, { mode: "auto", conflicts: true });
+    const host = new FakeHost(ref, mkPr(21, sha, "conflict-b", { conflicts: true }), []);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 21, "inbox");
+    expect(o).toMatchObject({ kind: "pending", fixed: 0 });
+    const row = store.getAttend((o as { attendId: number }).attendId)!;
+    expect(row.commitSha).toBeNull();
+    expect(JSON.parse(row.payload!).decisions[0]).toMatchObject({ key: `conflict:${sha}`, action: "needs-human" });
+  });
+
+  test("a red CI reaches the agent with the failing job's log", async () => {
+    const sha = await branchAt("ci-red", 22);
+    let seen = "";
+    const h = writer(async (_req, items) => {
+      seen = JSON.stringify(items);
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "needs-human", reply: "" })), summary: "" });
+    });
+    const { d, repo, ref } = await setup(h, { ci: true });
+    class RedHost extends FakeHost {
+      override async getChecks(): Promise<Checks> {
+        return { state: "red", failing: [{ name: "unit tests", allowedToFail: false, job: "77" }, { name: "lint", allowedToFail: true }] };
+      }
+      async ciLog(job: string) {
+        return job === "77" ? "noise\nexpect(total([1, 2])).toBe(3)\nReceived: 4\ntoken=ghp_abcdefghijklmnopqrstuvwxyz0123456789" : undefined;
+      }
+    }
+    const host = new RedHost(ref, mkPr(22, sha, "ci-red"), []);
+    await attendPullRequest(d, { repo, host, token: "t" }, 22, "dry-run");
+    expect(seen).toContain(`ci:${sha}`);
+    expect(seen).toContain("Received: 4");
+    expect(seen).not.toContain("lint"); // allowed to fail: not this job's problem
+    expect(seen).not.toContain("ghp_abcdefghijklmnopqrstuvwxyz0123456789");
+  });
 });
+

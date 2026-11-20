@@ -234,7 +234,7 @@ export class CrewDaemon {
     return loadRepos(reposFile(this.o.dirs));
   }
 
-  async updateRepo(id: string, patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">>; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew">> }): Promise<LinkedRepo | undefined> {
+  async updateRepo(id: string, patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">>; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">> }): Promise<LinkedRepo | undefined> {
     const repos = await this.repos();
     const idx = repos.findIndex((r) => r.id === id);
     if (idx === -1) return undefined;

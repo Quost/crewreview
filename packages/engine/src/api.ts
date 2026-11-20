@@ -97,7 +97,8 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const b = await body();
       const pick = <T extends string>(v: unknown, list: readonly T[]) => (list.includes(v as T) ? (v as T) : undefined);
       const review = { mode: pick(b.review?.mode, REVIEW_MODES), authors: pick(b.review?.authors, ["others", "all", "mine"] as const) };
-      const attend = { mode: pick(b.attend?.mode, REVIEW_MODES), fromCrew: typeof b.attend?.fromCrew === "boolean" ? b.attend.fromCrew : undefined };
+      const flag = (v: unknown) => (typeof v === "boolean" ? v : undefined);
+      const attend = { mode: pick(b.attend?.mode, REVIEW_MODES), fromCrew: flag(b.attend?.fromCrew), conflicts: flag(b.attend?.conflicts), ci: flag(b.attend?.ci) };
       const clean = <T extends object>(x: T) => Object.fromEntries(Object.entries(x).filter(([, v]) => v !== undefined)) as Partial<T>;
       const updated = await crew.updateRepo(repoMatch[1]!, { review: clean(review), attend: clean(attend) });
       return updated ? json({ ok: true }) : json({ error: "not-found" }, 404);

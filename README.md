@@ -198,6 +198,7 @@ crewreview attend acme-shop 42 --dry-run          # see what it would do, nothin
 crewreview attend acme-shop 42                    # fix and draft the replies, wait in the inbox
 crewreview inbox show f3                          # decisions, replies, diff, checks
 crewreview inbox approve f3                       # push, reply, resolve, ask for a re-review
+crewreview repo set acme-shop --conflicts on --ci on   # also fix conflicts with the base and red CI
 ```
 
 - Only comments from people who can push to the repository (and bots you list, like Copilot) steer the agent.
@@ -207,6 +208,7 @@ crewreview inbox approve f3                       # push, reply, resolve, ask fo
 - Changes to CI, secrets, deployment files or the crew's own rules always wait for your approval, even in auto mode.
 - Commits use your git identity and signing settings, and say `Assisted-by: Crewreview`. Pushes never force; if the branch moved, the answer is redone.
 - Replies say they were answered by Crewreview.
+- `--conflicts on`: when your branch conflicts with its base, the attendant merges the base (never rebases, never force-pushes) and resolves the conflicts; a conflict it can't fully resolve is undone and left to you. `--ci on`: when CI is red, the failing jobs' logs (secrets taken out) go to the agent to fix the cause.
 - `--polish on` also takes the findings Crewreview's reviewer left on your pull request: review, fix, review again, for up to `maxPolishRounds` (3) rounds.
 
 The attendant edits files, so its harness must prove on your machine that it can write in its worktree and can't write outside it: run `crewreview doctor --conformance` once per harness version.

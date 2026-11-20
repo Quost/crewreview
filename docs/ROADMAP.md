@@ -14,12 +14,17 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.2** ✅ | Public launch: notarized macOS binaries, installers, Homebrew and Scoop, Claude Code plugin, MCP server and skill, website in five languages | released 2026-11-19 |
 | **M5** ✅ | Desktop app for macOS, Windows and Linux, signed updates, simpler install on the site → **v0.3.0** | released 2026-11-19; installers checked on macOS and Linux, Windows not yet run |
 
-## Still owed from the first plan
+## Owed from the first plan ✅ (next release)
 
-- **Limits that act**: pause a harness when its quota runs out and resume at the reset time, fall back to the next harness, a daily budget in review units, and a "what would run now" simulator before switching a repository to auto.
-- **Attendant items for conflicts and red CI** on your own pull requests.
-- **`doctor` checks that each harness is signed in for unattended use** (services run without your terminal's login).
-- Keep-awake while a job runs.
+Done and on `main`, not released yet:
+
+- **Limits that act**: a harness that hits its usage limit pauses until the time its message gives and resumes by itself; a fallback chain takes over; `limits.dailyRuns` caps the agent runs of a day; `crewreview repo preview` and the dashboard show what would run now before you switch to auto.
+- **The attendant fixes conflicts with the base (merge, never rebase) and red CI** on your own pull requests, opt-in per repository.
+- **`doctor` shows each harness's login**, here and as the background service sees it; the crew checks it before a job.
+- **Keep-awake** while agents work.
+- **Link a whole organization or GitLab group**, asked for by the first team to try it.
+
+Still open: a live GitLab check (needs a `glab auth login` on the test machine).
 
 ## v0.2: going public ✅
 

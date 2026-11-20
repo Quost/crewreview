@@ -19,6 +19,8 @@ export interface PullRequest {
   fromFork: boolean;
   /** GitLab needs these to place inline comments. */
   diffRefs?: { baseSha: string; startSha: string; headSha: string };
+  /** The host says the branch can't merge cleanly into its base. Unknown when the host hasn't worked it out. */
+  conflicts?: boolean;
 }
 
 export type AuthorFilter = "others" | "all" | "mine";

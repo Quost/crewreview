@@ -38,6 +38,10 @@ const AttendSettings = z
     maxPolishRounds: z.number().int().min(0).default(3),
     /** Bots whose comments count (substring of the login). */
     trustedBots: z.array(z.string()).default(["copilot"]),
+    /** Also fix a conflict with the base: merge it (never rebase) and resolve the conflict markers. */
+    conflicts: z.boolean().default(false),
+    /** Also fix what turned CI red on your pull request, from the failing jobs' logs. */
+    ci: z.boolean().default(false),
     /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
     validate: z.array(z.string()).default([]),
     harness: z.string().optional(),

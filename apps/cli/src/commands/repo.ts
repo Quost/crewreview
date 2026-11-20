@@ -13,7 +13,11 @@ export interface RepoArgs {
   polish?: string;
   include?: string;
   exclude?: string;
+  conflicts?: string;
+  ci?: string;
 }
+
+const onOff = (v: string | undefined, current: boolean) => (v === undefined ? current : v === "on");
 
 const patterns = (v: string | undefined) => (v === undefined ? undefined : v.split(",").map((p) => p.trim()).filter(Boolean));
 
@@ -52,7 +56,9 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     check(c, "--authors", a.authors, AUTHORS) ??
     check(c, "--kind", a.kind, ["github", "gitlab"]) ??
     check(c, "--attend", a.attend, REVIEW_MODES) ??
-    check(c, "--polish", a.polish, ["on", "off"]);
+    check(c, "--polish", a.polish, ["on", "off"]) ??
+    check(c, "--conflicts", a.conflicts, ["on", "off"]) ??
+    check(c, "--ci", a.ci, ["on", "off"]);
   if (bad) return (c.err(bad), 2);
   const repos = await loadRepos(file);
   const entries = (): RepoEntry[] => repos.map(({ ref: _ref, ...e }) => e);
@@ -79,7 +85,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
         include: patterns(a.include),
         exclude: patterns(a.exclude),
         review: { mode: (a.mode as RepoEntry["review"]["mode"]) ?? "inbox", authors: (a.authors as RepoEntry["review"]["authors"]) ?? "others", commentLanguage: a.lang },
-        attend: { mode: (a.attend as RepoEntry["attend"]["mode"]) ?? "off", fromCrew: a.polish === "on" },
+        attend: { mode: (a.attend as RepoEntry["attend"]["mode"]) ?? "off", fromCrew: a.polish === "on", conflicts: a.conflicts === "on", ci: a.ci === "on" },
       },
     });
     if ("error" in p) {
@@ -137,6 +143,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       ...e.attend,
       mode: (a.attend as RepoEntry["attend"]["mode"]) ?? e.attend.mode,
       fromCrew: a.polish === undefined ? e.attend.fromCrew : a.polish === "on",
+      conflicts: onOff(a.conflicts, e.attend.conflicts),
+      ci: onOff(a.ci, e.attend.ci),
     },
   };
   await saveRepos(file, list);

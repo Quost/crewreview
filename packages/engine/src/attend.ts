@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   extractJson,
@@ -8,16 +8,18 @@ import {
   redactSecrets,
   sensitivePaths,
   settled,
+  situationItems,
   type AttendDecision,
   type AttendItem,
 } from "@crewreview/core";
 import { lastLines, runProcess, scrubEnv, type Harness } from "@crewreview/harness";
 import { gitAuthEnv, type Permission } from "@crewreview/hosts";
 import { createTranslator, languageName, matchLocale, type Translator } from "@crewreview/i18n";
-import { diffText, git, mergeBase } from "./git.ts";
+import { diffText, git, gitOk, mergeBase } from "./git.ts";
 import { isPickError, pickReviewer, pickWriter, type PickError } from "./harnesses.ts";
 import { pickLimits, watchQuota } from "./quota.ts";
 import { fetchPull } from "./mirror.ts";
+import type { HostAdapter } from "@crewreview/hosts";
 import type { PrDeps, PrTarget } from "./pr.ts";
 import { attendPrompt } from "./prompts.ts";
 import type { LinkedRepo } from "./repos.ts";
@@ -144,13 +146,23 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   // The polish loop stops after a few rounds: a reviewer can always find one more nit.
   const polish = s.fromCrew && d.store.polishRounds(repo.id, number) < s.maxPolishRounds;
   const rules = { me, trustedBots: s.trustedBots, fromCrew: polish };
-  const candidates = pendingItems({ threads, reviews, rules, done: d.store.attendDone(repo.id, number) });
+  const done = d.store.attendDone(repo.id, number);
+  const candidates = pendingItems({ threads, reviews, rules, done });
+  // The pull request's own state, when the repository asks for it: a conflict with its base, a red CI.
+  if (s.fix && (s.conflicts || s.ci)) {
+    const failing = s.ci ? await failingJobs(host, pr) : undefined;
+    candidates.push(...situationItems({ headSha: pr.headSha, baseRef: pr.baseRef, conflicts: pr.conflicts, failing }, { conflicts: s.conflicts, ci: s.ci }, done));
+  }
 
   // Only people who can push to the repository may steer the agent; listed bots and our own reviewer aside.
   const perms = new Map<string, Permission>();
-  const items: AttendItem[] = [];
+  let items: AttendItem[] = [];
   const ignored: string[] = [];
   for (const it of candidates) {
+    if (it.kind === "conflict" || it.kind === "ci") {
+      items.push(it);
+      continue;
+    }
     const bot = s.trustedBots.some((b) => it.author.toLowerCase().includes(b.toLowerCase()));
     if (it.fromCrew || bot) {
       items.push(it);
@@ -192,6 +204,18 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     worktree = await addWorktree(fetched.mirror, fetched.headSha, join(d.dirs.state, "work", `${repo.id}-${number}-${stamp}`));
     await mkdir(jobDir, { recursive: true });
 
+    // A conflict: merge the base here (never a rebase: the push stays a fast-forward) and let the agent resolve it.
+    let merging: { conflicted: string[] } | undefined;
+    if (items.some((i) => i.kind === "conflict")) {
+      await git(["merge", "--no-ff", "--no-commit", fetched.baseSha], worktree);
+      if ((await git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], worktree)).code === 0) {
+        const conflicted = (await git(["diff", "--name-only", "--diff-filter=U"], worktree)).stdout.split("\n").filter(Boolean);
+        merging = { conflicted };
+        const list = conflicted.length ? conflicted.map((f) => `- ${f}`).join("\n") : "(none: the merge went through on its own)";
+        items = items.map((i) => (i.kind === "conflict" ? { ...i, text: `${i.text}\n\nFiles with conflicts:\n${list}` } : i));
+      }
+    }
+
     const ctx = join(worktree, ATTEND_DIR);
     await mkdir(ctx, { recursive: true });
     const mb = await mergeBase(fetched.mirror, fetched.baseSha, fetched.headSha);
@@ -224,26 +248,49 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     }
 
     let decisions = parsed.decisions;
+    if (items.some((i) => i.kind === "conflict")) {
+      const conflictKey = items.find((i) => i.kind === "conflict")!.key;
+      const unresolved: string[] = [];
+      for (const f of merging?.conflicted ?? []) {
+        const text = await readFile(join(worktree, f), "utf8").catch(() => "");
+        if (/^(<{7}|={7}|>{7})( |$)/m.test(text)) unresolved.push(f);
+      }
+      if (!merging || unresolved.length) {
+        // Half a merge is worse than none: undo all of it, and leave the conflict to you.
+        if (merging) await git(["merge", "--abort"], worktree);
+        merging = undefined;
+        decisions = decisions.map((x) => (x.action === "fixed" || x.key === conflictKey ? { ...x, action: "needs-human" as const, reply: "" } : x));
+        changed = [];
+      } else {
+        decisions = decisions.map((x) => (x.key === conflictKey ? { ...x, action: "fixed" as const } : x));
+      }
+    }
+    // During a merge, what the agent changed: not what came from the base.
+    const touched = merging ? await agentTouched(worktree) : undefined;
+    if (merging?.conflicted.length) await gitOk(["add", "--", ...merging.conflicted], worktree);
     const claimsFix = decisions.some((x) => x.action === "fixed");
-    if (claimsFix && changed.length === 0) {
+    if (merging) {
+      // The merge itself is the fix for the conflict, whatever else changed.
+    } else if (claimsFix && changed.length === 0) {
       // "Fixed" with nothing changed isn't fixed.
       decisions = decisions.map((x) => (x.action === "fixed" ? { ...x, action: "needs-human" as const } : x));
     } else if (!claimsFix && changed.length > 0) {
       await discardChanges(worktree);
       changed = [];
     }
-    const sensitive = sensitivePaths(changed);
+    const sensitive = sensitivePaths(touched ?? changed);
     if (sensitive.length) forcedInbox ??= "sensitive";
 
     let commitSha: string | undefined;
-    if (changed.length) {
+    if (changed.length || merging) {
       const fixed = decisions.filter((x) => x.action === "fixed");
       const lines = [...new Set(fixed.map((f) => commitLine(items.find((i) => i.key === f.key), f.reply)))];
-      const message = [shorten(parsed.summary || "Address review feedback", 100), "", ...lines, "", `Assisted-by: Crewreview ${d.version} (${harness.id})`].join("\n");
+      const title = merging ? `Merge ${pr.baseRef} into ${pr.headRef}` : shorten(parsed.summary || "Address review feedback", 100);
+      const message = [title, "", ...lines, "", `Assisted-by: Crewreview ${d.version} (${harness.id})`].join("\n");
       commitSha = await commitAll(worktree, message, { signing: d.signing, identity: d.identity });
     }
 
-    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed, sensitive, validation, harness: harness.id, forcedInbox };
+    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: touched ?? changed, sensitive, validation, harness: harness.id, forcedInbox };
     await writeFile(join(jobDir, "attend.json"), JSON.stringify(payload, null, 2));
     const diff = commitSha ? (await git(["show", "--no-color", "--stat", "--patch", commitSha], worktree)).stdout : "";
     await writeFile(join(jobDir, "diff.patch"), diff);
@@ -269,6 +316,25 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (worktree && mirror) await removeWorktree(mirror, worktree).catch(() => {});
     return { kind: "failed", attendId, error };
   }
+}
+
+/** The jobs that turned CI red, with the end of their logs (secrets taken out), at most three. */
+async function failingJobs(host: HostAdapter, pr: { headSha: string } & Parameters<HostAdapter["getChecks"]>[0]): Promise<{ name: string; log?: string }[] | undefined> {
+  const checks = await host.getChecks(pr);
+  if (checks.state !== "red") return undefined;
+  const out: { name: string; log?: string }[] = [];
+  for (const f of checks.failing.filter((x) => !x.allowedToFail).slice(0, 3)) {
+    const raw = f.job && host.ciLog ? await host.ciLog(f.job).catch(() => undefined) : undefined;
+    out.push({ name: f.name, log: raw ? redactSecrets(lastLines(raw, 120)).slice(-6000) : undefined });
+  }
+  return out;
+}
+
+/** Files the agent changed during a merge: against the merged index, plus new ones. */
+async function agentTouched(dir: string): Promise<string[]> {
+  const edited = (await git(["diff", "--name-only"], dir)).stdout.split("\n").filter(Boolean);
+  const added = (await git(["ls-files", "--others", "--exclude-standard"], dir)).stdout.split("\n").filter(Boolean);
+  return [...new Set([...edited, ...added])];
 }
 
 async function removeStale(worktree: string): Promise<void> {
@@ -309,7 +375,9 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       if (!item) continue;
       const fixedIn = dec.action === "fixed" && row.commitSha ? ` · ${t.t("attend.fixedIn", { sha: row.commitSha.slice(0, 7) })}` : "";
       const body = `${dec.reply.trim()}\n\n<sub>🤖 ${t.t("attend.footer")}${fixedIn}</sub>\n${makeMarker({ kind: "reply", ref: dec.key, version: d.version })}`;
-      await host.reply(pr, item.threadId ?? `issue-comment-${item.key}`, body);
+      if (item.threadId) await host.reply(pr, item.threadId, body);
+      else if (host.comment) await host.comment(pr, body);
+      else continue;
       replies++;
       if (dec.action === "fixed" && item.kind === "thread" && item.threadId && s.resolve) {
         await host.resolve(pr, item.threadId).then(() => resolved++, () => {});
@@ -323,7 +391,7 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
     let reReview = false;
     if (s.reReview && (row.commitSha || replies > 0)) {
       const reviewers = (await host.listReviews(row.number)).filter((r) => r.state === "changes_requested").map((r) => r.author);
-      const askers = payload.items.filter((i) => !i.fromCrew).map((i) => i.author);
+      const askers = payload.items.filter((i) => !i.fromCrew && i.author).map((i) => i.author);
       reReview = await host.requestReReview(pr, [...reviewers, ...askers]).catch(() => false);
     }
     d.store.updateAttend(attendId, { status: "done" });

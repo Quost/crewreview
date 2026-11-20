@@ -29,6 +29,7 @@ function mapMr(m: any): PullRequest {
     url: m.web_url ?? "",
     fromFork: m.source_project_id !== undefined && m.target_project_id !== undefined && m.source_project_id !== m.target_project_id,
     diffRefs: m.diff_refs ? { baseSha: m.diff_refs.base_sha, startSha: m.diff_refs.start_sha, headSha: m.diff_refs.head_sha } : undefined,
+    conflicts: m.has_conflicts === true || m.detailed_merge_status === "conflict" ? true : m.has_conflicts === false ? false : undefined,
   };
 }
 
@@ -39,7 +40,7 @@ export function gitlabCiState(jobs: any[]): Checks {
   let running = false;
   for (const j of jobs) {
     if (["created", "pending", "running", "waiting_for_resource", "preparing", "scheduled"].includes(j.status)) running = true;
-    else if (j.status === "failed") failing.push({ name: j.name, url: j.web_url, allowedToFail: Boolean(j.allow_failure) });
+    else if (j.status === "failed") failing.push({ name: j.name, url: j.web_url, allowedToFail: Boolean(j.allow_failure), ...(j.id ? { job: String(j.id) } : {}) });
   }
   const hard = failing.some((f) => !f.allowedToFail);
   const state: CiState = hard ? "red" : running ? "running" : failing.length ? "green-with-warnings" : "green";
@@ -161,6 +162,15 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
 
     async reply(pr, threadId, body) {
       await t.request("POST", `${project}/merge_requests/${pr.number}/discussions/${threadId}/notes`, { body: { body } });
+    },
+
+    async comment(pr, body) {
+      await t.request("POST", `${project}/merge_requests/${pr.number}/notes`, { body: { body } });
+    },
+
+    async ciLog(job) {
+      const res = await t.request("GET", `${project}/jobs/${job}/trace`).catch(() => undefined);
+      return typeof res?.data === "string" ? res.data : undefined;
     },
 
     async resolve(pr, threadId) {

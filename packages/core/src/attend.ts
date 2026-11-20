@@ -20,7 +20,8 @@ export interface AttendReview {
   submittedAt?: string;
 }
 
-export type ItemKind = "thread" | "review" | "comment";
+/** `conflict` and `ci` aren't anyone's comment: the pull request itself needs work (opt-in per repository). */
+export type ItemKind = "thread" | "review" | "comment" | "conflict" | "ci";
 
 /** Something on your pull request that asks for an answer or a change. */
 export interface AttendItem {
@@ -108,6 +109,40 @@ export function pendingItems(i: PendingInput): AttendItem[] {
     const key = `review:${r.id}`;
     if (i.done.has(key)) continue;
     out.push({ key, kind: "review", author: r.author, text: r.body, createdAt: r.submittedAt ?? "", fromCrew: false });
+  }
+  return out;
+}
+
+/** The state of your pull request that can ask for work too: a conflict with its base, a red CI. */
+export interface Situation {
+  headSha: string;
+  baseRef: string;
+  conflicts?: boolean;
+  /** Only when CI is red: the failing jobs, with the end of their logs when the host keeps them. */
+  failing?: { name: string; log?: string }[];
+}
+
+/**
+ * Items for a conflict with the base and a red CI, when the repository asks for them. Their keys name the head
+ * commit, so each push gets one try and a handled one never comes back.
+ */
+export function situationItems(s: Situation, rules: { conflicts: boolean; ci: boolean }, done: ReadonlySet<string>): AttendItem[] {
+  const out: AttendItem[] = [];
+  const conflict = `conflict:${s.headSha}`;
+  if (rules.conflicts && s.conflicts === true && !done.has(conflict)) {
+    out.push({
+      key: conflict,
+      kind: "conflict",
+      author: "",
+      text: `This branch conflicts with ${s.baseRef}. ${s.baseRef} has been merged into the working copy: resolve every conflict marker in the listed files, keeping what both sides meant.`,
+      createdAt: "",
+      fromCrew: false,
+    });
+  }
+  const ci = `ci:${s.headSha}`;
+  if (rules.ci && s.failing?.length && !done.has(ci)) {
+    const jobs = s.failing.map((f) => (f.log ? `Job "${f.name}" failed. The end of its log:\n${f.log}` : `Job "${f.name}" failed (no log available).`));
+    out.push({ key: ci, kind: "ci", author: "", text: `CI failed on this commit.\n\n${jobs.join("\n\n")}`, createdAt: "", fromCrew: false });
   }
   return out;
 }

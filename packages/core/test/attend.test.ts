@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { makeMarker, parseAttendOutput, pendingItems, sensitivePaths, settled, type AttendRules, type AttendThread } from "../src/index.ts";
+import { makeMarker, parseAttendOutput, pendingItems, sensitivePaths, settled, situationItems, type AttendRules, type AttendThread } from "../src/index.ts";
 
 const rules: AttendRules = { me: "quost", trustedBots: ["copilot"], fromCrew: false };
 const c = (id: string, author: string, body: string, createdAt = "2026-11-19T10:00:00Z", authorIsBot = false) => ({ id, author, authorIsBot, body, createdAt });
@@ -80,3 +80,23 @@ describe("attendant items", () => {
     ]);
   });
 });
+
+describe("the pull request's own state", () => {
+  const on = { conflicts: true, ci: true };
+  test("a conflict and a red CI become items for this head, only when the repository asks", () => {
+    const items = situationItems({ headSha: "abc", baseRef: "main", conflicts: true, failing: [{ name: "test", log: "expected 2, got 3" }, { name: "lint" }] }, on, new Set());
+    expect(items.map((i) => [i.key, i.kind])).toEqual([["conflict:abc", "conflict"], ["ci:abc", "ci"]]);
+    expect(items[1]!.text).toContain('Job "test" failed. The end of its log:\nexpected 2, got 3');
+    expect(items[1]!.text).toContain('Job "lint" failed (no log available).');
+    // Not anyone's comment: never holds up the wait for a review to land.
+    expect(settled(items, Date.now(), 45_000)).toBe(true);
+    expect(situationItems({ headSha: "abc", baseRef: "main", conflicts: true, failing: [{ name: "t" }] }, { conflicts: false, ci: false }, new Set())).toEqual([]);
+  });
+
+  test("unknown or clean stays quiet; a handled head doesn't come back, a new push does", () => {
+    expect(situationItems({ headSha: "abc", baseRef: "main", conflicts: undefined, failing: [] }, on, new Set())).toEqual([]);
+    expect(situationItems({ headSha: "abc", baseRef: "main", conflicts: true }, on, new Set(["conflict:abc"]))).toEqual([]);
+    expect(situationItems({ headSha: "def", baseRef: "main", conflicts: true }, on, new Set(["conflict:abc"]))[0]?.key).toBe("conflict:def");
+  });
+});
+

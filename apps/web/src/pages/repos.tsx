@@ -138,6 +138,20 @@ export function ReposPage({ version }: { version: number }) {
               </div>
               <Toggle label={r.attend.fromCrew ? t.t("web.on") : t.t("web.off")} checked={r.attend.fromCrew} onChange={(fromCrew) => patch(r.id, { attend: { fromCrew } })} />
             </div>
+            <div className="setting">
+              <div>
+                <strong>{t.t("web.repos.conflicts")}</strong>
+                <p className="muted small">{t.t("web.repos.conflictsHint")}</p>
+              </div>
+              <Toggle label={r.attend.conflicts ? t.t("web.on") : t.t("web.off")} checked={r.attend.conflicts} onChange={(conflicts) => patch(r.id, { attend: { conflicts } })} />
+            </div>
+            <div className="setting">
+              <div>
+                <strong>{t.t("web.repos.ci")}</strong>
+                <p className="muted small">{t.t("web.repos.ciHint")}</p>
+              </div>
+              <Toggle label={r.attend.ci ? t.t("web.on") : t.t("web.off")} checked={r.attend.ci} onChange={(ci) => patch(r.id, { attend: { ci } })} />
+            </div>
           </div>
         </Card>
       ))}

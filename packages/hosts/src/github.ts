@@ -25,6 +25,8 @@ function mapPull(p: any): PullRequest {
     updatedAt: p.updated_at ?? "",
     url: p.html_url ?? "",
     fromFork: Boolean(p.head?.repo && p.base?.repo && p.head.repo.full_name !== p.base.repo.full_name),
+    // Only the single pull request carries these; GitHub may still be working it out (null).
+    conflicts: p.mergeable_state === "dirty" || p.mergeable === false ? true : p.mergeable === true ? false : undefined,
   };
 }
 
@@ -41,7 +43,8 @@ export function githubCiState(runs: any[], statuses: any[]): Checks {
     any = true;
     if (r.status !== "completed") running = true;
     else if (["failure", "timed_out", "cancelled", "action_required", "startup_failure"].includes(r.conclusion)) {
-      failing.push({ name: r.name, url: r.html_url, allowedToFail: false });
+      // A GitHub Actions check run has the id of its job, whose log can be read.
+      failing.push({ name: r.name, url: r.html_url, allowedToFail: false, ...(r.app?.slug === "github-actions" && r.id ? { job: String(r.id) } : {}) });
     }
   }
   for (const s of statuses) {
@@ -147,6 +150,15 @@ export function githubHost(repo: RepoRef, t: Transport): HostAdapter {
         const res = await send(`${input.body}\n\n### ${input.fallbackHeading}\n\n${moved}`, []);
         return { url: res.data?.html_url, event, inline: 0, movedToBody: input.comments.length };
       }
+    },
+
+    async comment(pr, body) {
+      await t.request("POST", `/repos/${repo.slug}/issues/${pr.number}/comments`, { body: { body } });
+    },
+
+    async ciLog(job) {
+      const res = await t.request("GET", `${base}/actions/jobs/${job}/logs`).catch(() => undefined);
+      return typeof res?.data === "string" ? res.data : undefined;
     },
 
     async reply(pr, threadId, body) {

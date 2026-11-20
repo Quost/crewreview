@@ -43,7 +43,8 @@ export interface Review {
 
 export interface Checks {
   state: CiState;
-  failing: { name: string; url?: string; allowedToFail: boolean }[];
+  /** `job`: the id the host's job log is read with, when there is one. */
+  failing: { name: string; url?: string; allowedToFail: boolean; job?: string }[];
 }
 
 export interface InlineComment {
@@ -88,4 +89,8 @@ export interface HostAdapter {
   requestReReview(pr: PullRequest, users: string[]): Promise<boolean>;
   /** Refspec that fetches the pull request's head into `local`. */
   headRefspec(number: number, local: string): string;
+  /** A comment on the pull request's conversation, not in a thread. */
+  comment?(pr: PullRequest, body: string): Promise<void>;
+  /** The end of a failed CI job's log, when the host keeps one. */
+  ciLog?(job: string): Promise<string | undefined>;
 }

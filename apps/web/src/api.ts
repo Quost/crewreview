@@ -111,7 +111,7 @@ export interface Repo {
   include?: string[];
   exclude?: string[];
   review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine" };
-  attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[] };
+  attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean };
 }
 
 export interface Preview {
