@@ -9,9 +9,11 @@ export interface DiffFile {
   binary: boolean;
   /** Lines on the new side that appear in a hunk (context or added): where inline comments can go. */
   rightLines: Set<number>;
+  /** For unchanged lines in a hunk, the same line's number on the old side (GitLab needs both to place a comment). */
+  contextOld: Map<number, number>;
 }
 
-const HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
+const HUNK = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 
 /** Undo git's C-style quoting of paths with special characters ("a/caf\303\251.txt"). */
 export function unquoteGitPath(raw: string): string {
@@ -48,10 +50,11 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
   const files: DiffFile[] = [];
   let cur: DiffFile | undefined;
   let right = 0;
+  let left = 0;
   let inHunk = false;
 
   const start = (path: string): DiffFile => {
-    const f: DiffFile = { path, status: "modified", additions: 0, deletions: 0, binary: false, rightLines: new Set() };
+    const f: DiffFile = { path, status: "modified", additions: 0, deletions: 0, binary: false, rightLines: new Set(), contextOld: new Map() };
     files.push(f);
     inHunk = false;
     return f;
@@ -80,7 +83,8 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
     }
     const h = HUNK.exec(line);
     if (h) {
-      right = Number(h[1]);
+      left = Number(h[1]);
+      right = Number(h[2]);
       inHunk = true;
       continue;
     }
@@ -90,7 +94,9 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
       cur.rightLines.add(right++);
     } else if (line.startsWith("-")) {
       cur.deletions++;
+      left++;
     } else if (line.startsWith(" ")) {
+      cur.contextOld.set(right, left++);
       cur.rightLines.add(right++);
     } else if (line.startsWith("\\")) {
       // "\ No newline at end of file"

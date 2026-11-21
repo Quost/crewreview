@@ -16,6 +16,7 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       const o = e.outcome;
       if (o.kind === "posted") return { text: t.t("web.log.posted", { ...ref(e), event: t.t(`verdict.${o.event}` as never) }), tone: "ok" };
       if (o.kind === "pending") return { text: t.t("web.log.reviewWaiting", { ...ref(e), findings: o.findings }), tone: "warn" };
+      if (o.kind === "skipped" && o.reason === "too-large") return { text: t.t("review.tooLarge", { ...ref(e), lines: o.lines ?? "?", limit: o.limit ?? "?" }), tone: "warn" };
       if (o.kind === "skipped") return { text: o.reason === "merge-only" ? t.t("review.mergeOnly", ref(e)) : t.t("review.alreadyOnHost", ref(e)), tone: "neutral" };
       if (o.kind === "stale") return { text: t.t("review.stale", { id: `r${o.reviewId}` }), tone: "warn" };
       if (o.kind === "harness") return harnessLine(t, e, o.error);

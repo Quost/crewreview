@@ -282,6 +282,28 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     expect(events.find((e) => e.type === "outcome")).toMatchObject({ number: 12, outcome: { kind: "pending" } });
   }, 60_000);
 
+  test("a skip is reported once per commit and reason; a change too large is skipped once, not failed", async () => {
+    const { d, repo, ref } = await setup("inbox");
+    const sha = await pushPull(16, "discount");
+    // A branch that changes three lines, over a limit of one.
+    await sh(["checkout", "-qB", "big", "main"], work);
+    await writeFile(join(work, "src", "big.ts"), "export const a = 1;\nexport const b = 2;\nexport const c = 3;\n");
+    await sh(["add", "."], work);
+    await sh(["commit", "-qm", "big"], work);
+    await sh(["checkout", "-q", "discount"], work);
+    const big = await pushPull(17, "big");
+    const host = new FakeHost(ref, [pr(16, sha, { draft: true }), pr(17, big)]);
+    const deps = { ...d, config: { ...d.config, limits: { ...d.config.limits, maxDiffLines: 1 } }, skipsSaid: new Map<string, string>() };
+    const first: DaemonEvent[] = [];
+    await runCycle(deps, [repo], (e) => first.push(e), Date.now, async () => ({ repo, host, token: "t" }));
+    expect(first.filter((e) => e.type === "skip").map((e) => (e as { number: number }).number)).toEqual([16]);
+    expect(first.find((e) => e.type === "outcome")).toMatchObject({ number: 17, outcome: { kind: "skipped", reason: "too-large", limit: 1 } });
+    const second: DaemonEvent[] = [];
+    await runCycle(deps, [repo], (e) => second.push(e), Date.now, async () => ({ repo, host, token: "t" }));
+    // The draft was already said; the large one isn't tried again on the same commit.
+    expect(second.filter((e) => e.type === "skip" || e.type === "outcome")).toEqual([]);
+  }, 60_000);
+
   test("a pull request pushed yesterday doesn't wait to settle when the crew first sees it; one pushed now does", async () => {
     const { d, repo, ref } = await setup("inbox");
     const sha = await pushPull(14, "discount");

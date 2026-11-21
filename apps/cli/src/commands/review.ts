@@ -34,6 +34,7 @@ export function outcomeText(c: Ctx, repo: string, number: number, o: PrOutcome):
     case "pending":
       return t.t("review.inboxed", { repo, number, id: o.reviewId, findings: o.findings });
     case "skipped":
+      if (o.reason === "too-large") return st.yellow(t.t("review.tooLarge", { repo, number, lines: o.lines, limit: o.limit }));
       return st.dim(o.reason === "merge-only" ? t.t("review.mergeOnly", { repo, number }) : t.t("review.alreadyOnHost", { repo, number }));
     case "stale":
       return st.yellow(t.t("review.stale", { id: o.reviewId }));

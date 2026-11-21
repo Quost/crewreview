@@ -36,6 +36,8 @@ export interface PrDeps {
   quota?: QuotaBook;
   /** Hands out seats when [roles] names a job (docs/plans/crew-mode.md). */
   seats?: SeatBook;
+  /** The skip each pull request was last reported with, so the activity says it once (the daemon keeps one). */
+  skipsSaid?: Map<string, string>;
 }
 
 export interface JobRef {
@@ -57,6 +59,8 @@ export type PrMode = "inbox" | "auto" | "dry-run";
 
 export type PrOutcome =
   | { kind: "skipped"; reason: "merge-only" | "already-on-host"; reviewId?: number }
+  /** More changed lines than limits.maxDiffLines: left alone until a new commit, never counted as a failure. */
+  | { kind: "skipped"; reason: "too-large"; reviewId?: number; lines: number; limit: number }
   | { kind: "pending"; reviewId: number; findings: number; event: string }
   | { kind: "posted"; reviewId: number; url?: string; event: string; findings: number }
   | { kind: "stale"; reviewId: number }
@@ -207,6 +211,11 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
     }
     return await postReview(d, x, reviewId!);
   } catch (e) {
+    if (e instanceof ReviewError && e.code === "diff-too-large") {
+      // Not a failure: the same commit would be just as large next time. Skipped, so it isn't tried again.
+      if (reviewId !== undefined) d.store.update(reviewId, { status: "skipped", note: "too-large" });
+      return { kind: "skipped", reason: "too-large", reviewId, lines: Number(e.details.lines), limit: Number(e.details.limit) };
+    }
     const error = e instanceof ReviewError && e.code === "all-lenses-failed" ? `${e.details.failure}: every lens failed` : e instanceof Error ? e.message : String(e);
     if (reviewId !== undefined) d.store.update(reviewId, { status: "failed", error: error.slice(0, 2000) });
     return { kind: "failed", reviewId, error };

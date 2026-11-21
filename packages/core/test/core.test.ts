@@ -94,6 +94,8 @@ describe("diff", () => {
     expect(app.additions).toBe(3);
     expect(app.deletions).toBe(2);
     expect([...app.rightLines]).toEqual([1, 2, 3, 4, 21, 22]);
+    // Unchanged lines know their old number too: GitLab needs both to place a comment on one.
+    expect([...app.contextOld]).toEqual([[1, 1], [4, 3], [22, 21]]);
     expect(files[2]!.oldPath).toBe("old.txt");
     expect(files[3]!.binary).toBe(true);
     expect(totalChangedLines(files)).toBe(7);

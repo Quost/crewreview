@@ -51,6 +51,10 @@ export interface InlineComment {
   path: string;
   line: number;
   body: string;
+  /** The file's path before the change, when it was renamed. */
+  oldPath?: string;
+  /** For an unchanged line, its number before the change: GitLab places a comment there only with both. */
+  oldLine?: number;
 }
 
 export interface PostReviewInput {

@@ -119,6 +119,7 @@ export class CrewDaemon {
   }
 
   private seatBook?: { config: Config; book: SeatBook };
+  private readonly skipsSaid = new Map<string, string>();
 
   /** Hands out seats per job; a new one when the config changes, so it always follows the file. */
   get seats(): SeatBook {
@@ -209,7 +210,7 @@ export class CrewDaemon {
 
   private deps(signal?: AbortSignal): AttendDeps {
     const { dirs, config, store, conformance, registry, version, ui, signing } = this.o;
-    return { dirs, config, store, conformance, registry, version, ui, signing, signal, quota: this.quota, seats: this.seats, onJobEvent: (job, e) => this.onJobEvent(job, e) };
+    return { dirs, config, store, conformance, registry, version, ui, signing, signal, quota: this.quota, seats: this.seats, skipsSaid: this.skipsSaid, onJobEvent: (job, e) => this.onJobEvent(job, e) };
   }
 
   /** Run one cycle now (or right after the current one). */

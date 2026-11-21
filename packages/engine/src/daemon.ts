@@ -136,7 +136,11 @@ export async function runCycle(
         // Only ask for CI when everything else says yes: it costs a request per pull request.
         if (e.eligible && rules.ciMaxWaitMs > 0) e = reviewEligibility({ ...input, ci: (await target.host.getChecks(pr)).state });
         if (!e.eligible) {
-          if (e.reason !== "already-reviewed" && e.reason !== "own" && e.reason !== "not-own") log({ type: "skip", repo: repo.id, number: pr.number, reason: e.reason });
+          // Said once per commit and reason: a draft skipped every few minutes isn't news.
+          const said = `${pr.headSha}:${e.reason}`;
+          const key = `${repo.id}#${pr.number}`;
+          if (e.reason !== "already-reviewed" && e.reason !== "own" && e.reason !== "not-own" && d.skipsSaid?.get(key) !== said) log({ type: "skip", repo: repo.id, number: pr.number, reason: e.reason });
+          d.skipsSaid?.set(key, said);
           continue;
         }
         due.push({ target, pr, firstSeen });

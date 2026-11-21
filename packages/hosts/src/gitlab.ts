@@ -1,4 +1,4 @@
-import type { CiState, PullRequest } from "@crewreview/core";
+import { parseMarker, type CiState, type PullRequest } from "@crewreview/core";
 import { HostError, paginate, type HttpResponse, type Transport } from "./transport.ts";
 import type { Checks, HostAdapter, InlineComment, Permission, PostResult, RepoRef, Thread } from "./types.ts";
 
@@ -119,36 +119,81 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
       let placed = 0;
       // Draft notes publish together, like a GitHub review: one notification, not one per comment.
       let drafts = true;
+      // Drafts a failed attempt left behind are ours by their hidden marker: they go first, so a retry doesn't post
+      // twice. Drafts you wrote yourself stay, and then ours are published one by one, never with yours.
+      let yours = 0;
+      try {
+        const existing = ((await t.request("GET", `${mr}/draft_notes`, { query: { per_page: 100 } })).data ?? []) as { id: number; note?: string }[];
+        for (const d of existing) {
+          if (parseMarker(d.note ?? "")) await t.request("DELETE", `${mr}/draft_notes/${d.id}`).catch(() => {});
+          else yours++;
+        }
+      } catch (e) {
+        if (e instanceof HostError && e.status === 404) drafts = false; // older GitLab without draft notes
+        else throw e;
+      }
+      const created: { id: number; c: InlineComment }[] = [];
       for (const c of input.comments) {
         if (!refs) {
           unplaced.push(c);
           continue;
         }
-        const position = { position_type: "text", base_sha: refs.baseSha, start_sha: refs.startSha, head_sha: refs.headSha, new_path: c.path, new_line: c.line };
+        // GitLab wants both paths, and both line numbers on an unchanged line; without them a note can be saved as a
+        // draft and still fail when it's published.
+        const position = {
+          position_type: "text",
+          base_sha: refs.baseSha,
+          start_sha: refs.startSha,
+          head_sha: refs.headSha,
+          old_path: c.oldPath ?? c.path,
+          new_path: c.path,
+          new_line: c.line,
+          ...(c.oldLine ? { old_line: c.oldLine } : {}),
+        };
         try {
-          if (drafts) await t.request("POST", `${mr}/draft_notes`, { body: { note: c.body, position } });
-          else await t.request("POST", `${mr}/discussions`, { body: { body: c.body, position } });
-          placed++;
-        } catch (e) {
-          if (drafts && e instanceof HostError && e.status === 404) {
-            drafts = false; // older GitLab without draft notes
-            try {
-              await t.request("POST", `${mr}/discussions`, { body: { body: c.body, position } });
-              placed++;
-            } catch {
+          if (drafts) {
+            const d = (await t.request("POST", `${mr}/draft_notes`, { body: { note: c.body, position } })).data as { id: number; line_code?: string | null };
+            // GitLab saves a draft it can't place on a diff line, then fails the whole batch publishing it (a 500 on
+            // 19.x). It says so with an empty line_code: that note goes into the summary instead.
+            if (d && "line_code" in d && !d.line_code) {
+              await t.request("DELETE", `${mr}/draft_notes/${d.id}`).catch(() => {});
               unplaced.push(c);
-            }
-          } else unplaced.push(c);
+            } else created.push({ id: d.id, c });
+          } else {
+            await t.request("POST", `${mr}/discussions`, { body: { body: c.body, position } });
+            placed++;
+          }
+        } catch {
+          unplaced.push(c);
+        }
+      }
+      if (created.length) {
+        let left = created;
+        if (yours === 0) {
+          try {
+            await t.request("POST", `${mr}/draft_notes/bulk_publish`);
+            left = [];
+          } catch {
+            // Some GitLab versions fail the whole batch for one note. Whatever is still a draft goes one by one.
+            const still = new Set((((await t.request("GET", `${mr}/draft_notes`, { query: { per_page: 100 } }).catch(() => ({ data: [] }))).data ?? []) as { id: number }[]).map((d) => d.id));
+            left = created.filter((d) => still.has(d.id));
+          }
+        }
+        placed += created.length - left.length;
+        for (const d of left) {
+          try {
+            await t.request("PUT", `${mr}/draft_notes/${d.id}/publish`);
+            placed++;
+          } catch {
+            // A note GitLab won't place goes into the summary, and its draft away.
+            await t.request("DELETE", `${mr}/draft_notes/${d.id}`).catch(() => {});
+            unplaced.push(d.c);
+          }
         }
       }
       const moved = unplaced.map((c) => `- \`${c.path}:${c.line}\`\n\n${c.body.replace(/^/gm, "  ")}`).join("\n\n");
       const body = unplaced.length ? `${input.body}\n\n### ${input.fallbackHeading}\n\n${moved}` : input.body;
-      if (drafts) {
-        await t.request("POST", `${mr}/draft_notes`, { body: { note: body } });
-        await t.request("POST", `${mr}/draft_notes/bulk_publish`);
-      } else {
-        await t.request("POST", `${mr}/notes`, { body: { body } });
-      }
+      await t.request("POST", `${mr}/notes`, { body: { body } });
       let event = input.event;
       if (event === "approve") {
         const mine = pr.author.toLowerCase() === (await self.whoami()).toLowerCase();

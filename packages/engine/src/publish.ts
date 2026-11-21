@@ -25,6 +25,7 @@ export interface RenderedReview extends PostReviewInput {
 export async function renderHostReview(report: ReviewReport, t: Translator, version: string): Promise<RenderedReview> {
   const diff = parseUnifiedDiff(await readFile(join(report.jobDir, "ctx", "diff.patch"), "utf8"));
   const lines = new Map(diff.map((f) => [f.path, f.rightLines]));
+  const files = new Map(diff.map((f) => [f.path, f]));
   const { inline, outside } = splitInline(report.findings, (p) => lines.get(p));
   const head = report.target.headSha;
 
@@ -61,7 +62,11 @@ export async function renderHostReview(report: ReviewReport, t: Translator, vers
   body.push("", `<sub>${t.t("post.footer", { version, harness: `${harness}${verifier}`, prompt: report.promptVersion, sha: head.slice(0, 7) })}</sub>`);
   body.push(makeMarker({ kind: "review", ref: head, version }));
 
-  const comments: InlineComment[] = inline.map((f) => ({ path: f.path, line: f.line, body: findingBody(f, t, version, head) }));
+  const comments: InlineComment[] = inline.map((f) => {
+    const file = files.get(f.path);
+    const oldLine = file?.contextOld.get(f.line);
+    return { path: f.path, line: f.line, body: findingBody(f, t, version, head), ...(file?.oldPath ? { oldPath: file.oldPath } : {}), ...(oldLine ? { oldLine } : {}) };
+  });
   return { headSha: head, event: report.verdict.event, body: body.join("\n"), comments, fallbackHeading: t.t("post.outsideDiff"), outside };
 }
 

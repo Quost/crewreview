@@ -100,8 +100,10 @@ function gitlab(overrides: Record<string, unknown> = {}): Scenario {
     [`GET ${p}/merge_requests/7/approvals`]: { approved_by: [] },
     [`GET ${p}/pipelines`]: [{ id: 900 }],
     [`GET ${p}/pipelines/900/jobs`]: [{ name: "test", status: "failed", allow_failure: false, web_url: "u" }],
+    [`GET ${p}/merge_requests/7/draft_notes`]: [],
     [`POST ${p}/merge_requests/7/draft_notes`]: { id: 1 },
     [`POST ${p}/merge_requests/7/draft_notes/bulk_publish`]: { status: 204, data: null },
+    [`POST ${p}/merge_requests/7/notes`]: { id: 9 },
     [`GET ${p}/members/all`]: [{ username: "bia", access_level: 40 }],
     ...overrides,
   });
@@ -197,15 +199,17 @@ describe("host-specific behavior", () => {
     expect(last.body).toContain("`a.ts:3`");
   });
 
-  test("GitLab: a line the diff doesn't have goes to the summary; draft notes are published together", async () => {
+  test("GitLab: a line the diff doesn't have goes to the summary; our draft notes are published together", async () => {
     const p = "/projects/acme%2Fshop";
     const pr = await gitlab().host.getPullRequest(7);
     let inlineCalls = 0;
     const t = failOnce(
       fixtureTransport({
         "GET /user": { username: "quost" },
+        [`GET ${p}/merge_requests/7/draft_notes`]: [],
         [`POST ${p}/merge_requests/7/draft_notes`]: { id: 1 },
         [`POST ${p}/merge_requests/7/draft_notes/bulk_publish`]: { status: 204, data: null },
+        [`POST ${p}/merge_requests/7/notes`]: { id: 9 },
         [`POST ${p}/merge_requests/7/approve`]: {},
       }),
       (m, path, o) => m === "POST" && path.endsWith("/draft_notes") && Boolean((o?.body as any)?.position) && inlineCalls++ === 1,
@@ -216,14 +220,92 @@ describe("host-specific behavior", () => {
       headSha: "h7",
       event: "approve",
       body: "Summary",
-      comments: [{ path: "a.ts", line: 1, body: "one" }, { path: "a.ts", line: 99, body: "two" }],
+      comments: [{ path: "a.ts", line: 1, body: "one", oldLine: 1 }, { path: "a.ts", line: 99, body: "two" }],
       fallbackHeading: "Outside the diff",
     });
     expect(r).toMatchObject({ inline: 1, movedToBody: 1, event: "approve" });
-    const summary = t.calls.filter((c) => c.path.endsWith("/draft_notes") && !(c.body as any).position).at(-1)!.body as any;
-    expect(summary.note).toContain("`a.ts:99`");
+    // Both paths always, and the old line on an unchanged line: without them GitLab fails when it publishes.
+    const first = t.calls.find((c) => c.path.endsWith("/draft_notes") && (c.body as any)?.position)!.body as any;
+    expect(first.position).toMatchObject({ old_path: "a.ts", new_path: "a.ts", new_line: 1, old_line: 1 });
+    const summary = t.calls.find((c) => c.path.endsWith("/notes") && c.method === "POST")!.body as any;
+    expect(summary.body).toContain("`a.ts:99`");
     expect(t.calls.some((c) => c.path.endsWith("/bulk_publish"))).toBe(true);
     expect(t.calls.some((c) => c.path.endsWith("/approve"))).toBe(true);
+  });
+
+  test("GitLab: a retry clears our old drafts, keeps yours, and never publishes yours with ours", async () => {
+    const p = "/projects/acme%2Fshop/merge_requests/7";
+    const pr = await gitlab().host.getPullRequest(7);
+    let nextId = 50;
+    const calls: { method: string; path: string }[] = [];
+    const t = {
+      async request(method: string, path: string) {
+        calls.push({ method, path });
+        if (method === "GET" && path === `/projects/acme%2Fshop/merge_requests/7/draft_notes`)
+          return { status: 200, headers: new Headers(), data: [{ id: 11, note: "old finding\n<!-- crewreview:kind=finding;v=0.10.0 -->" }, { id: 12, note: "my own pending comment" }] };
+        if (method === "POST" && path === `${p}/draft_notes`) return { status: 200, headers: new Headers(), data: { id: nextId++ } };
+        return { status: 200, headers: new Headers(), data: {} };
+      },
+    };
+    const gl = createHost(repoRef("gitlab", "gitlab.com", "acme/shop"), t as never);
+    const r = await gl.postReview(pr, { headSha: "h7", event: "comment", body: "Summary", comments: [{ path: "a.ts", line: 1, body: "new" }], fallbackHeading: "Outside the diff" });
+    expect(r.inline).toBe(1);
+    expect(calls.some((c) => c.method === "DELETE" && c.path === `${p}/draft_notes/11`)).toBe(true);
+    expect(calls.some((c) => c.path === `${p}/draft_notes/12` || c.path.endsWith("/bulk_publish"))).toBe(false);
+    expect(calls.some((c) => c.method === "PUT" && c.path === `${p}/draft_notes/50/publish`)).toBe(true);
+  });
+
+  test("GitLab: a draft it saves without a diff line is taken back before publishing, into the summary", async () => {
+    const p = "/projects/acme%2Fshop/merge_requests/7";
+    const pr = await gitlab().host.getPullRequest(7);
+    let nextId = 90;
+    const posted: string[] = [];
+    const calls: { method: string; path: string }[] = [];
+    const t = {
+      async request(method: string, path: string, o?: { body?: any }) {
+        calls.push({ method, path });
+        const ok = (data: unknown) => ({ status: 200, headers: new Headers(), data });
+        if (method === "GET" && path === `${p}/draft_notes`) return ok([]);
+        if (method === "POST" && path === `${p}/draft_notes`) {
+          const id = nextId++;
+          return ok({ id, line_code: o?.body?.position?.new_line === 30 ? null : `abc_${id}` });
+        }
+        if (method === "POST" && path === `${p}/notes`) posted.push(o?.body?.body);
+        return ok({});
+      },
+    };
+    const gl = createHost(repoRef("gitlab", "gitlab.com", "acme/shop"), t as never);
+    const r = await gl.postReview(pr, { headSha: "h7", event: "comment", body: "Summary", comments: [{ path: "a.ts", line: 1, body: "placed" }, { path: "a.ts", line: 30, body: "nowhere" }], fallbackHeading: "Outside the diff" });
+    expect(r).toMatchObject({ inline: 1, movedToBody: 1 });
+    expect(calls.some((c) => c.method === "DELETE" && c.path === `${p}/draft_notes/91`)).toBe(true);
+    expect(calls.some((c) => c.path.endsWith("/bulk_publish"))).toBe(true);
+    expect(posted[0]).toContain("`a.ts:30`");
+  });
+
+  test("GitLab: when publishing the batch fails, our drafts go one by one; one GitLab won't take goes to the summary", async () => {
+    const p = "/projects/acme%2Fshop/merge_requests/7";
+    const pr = await gitlab().host.getPullRequest(7);
+    let nextId = 70;
+    let lists = 0;
+    const posted: string[] = [];
+    const calls: { method: string; path: string }[] = [];
+    const t = {
+      async request(method: string, path: string, o?: { body?: any }) {
+        calls.push({ method, path });
+        const ok = (data: unknown) => ({ status: 200, headers: new Headers(), data });
+        if (method === "GET" && path === `${p}/draft_notes`) return ok(lists++ === 0 ? [] : [{ id: 70 }, { id: 71 }]);
+        if (method === "POST" && path === `${p}/draft_notes`) return ok({ id: nextId++ });
+        if (path.endsWith("/bulk_publish")) throw new HostError("server", 500, `POST ${path}: 500 Internal Server Error`);
+        if (method === "PUT" && path === `${p}/draft_notes/71/publish`) throw new HostError("server", 500, "500");
+        if (method === "POST" && path === `${p}/notes`) posted.push(o?.body?.body);
+        return ok({});
+      },
+    };
+    const gl = createHost(repoRef("gitlab", "gitlab.com", "acme/shop"), t as never);
+    const r = await gl.postReview(pr, { headSha: "h7", event: "comment", body: "Summary", comments: [{ path: "a.ts", line: 1, body: "fine" }, { path: "b.ts", line: 4, body: "stubborn" }], fallbackHeading: "Outside the diff" });
+    expect(r).toMatchObject({ inline: 1, movedToBody: 1 });
+    expect(calls.some((c) => c.method === "DELETE" && c.path === `${p}/draft_notes/71`)).toBe(true);
+    expect(posted[0]).toContain("`b.ts:4`");
   });
 });
 
