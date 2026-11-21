@@ -4,6 +4,17 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.14.1 — 2026-11-21
+
+Reviews that read the whole change, fair to every lens, and posted once on GitLab.
+
+### Fixed
+
+- A minified bundle in a change could hide the rest of it from the crew. One megabyte-long line in `public/app.js` filled the diff, the agents couldn't read past it, and the files after it (the server code among them) went unreviewed. Minified, generated and oversized files now stay out of the diff the agents read, with only their header and a note. The review lists them as left out, and their lines don't count toward `limits.maxDiffLines`.
+- A whole lens could be thrown away as invented over one file. If a lens cited two files and one of them was missing, every finding it had was dropped. A symlink the change adds counted as missing when it pointed outside the repository. Now a lens is set aside only when two or more of the files it cites are missing, a link counts as the one-line file git stores, and a link is never followed outside the tree.
+- A retry on GitLab could post the same review twice. GitLab can answer 500 to a batch publish and still publish it, and the retry posted everything again. It now skips the comments and the summary that are already on the merge request. The footer and markers carry the version that ran the review, not the one that posted it, and a post that goes through clears the error from the earlier attempt.
+- Each agent's raw answer is kept in `agents/` next to the review's report, so a bad review can be looked into.
+
 ## 0.14.0 — 2026-11-20
 
 Tasks in the app: give the crew a task, approve it from the dashboard, let the daemon carry it, and choose who opens the pull request.
@@ -13,13 +24,6 @@ Tasks in the app: give the crew a task, approve it from the dashboard, let the d
 - A Tasks page in the dashboard: give the crew a task (the repository, what to do, who does it, whether it waits for you), read the plan and approve it, follow each step, the self-review and the handoffs, and open the pull request. The nav shows how many tasks wait for you.
 - The daemon carries tasks forward in the background, one at a time: a task you create or approve starts right away, without waiting for the review cycle, and reviews don't wait for a task. Its planner and builder show on the Now page as agents of their own, and its milestones (plan ready, step committed, self-review, pull request opened, waiting, needs you) in the activity.
 - Who does a task: you (your identity, signature and account), or the crew's account, the repository's second account. Then the commits carry its name, it pushes, and it opens the pull request, so you're not the author and can approve and merge it yourself. It's the default when the repository has a review account; `crewreview task --as you|crew` picks it from the command line.
-
-### Fixed
-
-- A minified bundle in a change could hide the rest of it from the crew. One megabyte-long line in `public/app.js` filled the diff, the agents couldn't read past it, and the files after it (the server code among them) went unreviewed. Minified, generated and oversized files now stay out of the diff the agents read, with only their header and a note. The review lists them as left out, and their lines don't count toward `limits.maxDiffLines`.
-- A whole lens could be thrown away as invented over one file. If a lens cited two files and one of them was missing, every finding it had was dropped. A symlink the change adds counted as missing when it pointed outside the repository. Now a lens is set aside only when two or more of the files it cites are missing, a link counts as the one-line file git stores, and a link is never followed outside the tree.
-- A retry on GitLab could post the same review twice. GitLab can answer 500 to a batch publish and still publish it, and the retry posted everything again. It now skips the comments and the summary that are already on the merge request. The footer and markers carry the version that ran the review, not the one that posted it, and a post that goes through clears the error from the earlier attempt.
-- Each agent's raw answer is kept in `agents/` next to the review's report, so a bad review can be looked into.
 
 ## 0.13.0 — 2026-11-20
 
