@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.13.0 — 2026-11-20
+
+Crew mode, preview: give the crew a task, and it plans, builds, reviews itself and opens the pull request.
+
 ### Added
 
 - Crew mode, preview: `crewreview task "…" --repo <id>` takes a task to a pull request. A planner proposes small steps with their files, checks and risks, and you approve. A builder does one step per turn in Crewreview's own checkout; the repository's validate commands run after each step, never commands from the plan, and each finished step is committed with your identity. The crew reviews its own branch and fixes what's blocking. After you approve again, it opens the pull request with the plan, the risks and the self-review's findings. `task list`, `show`, `approve`, `run` and `cancel` follow it, and `--auto` skips both approvals.

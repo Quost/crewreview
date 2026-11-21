@@ -22,6 +22,7 @@ Crewreview starts as a crew of AI agents for pull requests: reviewers that look 
 | **v0.10** ✅ | Antigravity, OpenCode and Gemini CLI built in over ACP, proven from the app; company GitLab hosts and nested groups in the setup | released 2026-11-20; Antigravity proven for real |
 | **v0.11** ✅ | A second account on GitLab from one access token, kept in the system keychain; no dead end in the setup; `crewreview status`; every first-run flow reviewed | released 2026-11-20 |
 | **v0.12** ✅ | Seats and roles (M8.1): a harness, model and effort per job, shared across plans with order, spread or cheapest, the next seat taking over at a usage limit; the Team page | released 2026-11-20; verified with a real review split across Claude and Codex |
+| **v0.13** ✅ | Crew mode preview (M8.2): `crewreview task` from a sentence to a pull request, with a plan you approve, steps built and committed, a self-review and a ledger of handoffs any seat can continue | released 2026-11-20; verified with Sonnet planning and Codex building on a sandbox |
 
 ## Owed from the first plan ✅ (v0.4.0)
 
@@ -82,7 +83,7 @@ Give the crew a task (a sentence, an issue, a Jira or GitHub issue link) and it 
 
 Multi-agent by design: planner, builder and reviewers can be different harnesses and vendors, each with the lock its role needs (read-only for review, worktree-only for building).
 
-M8.1 (seats and roles) shipped in v0.12. M8.2 (`crewreview task`: plan, approval, build, self-review, pull request, with handoffs) is in preview from the command line, verified with real agents on a sandbox; the dashboard and the daemon driving tasks come next.
+M8.1 (seats and roles) shipped in v0.12. M8.2 (`crewreview task`: plan, approval, build, self-review, pull request, with handoffs) shipped as a preview in v0.13, from the command line, verified with real agents on a sandbox; the dashboard and the daemon driving tasks come next.
 
 The design, with seats and roles (a harness, model and effort per job, shared across your plans), the task ledger and handoffs, and terminal runners: [plans/crew-mode.md](plans/crew-mode.md).
 
