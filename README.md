@@ -223,6 +223,8 @@ The attendant edits files, so its harness must prove on your machine that it can
 
 Crew mode takes a task from a sentence to a pull request. Every step waits for you unless you say `--auto`:
 
+In the dashboard it's the **Tasks** page, and the daemon carries tasks forward on its own. From the command line:
+
 ```bash
 crewreview task "Add findUserByEmail to src/users.ts, case-insensitive" --repo shop
 crewreview task approve <id>      # the plan is fine: build it
@@ -234,7 +236,9 @@ crewreview task list
 1. **Plan.** A planner reads the repository, read-only, and proposes small steps: the files each step touches, how to check it, and the risks.
 2. **Build.** A builder does one step per turn, in Crewreview's own checkout. Your repository's validate commands run after each step (never commands taken from the plan), and each finished step is committed with your identity and signature.
 3. **Self-review.** The review crew reviews the branch, and the builder fixes what's blocking, for up to `task.maxReviewRounds` rounds.
-4. **Pull request.** The branch is pushed with your token and opened, with the plan, the risks and what the self-review found. Merging stays with a person.
+4. **Pull request.** The branch is pushed and opened, with the plan, the risks and what the self-review found. Merging stays with a person.
+
+Who does it: you, or the crew's account (`--as crew`), the second account set up for the repository. With the crew's account the commits, the push and the pull request are its own, so you can approve and merge it yourself; that's the default when the repository has one.
 
 Each agent reports in a handoff, which lands in `tasks/<id>/handoffs/` in Crewreview's data folder, next to the plan and its own raw answers. Any seat can pick the task up from there. When a builder hits its usage limit mid-step, Crewreview writes the handoff itself from what the agent left, and the next seat of the `build` role carries on. Planning and building use the `plan` and `build` roles (see Seats and roles under Configuration); without them, the harness from the setup does both.
 

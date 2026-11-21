@@ -37,6 +37,18 @@ export async function acceptInvitations(t: Transport, slugs: readonly string[]):
   return accepted;
 }
 
+/** The name and email an account's commits carry: its profile's, or the host's no-reply address for it. */
+export async function accountIdentity(ref: RepoRef, t: Transport): Promise<{ login: string; name: string; email: string }> {
+  const u = (await t.request("GET", "/user")).data as { id?: number; login?: string; username?: string; name?: string; email?: string; public_email?: string; commit_email?: string };
+  if (ref.kind === "github") {
+    const login = String(u.login);
+    const noreply = ref.host === "github.com" ? "users.noreply.github.com" : `users.noreply.${ref.host}`;
+    return { login, name: u.name || login, email: u.email || `${u.id}+${login}@${noreply}` };
+  }
+  const login = String(u.username);
+  return { login, name: u.name || login, email: u.commit_email || u.public_email || u.email || `${login}@noreply.${ref.host}` };
+}
+
 /**
  * What an account can do where it will post reviews, asked with its own token. A repository answers with its
  * permission. A GitLab group answers with the account's role there, subgroups included. A GitHub organization only

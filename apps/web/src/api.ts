@@ -87,7 +87,8 @@ export interface Status {
 
 export interface LiveAgent {
   id: string;
-  job: { repo: string; number: number; title: string; kind: "review" | "attend" };
+  job: { repo: string; number: number; title: string; kind: "review" | "attend" | "task"; task?: string };
+  seat?: string;
   role: string;
   harness: string;
   startedAt: number;
@@ -118,6 +119,33 @@ export interface Repo {
   /** `account`: reviews post as this account (a gh login, or env:VARIABLE) instead of you. */
   review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine"; account?: string };
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean };
+}
+
+/** A crew mode task, as the daemon keeps it (tasks/<id>/state.json). */
+export interface TaskInfo {
+  id: string;
+  repo: string;
+  text: string;
+  stage: "planning" | "approval" | "building" | "reviewing" | "ready" | "opening" | "done" | "failed" | "cancelled";
+  mode: "inbox" | "auto";
+  as?: "you" | "crew";
+  base: string;
+  branch: string;
+  createdAt: number;
+  updatedAt: number;
+  waitingUntil?: number;
+  error?: string;
+  turns: number;
+  reviewRounds: number;
+  plan?: {
+    title?: string;
+    summary: string;
+    steps: { id: string; title: string; detail?: string; files: string[]; check?: string; status: "todo" | "doing" | "done" | "blocked" }[];
+    risks: string[];
+  };
+  handoffs: { n: number; role: "plan" | "build" | "review"; seat: string; at: number; done: string[]; next: string; blockers: string[]; notes: string; files: string[]; cut?: string }[];
+  lastReview?: { findings: number; blocking: number; event: string; items?: { severity: string; path: string; line: number; title: string }[] };
+  pr?: { number: number; url: string };
 }
 
 export type TeamRole = "review" | "verify" | "attend" | "plan" | "build";

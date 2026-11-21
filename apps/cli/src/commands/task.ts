@@ -8,9 +8,11 @@ export interface TaskArgs {
   repo?: string;
   base?: string;
   auto: boolean;
+  /** you or crew: who commits, pushes and opens the pull request. */
+  as?: string;
 }
 
-const USAGE = 'crewreview task "<what to do>" --repo <id> [--base <branch>] [--auto] | task [list | show <id> | approve <id> | run <id> | cancel <id>]';
+const USAGE = 'crewreview task "<what to do>" --repo <id> [--base <branch>] [--as you|crew] [--auto] | task [list | show <id> | approve <id> | run <id> | cancel <id>]';
 
 /**
  * Crew mode from the terminal: give the crew a task, read its plan, approve it, and let it build, review itself and
@@ -47,7 +49,9 @@ export async function task(c: Ctx, rest: string[], a: TaskArgs): Promise<number>
     if (isOrg(repo)) return (c.err(t.t("task.needsRepo", { id: repo.id })), 2);
     const target = await connect(repo, c.version);
     if ("error" in target) return (c.err(noTokenText(c, repo)), 2);
-    const rec = await createTask(d, target, text, { base: a.base, mode: a.auto ? "auto" : "inbox" });
+    if (a.as !== undefined && a.as !== "you" && a.as !== "crew") return (c.err(t.t("error.usage", { usage: USAGE })), 2);
+    if (a.as === "crew" && !repo.review.account) return (c.err(t.t("task.noCrewAccount", { id: repo.id })), 2);
+    const rec = await createTask(d, target, text, { base: a.base, mode: a.auto ? "auto" : "inbox", ...(a.as ? { as: a.as as "you" | "crew" } : {}) });
     c.out(t.t("task.created", { id: rec.id, branch: rec.branch, base: rec.base }));
     return go(c, d, rec);
   } catch (e) {
@@ -106,7 +110,7 @@ function show(c: Ctx, r: TaskRecord | undefined, id?: string): number {
   const { t, style: st } = c;
   if (!r) return (c.err(t.t("task.notFound", { id: id ?? "" })), 2);
   c.out(st.bold(r.text.split("\n")[0]!));
-  c.out(st.dim(`${r.id} · ${r.repo} · ${r.branch} → ${r.base}`));
+  c.out(st.dim(`${r.id} · ${r.repo} · ${r.branch} → ${r.base} · ${t.t(`web.tasks.as.${r.as ?? "you"}` as never)}`));
   c.out(`${t.t("task.stageLabel")}: ${stageText(c, r)}${r.error ? st.red(` (${r.error})`) : ""}`);
   if (r.plan) {
     c.out();

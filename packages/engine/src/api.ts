@@ -179,6 +179,27 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       return "error" in r ? json(r, r.error === "not-desktop" ? 409 : 400) : json(r);
     }
     if (p === "/api/team" && m === "GET") return json(crew.team());
+    // Crew mode tasks: list, one with its ledger, a new one, and your approvals.
+    if (p === "/api/tasks" && m === "GET") return json(await crew.tasks());
+    if (p === "/api/tasks" && m === "POST") {
+      const b = await body();
+      const pickOne = <T extends string>(v: unknown, list: readonly T[]) => (list.includes(v as T) ? (v as T) : undefined);
+      const r = await crew.newTask(String(b.repo ?? ""), typeof b.text === "string" ? b.text.slice(0, 4000) : "", {
+        mode: pickOne(b.mode, ["inbox", "auto"] as const),
+        as: pickOne(b.as, ["you", "crew"] as const),
+        base: typeof b.base === "string" && /^[A-Za-z0-9._/-]{1,200}$/.test(b.base) ? b.base : undefined,
+      });
+      return "error" in r ? json(r, r.error === "not-found" ? 404 : 400) : json(r);
+    }
+    const taskMatch = /^\/api\/tasks\/([a-z0-9][a-z0-9-]{0,80})(?:\/(approve|cancel|run))?$/.exec(p);
+    if (taskMatch && !taskMatch[2] && m === "GET") {
+      const t = await crew.task(taskMatch[1]!);
+      return t ? json(t) : json({ error: "not-found" }, 404);
+    }
+    if (taskMatch?.[2] && m === "POST") {
+      const t = await crew.taskAction(taskMatch[1]!, taskMatch[2] as "approve" | "cancel" | "run");
+      return t ? json(t) : json({ error: "not-found" }, 404);
+    }
     if (p === "/api/limits" && m === "GET") return json({ ...crew.limits(), usageToday: await crew.usageToday() });
     return json({ error: "not-found" }, 404);
   }

@@ -1064,3 +1064,73 @@ pre.code {
   overflow-x: auto;
   white-space: pre;
 }
+
+/* Tasks: the new-task form, the plan's steps with their state, the handoffs as a timeline. */
+.new-task {
+  display: grid;
+  gap: 12px;
+}
+.new-task label:not(.pick) {
+  display: grid;
+  gap: 4px;
+}
+.new-task select,
+.new-task textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+.new-task fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.task h3 {
+  font-size: 15px;
+  margin: 18px 0 6px;
+}
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.steps li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.steps li p {
+  margin: 2px 0;
+}
+.steps .mark {
+  font-size: 15px;
+  color: var(--muted);
+}
+.steps .step-done .mark {
+  color: var(--ok, #2f9e44);
+}
+.steps .step-doing .mark {
+  color: var(--accent);
+}
+.steps .step-blocked .mark {
+  color: var(--bad, #c92a2a);
+}
+.handoffs {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0;
+  border-left: 2px solid var(--border);
+  display: grid;
+  gap: 10px;
+}
+.handoffs p {
+  margin: 2px 0;
+}

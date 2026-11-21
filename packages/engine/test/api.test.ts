@@ -60,6 +60,18 @@ describe("local API", () => {
     expect((await fetch(`${server.url}api/inbox/r999`, { headers: auth() })).status).toBe(404);
   });
 
+  test("tasks: none yet, a task on a repository that isn't linked, an unknown task, a malformed id", async () => {
+    const h = { ...auth(), "x-crewreview": "1", "content-type": "application/json" };
+    expect(await (await fetch(`${server.url}api/tasks`, { headers: auth() })).json()).toEqual([]);
+    const nowhere = await fetch(`${server.url}api/tasks`, { method: "POST", headers: h, body: JSON.stringify({ repo: "nope", text: "Do it" }) });
+    expect([nowhere.status, ((await nowhere.json()) as { error: string }).error]).toEqual([404, "not-found"]);
+    const empty = await fetch(`${server.url}api/tasks`, { method: "POST", headers: h, body: JSON.stringify({ repo: "nope", text: "  " }) });
+    expect(((await empty.json()) as { error: string }).error).toBe("empty");
+    expect((await fetch(`${server.url}api/tasks/20261120-nope`, { headers: auth() })).status).toBe(404);
+    expect((await fetch(`${server.url}api/tasks/20261120-nope/approve`, { method: "POST", headers: h })).status).toBe(404);
+    expect((await fetch(`${server.url}api/tasks/..%2Fetc/approve`, { method: "POST", headers: h })).status).toBe(404);
+  });
+
   test("the event stream needs the token too", async () => {
     const ws = new WebSocket(`${server.url.replace("http", "ws")}api/events?token=${server.token}`);
     const first = await new Promise<any>((resolve, reject) => {

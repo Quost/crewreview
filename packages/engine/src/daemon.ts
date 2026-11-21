@@ -9,6 +9,8 @@ import { attendPullRequest, type AttendDeps, type AttendOutcome } from "./attend
 import { reviewPullRequest, type PrDeps, type PrOutcome, type PrTarget } from "./pr.ts";
 import { expandOrgs, isOrg, type LinkedRepo } from "./repos.ts";
 
+import type { TaskEvent } from "./tasks.ts";
+
 export type DaemonEvent =
   | { type: "repo-error"; repo: string; error: string; code?: "no-token" }
   | { type: "skip"; repo: string; number: number; reason: SkipReason }
@@ -17,7 +19,9 @@ export type DaemonEvent =
   | { type: "attend-start"; repo: string; number: number; title: string }
   | { type: "attend-outcome"; repo: string; number: number; outcome: AttendOutcome }
   | { type: "cycle"; repos: number; reviewed: number; waiting: number }
-  | { type: "update"; version: string; installed: boolean; error?: string };
+  | { type: "update"; version: string; installed: boolean; error?: string }
+  /** A crew mode task reached a milestone: planned, a step committed, reviewed, opened, waiting, asking, failed. */
+  | { type: "task"; repo: string; task: string; title: string; event: TaskEvent };
 
 export function rulesFor(repo: LinkedRepo, config: Config): ReviewRules {
   return {

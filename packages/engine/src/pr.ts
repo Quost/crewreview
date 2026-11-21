@@ -44,7 +44,9 @@ export interface JobRef {
   repo: string;
   number: number;
   title: string;
-  kind: "review" | "attend";
+  kind: "review" | "attend" | "task";
+  /** A crew mode task's id. */
+  task?: string;
 }
 
 export interface PrTarget {

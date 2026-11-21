@@ -19,6 +19,7 @@ import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
 import { previewLink, type Preview } from "./preview.ts";
 import { QuotaBook } from "./quota.ts";
 import { roleRoute, SeatBook, seatSpec, type Role, type SeatSpec } from "./seats.ts";
+import { approveTask, cancelTask, createTask, listTasks, loadTask, runTask, saveTask, type TaskDeps, type TaskEvent, type TaskRecord } from "./tasks.ts";
 
 const ROLES: readonly Role[] = ["review", "verify", "attend", "plan", "build"];
 
@@ -37,7 +38,7 @@ export interface TeamView {
   /** A job uses "auto": the first installed harness that can do it. */
   auto: boolean;
 }
-import { findLinked, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
+import { findLinked, isOrg, loadRepos, newRepoEntry, reposFile, saveRepos, type LinkedRepo, type RepoEntry, type ReviewMode } from "./repos.ts";
 import type { ReviewEvent, ReviewReport } from "./review.ts";
 import type { Store } from "./state.ts";
 
@@ -77,7 +78,7 @@ export type CrewEvent =
   | { type: "agents"; agents: LiveAgent[] }
   | { type: "log"; entry: LogEntry }
   | { type: "status"; status: CrewStatus }
-  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" | "harnesses" };
+  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" | "harnesses" | "tasks" };
 
 export interface CrewStatus {
   version: string;
@@ -183,7 +184,7 @@ export class CrewDaemon {
 
   /** Turn pipeline events into the live board. */
   private onJobEvent(job: JobRef, e: ReviewEvent): void {
-    const key = (role: string) => `${job.repo}#${job.number}:${role}`;
+    const key = (role: string) => `${job.repo}#${job.task ?? job.number}:${role}`;
     const start = (role: string, harness: string, seat?: string) => {
       this.agents.set(key(role), { id: key(role), job, role, harness, ...(seat ? { seat } : {}), startedAt: Date.now(), status: "running", tools: 0 });
       (this.awake ??= keepAwake({ enabled: this.o.config.schedule.keepAwake })).on();
@@ -258,10 +259,112 @@ export class CrewDaemon {
     }
   }
 
+  // ---- crew mode tasks, carried forward in the background ----
+
+  private tasksRunning = false;
+  private tasksAgain = false;
+  private loopSignal?: AbortSignal;
+
+  /**
+   * Take every task that can go on without you as far as it goes, one task at a time, in the background: reviews
+   * don't wait for a task, and a task doesn't wait for the next cycle. Called after a cycle and on every change.
+   */
+  runTasks(): void {
+    if (this.tasksRunning) {
+      this.tasksAgain = true;
+      return;
+    }
+    this.tasksRunning = true;
+    void (async () => {
+      try {
+        do {
+          this.tasksAgain = false;
+          const now = Date.now();
+          const ready = (await listTasks(this.o)).filter((t) => ["planning", "building", "reviewing", "opening"].includes(t.stage) && !(t.waitingUntil && t.waitingUntil > now));
+          for (const t of ready.reverse()) {
+            if (this.loopSignal?.aborted) return;
+            await this.carryTask(t);
+          }
+        } while (this.tasksAgain && !this.loopSignal?.aborted);
+      } catch (e) {
+        this.record({ type: "repo-error", repo: "*", error: `tasks: ${e instanceof Error ? e.message : String(e)}` });
+      } finally {
+        this.tasksRunning = false;
+      }
+    })();
+  }
+
+  private async carryTask(t: TaskRecord): Promise<void> {
+    const link = (await this.repos()).find((r) => r.id === t.repo);
+    if (!link) return;
+    const target = await connect(link, this.o.version);
+    if ("error" in target) {
+      this.record({ type: "repo-error", repo: link.id, error: "no-token", code: "no-token" });
+      return;
+    }
+    const job: JobRef = { repo: t.repo, number: 0, title: t.text.split("\n")[0]!, kind: "task", task: t.id };
+    const deps: TaskDeps = { ...this.deps(this.loopSignal), onTask: (e) => this.onTaskEvent(job, e) };
+    await runTask(deps, target, t.id);
+    this.emit({ type: "changed", what: "tasks" });
+  }
+
+  /** Task agents on the live board; milestones in the activity log. */
+  private onTaskEvent(job: JobRef, e: TaskEvent): void {
+    const role = (r: string, step?: string) => (r === "build" && step ? `build:${step}` : r);
+    if (e.type === "agent-start") {
+      if (e.role === "review") return; // the self-review's own lenses show up through the review events
+      this.agents.set(`${job.repo}#${job.task}:${role(e.role, e.step)}`, { id: `${job.repo}#${job.task}:${role(e.role, e.step)}`, job, role: role(e.role, e.step), harness: e.harness, ...(e.seat !== e.harness ? { seat: e.seat } : {}), startedAt: Date.now(), status: "running", tools: 0 });
+      (this.awake ??= keepAwake({ enabled: this.o.config.schedule.keepAwake })).on();
+      this.emit({ type: "agents", agents: this.liveAgents() });
+      return;
+    }
+    if (e.type === "agent-done") {
+      for (const a of this.agents.values()) if (a.job.task === job.task && a.status === "running" && a.role.startsWith(e.role)) Object.assign(a, { status: e.ok ? "ok" : "failed", endedAt: Date.now(), detail: e.error });
+      this.emit({ type: "agents", agents: this.liveAgents() });
+      return;
+    }
+    this.record({ type: "task", repo: job.repo, task: job.task!, title: job.title, event: e });
+    this.emit({ type: "changed", what: "tasks" });
+  }
+
+  async tasks(): Promise<TaskRecord[]> {
+    return listTasks(this.o);
+  }
+
+  async task(id: string): Promise<TaskRecord | undefined> {
+    return loadTask(this.o, id);
+  }
+
+  /** A new task on a linked repository; the crew starts planning it right away. */
+  async newTask(repoId: string, text: string, opts: { mode?: "inbox" | "auto"; base?: string; as?: "you" | "crew" }): Promise<TaskRecord | { error: "not-found" | "org" | "no-token" | "empty" }> {
+    if (!text.trim()) return { error: "empty" };
+    const link = (await this.repos()).find((r) => r.id === repoId);
+    if (!link) return { error: "not-found" };
+    if (isOrg(link)) return { error: "org" };
+    const target = await connect(link, this.o.version);
+    if ("error" in target) return { error: "no-token" };
+    const rec = await createTask(this.deps(this.loopSignal), target, text, opts);
+    this.emit({ type: "changed", what: "tasks" });
+    this.runTasks();
+    return rec;
+  }
+
+  async taskAction(id: string, action: "approve" | "cancel" | "run"): Promise<TaskRecord | undefined> {
+    const d = this.deps(this.loopSignal);
+    const rec = action === "approve" ? await approveTask(d, id) : action === "cancel" ? await cancelTask(d, id) : await loadTask(d, id);
+    if (rec && action === "run" && rec.waitingUntil) await saveTask(d, { ...rec, waitingUntil: undefined });
+    this.emit({ type: "changed", what: "tasks" });
+    if (rec && action !== "cancel") this.runTasks();
+    return rec;
+  }
+
   /** Cycle, sleep, repeat until the signal aborts. `wake()` cuts the sleep short. Resolves "restart" after an update. */
   async loop(signal: AbortSignal): Promise<"stopped" | "restart"> {
+    this.loopSignal = signal;
+    this.runTasks();
     while (!signal.aborted) {
       await this.cycle(signal);
+      this.runTasks();
       if (signal.aborted) break;
       if (await this.maybeUpdate()) return "restart";
       const wait = nextInterval(this.o.config);

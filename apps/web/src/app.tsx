@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type Repo, type Status } from "./api.ts";
+import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type Repo, type Status, type TaskInfo } from "./api.ts";
 import { createTranslator, I18n, initialLocale, LANGUAGE_NAMES, LOCALES, relative, saveLocale, type Locale } from "./i18n.ts";
 import { AccountPage } from "./pages/account.tsx";
 import { HistoryPage } from "./pages/history.tsx";
 import { InboxPage } from "./pages/inbox.tsx";
 import { LimitsPage } from "./pages/limits.tsx";
+import { TasksPage } from "./pages/tasks.tsx";
 import { TeamPage } from "./pages/team.tsx";
 import { NowPage } from "./pages/now.tsx";
 import { ReposPage } from "./pages/repos.tsx";
 import { SetupPage } from "./pages/setup.tsx";
 
-const PAGES = ["setup", "now", "inbox", "history", "repos", "team", "limits", "account"] as const;
+const PAGES = ["setup", "now", "inbox", "tasks", "history", "repos", "team", "limits", "account"] as const;
 type Page = (typeof PAGES)[number];
 
 function pageFromHash(): Page {
@@ -24,7 +25,7 @@ export interface Live {
   log: LogEntry[];
   connected: boolean;
   /** Bumped when the daemon says a list changed. */
-  version: { inbox: number; repos: number; history: number; settings: number; harnesses: number };
+  version: { inbox: number; repos: number; history: number; settings: number; harnesses: number; tasks: number };
 }
 
 export function App() {
@@ -32,7 +33,7 @@ export function App() {
   const t = useMemo(() => createTranslator(locale), [locale]);
   const [token, setToken] = useState(() => takeToken());
   const [page, setPage] = useState<Page>(pageFromHash);
-  const [live, setLive] = useState<Live>({ agents: [], log: [], connected: false, version: { inbox: 0, repos: 0, history: 0, settings: 0, harnesses: 0 } });
+  const [live, setLive] = useState<Live>({ agents: [], log: [], connected: false, version: { inbox: 0, repos: 0, history: 0, settings: 0, harnesses: 0, tasks: 0 } });
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -79,6 +80,15 @@ export function App() {
       () => {},
     );
   }, [token, live.version.repos]);
+  // Tasks waiting for you (a plan to approve, a pull request to open) show on the nav.
+  const [tasksWaiting, setTasksWaiting] = useState(0);
+  useEffect(() => {
+    if (!token) return;
+    api.get<TaskInfo[]>("/api/tasks").then(
+      (ts) => setTasksWaiting(ts.filter((x) => x.stage === "approval" || x.stage === "ready").length),
+      () => {},
+    );
+  }, [token, live.version.tasks]);
   const [firstRun, setFirstRun] = useState(() => !location.hash.replace(/^#\/?/, ""));
   useEffect(() => {
     if (repoCount === undefined || !firstRun) return;
@@ -115,6 +125,7 @@ export function App() {
     ...(repoCount === 0 || page === "setup" ? [{ id: "setup" as const, label: t.t("web.nav.setup") }] : []),
     { id: "now", label: t.t("web.nav.now"), badge: live.agents.filter((a) => a.status === "running").length || undefined },
     { id: "inbox", label: t.t("web.nav.inbox"), badge: st?.inbox || undefined },
+    { id: "tasks", label: t.t("web.nav.tasks"), badge: tasksWaiting || undefined },
     { id: "history", label: t.t("web.nav.history") },
     { id: "repos", label: t.t("web.nav.repos") },
     { id: "team", label: t.t("web.nav.team") },
@@ -171,6 +182,7 @@ export function App() {
           {page === "repos" && <ReposPage version={live.version.repos} />}
           {page === "limits" && <LimitsPage version={live.version.settings} agentsVersion={live.version.harnesses} />}
           {page === "account" && <AccountPage />}
+          {page === "tasks" && <TasksPage version={live.version.tasks} />}
           {page === "team" && <TeamPage agentsVersion={live.agents.length + live.version.settings + live.version.harnesses} />}
         </main>
       </div>

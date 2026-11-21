@@ -4,6 +4,12 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- A Tasks page in the dashboard: give the crew a task (the repository, what to do, who does it, whether it waits for you), read the plan and approve it, follow each step, the self-review and the handoffs, and open the pull request. The nav shows how many tasks wait for you.
+- The daemon carries tasks forward in the background, one at a time: a task you create or approve starts right away, without waiting for the review cycle, and reviews don't wait for a task. Its planner and builder show on the Now page as agents of their own, and its milestones (plan ready, step committed, self-review, pull request opened, waiting, needs you) in the activity.
+- Who does a task: you (your identity, signature and account), or the crew's account, the repository's second account. Then the commits carry its name, it pushes, and it opens the pull request, so you're not the author and can approve and merge it yourself. It's the default when the repository has a review account; `crewreview task --as you|crew` picks it from the command line.
+
 ## 0.13.0 — 2026-11-20
 
 Crew mode, preview: give the crew a task, and it plans, builds, reviews itself and opens the pull request.

@@ -118,6 +118,7 @@ async function main(argv: string[]): Promise<number> {
       post: { type: "boolean", default: false },
       repo: { type: "string" },
       auto: { type: "boolean", default: false },
+      as: { type: "string" },
       "dry-run": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       "no-ui": { type: "boolean", default: false },
@@ -172,7 +173,7 @@ async function main(argv: string[]): Promise<number> {
       case "review":
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
       case "task":
-        return await task(c, rest, { repo: v.repo, base: v.base, auto: v.auto });
+        return await task(c, rest, { repo: v.repo, base: v.base, auto: v.auto, as: v.as });
       case "attend":
         return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], retry: v.retry });
       case "mcp":

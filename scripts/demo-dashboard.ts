@@ -137,6 +137,82 @@ const limits = {
   configPath: "~/.config/crewreview/config.toml",
 };
 
+// Crew mode: one plan waiting for you, one task building, one done.
+const tasks = [
+  {
+    id: "20261120-discount-codes",
+    repo: "acme-shop",
+    text: "Let customers apply a discount code at checkout",
+    stage: "approval",
+    mode: "inbox",
+    as: "crew",
+    base: "main",
+    branch: "crew/20261120-discount-codes",
+    createdAt: ago(900),
+    updatedAt: ago(600),
+    turns: 0,
+    reviewRounds: 0,
+    plan: {
+      title: "Discount codes at checkout",
+      summary: "Add a discount code model, validate codes at checkout, and show the discount in the cart total.",
+      steps: [
+        { id: "model", title: "Discount code model and validation", detail: "A code has a percentage, an expiry and a usage limit; validation is a pure function.", files: ["src/cart/discount.ts", "src/cart/discount.test.ts"], status: "todo" },
+        { id: "api", title: "Apply a code at checkout", detail: "POST /checkout accepts a code and returns the new total; unknown or expired codes give 422.", files: ["src/api/checkout.ts"], status: "todo" },
+        { id: "ui", title: "Code field in the cart", files: ["web/cart/Summary.tsx"], status: "todo" },
+      ],
+      risks: ["Rounding: totals in cents, the percentage applied once.", "Two codes at once isn't asked for; the plan allows one."],
+    },
+    handoffs: [{ n: 1, role: "plan", seat: "opus", at: ago(600), done: [], next: "model", blockers: [], notes: "", files: [] }],
+  },
+  {
+    id: "20261120-rate-limit",
+    repo: "acme-api",
+    text: "Rate limit the public endpoints",
+    stage: "building",
+    mode: "auto",
+    as: "you",
+    base: "main",
+    branch: "crew/20261120-rate-limit",
+    createdAt: ago(5400),
+    updatedAt: ago(120),
+    turns: 2,
+    reviewRounds: 0,
+    plan: {
+      title: "Rate limit the public endpoints",
+      summary: "A token bucket per API key in Redis, applied as middleware to the public routes.",
+      steps: [
+        { id: "bucket", title: "Token bucket in Redis", files: ["src/middleware/bucket.ts"], status: "done" },
+        { id: "middleware", title: "Rate-limit middleware", files: ["src/middleware/rate-limit.ts"], status: "doing" },
+        { id: "routes", title: "Apply it to the public routes", files: ["src/routes/public.ts"], status: "todo" },
+      ],
+      risks: ["Redis down: fail open, and log it."],
+    },
+    handoffs: [
+      { n: 1, role: "plan", seat: "opus", at: ago(5300), done: [], next: "bucket", blockers: [], notes: "", files: [] },
+      { n: 2, role: "build", seat: "fast", at: ago(3000), done: ["bucket"], next: "Write the middleware around the bucket", blockers: [], notes: "Lua script for atomic take", files: ["src/middleware/bucket.ts"] },
+      { n: 3, role: "build", seat: "opus", at: ago(900), done: [], next: "Continue middleware: Rate-limit middleware", blockers: [], notes: "quota: 5-hour limit reached", files: ["src/middleware/rate-limit.ts"], cut: "quota" },
+    ],
+  },
+  {
+    id: "20261119-audit-log",
+    repo: "acme-api",
+    text: "Paginate the audit log",
+    stage: "done",
+    mode: "inbox",
+    as: "crew",
+    base: "main",
+    branch: "crew/20261119-audit-log",
+    createdAt: ago(90_000),
+    updatedAt: ago(80_000),
+    turns: 2,
+    reviewRounds: 1,
+    plan: { title: "Paginate the audit log", summary: "Cursor pagination for /audit.", steps: [{ id: "cursor", title: "Cursor pagination", files: ["src/audit.ts"], status: "done" }], risks: [] },
+    handoffs: [],
+    lastReview: { findings: 1, blocking: 0, event: "comment", items: [{ severity: "minor", path: "src/audit.ts", line: 42, title: "Cap the page size" }] },
+    pr: { number: 88, url: "https://gitlab.com/acme/api/-/merge_requests/88" },
+  },
+];
+
 const status = { version: pkg.version, pid: process.pid, startedAt: ago(7300), cycleRunning: false, lastCycleAt: ago(60), nextCycleAt: now + 240_000, inbox: inbox.length };
 
 const crew = {
@@ -159,6 +235,10 @@ const crew = {
           applied: ids.filter((id) => id !== "acme-api"),
         },
   signInStatus: () => ({ state: "idle" }),
+  tasks: async () => tasks,
+  task: async (id: string) => tasks.find((x) => x.id === id),
+  newTask: async () => ({ error: "not-found" }),
+  taskAction: async (id: string) => tasks.find((x) => x.id === id),
   team: () => ({
     roles: [
       { role: "review", seats: ["fast", "sonnet"], balance: "spread", configured: true },

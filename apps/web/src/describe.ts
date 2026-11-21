@@ -8,6 +8,18 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       return { text: t.t("web.log.reviewStarted", { ...ref(e), title: e.title }), tone: "neutral" };
     case "skip":
       return { text: t.t("review.skipped", { ...ref(e), reason: t.t(`skip.${e.reason}` as never) }), tone: "neutral" };
+    case "task": {
+      const ev = e.event;
+      const name = { task: e.title.length > 60 ? `${e.title.slice(0, 59)}…` : e.title };
+      if (ev.type === "planned") return { text: t.t("web.log.taskPlanned", { ...name, steps: ev.steps }), tone: "warn" };
+      if (ev.type === "step-done") return { text: t.t("web.log.taskStep", { ...name, step: ev.step }), tone: "ok" };
+      if (ev.type === "checks-failed") return { text: t.t("web.log.taskChecks", { ...name, command: ev.command }), tone: "warn" };
+      if (ev.type === "reviewed") return { text: t.t("web.log.taskReviewed", { ...name, findings: ev.findings, blocking: ev.blocking }), tone: ev.blocking ? "warn" : "ok" };
+      if (ev.type === "opened") return { text: t.t("web.log.taskOpened", { ...name, url: ev.url }), tone: "ok" };
+      if (ev.type === "waiting") return { text: t.t("web.log.taskWaiting", name), tone: "warn" };
+      if (ev.type === "asks") return { text: t.t("web.log.taskAsks", { ...name, step: ev.step ?? "" }), tone: "warn" };
+      return { text: t.t("web.log.taskFailed", { ...name, error: String(ev.error ?? "").slice(0, 200) }), tone: "bad" };
+    }
     case "cycle":
       return { text: t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting }), tone: "neutral" };
     case "repo-error":

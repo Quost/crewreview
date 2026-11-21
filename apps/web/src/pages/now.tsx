@@ -7,6 +7,8 @@ import { Card, Empty, Pill } from "../ui.tsx";
 function roleLabel(t: ReturnType<typeof useT>, role: string): string {
   if (role === "verifier") return t.t("local.verifier");
   if (role === "attendant") return t.t("web.role.attendant");
+  if (role === "plan") return t.t("web.role.planner");
+  if (role.startsWith("build")) return `${t.t("web.role.builder")}${role.includes(":") ? ` · ${role.slice(6)}` : ""}`;
   return lensName(t, role);
 }
 
@@ -14,7 +16,7 @@ export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => vo
   const t = useT();
   const jobs = new Map<string, LiveAgent[]>();
   for (const a of live.agents) {
-    const k = `${a.job.repo}#${a.job.number}`;
+    const k = a.job.task ? `${a.job.repo} · ${a.job.task}` : `${a.job.repo}#${a.job.number}`;
     jobs.set(k, [...(jobs.get(k) ?? []), a]);
   }
   const log = [...live.log].reverse().slice(0, 60);
@@ -38,7 +40,7 @@ export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => vo
                   <header>
                     <strong>{k}</strong>
                     <span className="muted">{job.title}</span>
-                    <Pill tone={job.kind === "review" ? "accent" : "live"}>{job.kind === "review" ? t.t("inbox.kind.review") : t.t("inbox.kind.fix")}</Pill>
+                    <Pill tone={job.kind === "review" ? "accent" : "live"}>{job.kind === "review" ? t.t("inbox.kind.review") : job.kind === "task" ? t.t("web.tasks.kind") : t.t("inbox.kind.fix")}</Pill>
                   </header>
                   <ul className="agents">
                     {agents.map((a) => (
@@ -47,7 +49,7 @@ export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => vo
                           {a.status === "running" ? <span className="spinner" /> : a.status === "ok" ? "✓" : "✗"}
                         </span>
                         <span className="role">{roleLabel(t, a.role)}</span>
-                        <span className="muted">{a.harness}</span>
+                        <span className="muted">{a.seat && a.seat !== a.harness ? `${a.seat} (${a.harness})` : a.harness}</span>
                         <span className="mono time">{duration((a.endedAt ?? Date.now()) - a.startedAt)}</span>
                         <span className="mono tool" title={a.lastTool}>
                           {a.status === "running" ? (a.lastTool ?? t.t("web.now.thinking")) : a.detail && a.role !== "attendant" && /^\d+$/.test(a.detail) ? t.tp("local.findingsCount", Number(a.detail)) : (a.detail ?? "")}

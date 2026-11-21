@@ -187,6 +187,23 @@ describe("crew mode tasks", () => {
     expect(h.asked.map((a) => a.role)).toEqual(["plan", "build", "build", "review"]);
   }, 60_000);
 
+  test("as the crew's account: its name on the commits, its host opens the pull request, so you can approve it", async () => {
+    const { d, x } = await setup({}, [agent("claude")]);
+    const bot = new Host(x.repo.ref);
+    const tokens: string[] = [];
+    const repo = { ...x.repo, review: { ...x.repo.review, account: "env:CREW_TOKEN" } };
+    const crewDeps = { ...d, crewAccount: async () => (tokens.push("crew"), { token: "crew-token", host: bot as unknown as HostAdapter, identity: { name: "acme-crew", email: "crew@acme.test" } }) };
+    const target = { ...x, repo };
+    const t = await createTask(crewDeps, target, "Add discount codes", { mode: "auto" });
+    expect(t.as).toBe("crew"); // a repository with a review account gets the crew by default
+    const rec = await runTask(crewDeps, target, t.id);
+    expect(rec).toMatchObject({ stage: "done", pr: { number: 41 } });
+    expect(bot.opened).toHaveLength(1);
+    expect((x.host as unknown as Host).opened).toHaveLength(0);
+    const authors = await sh(["log", "--format=%an <%ae>", `main..refs/heads/crew/${t.id}`], remote);
+    expect([...new Set(authors.split("\n"))]).toEqual(["acme-crew <crew@acme.test>"]);
+  }, 60_000);
+
   test("a seat that hits its limit mid-step leaves a handoff code wrote; the next seat finishes the step", async () => {
     const a = agent("claude", { quotaOnFirstBuild: true });
     const b = agent("codex");

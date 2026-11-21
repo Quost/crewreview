@@ -15,7 +15,7 @@ import {
   type TaskState,
 } from "@crewreview/core";
 import type { Harness, RunResult } from "@crewreview/harness";
-import { gitAuthEnv } from "@crewreview/hosts";
+import { accountIdentity, createHost, gitAuthEnv, hostTransport, resolveAccountToken } from "@crewreview/hosts";
 import { languageName, matchLocale } from "@crewreview/i18n";
 import { runChecks, shorten } from "./attend.ts";
 import { git, gitOk } from "./git.ts";
@@ -36,6 +36,11 @@ export interface TaskRecord extends TaskState {
   text: string;
   /** inbox: the plan and opening the pull request wait for you. auto: neither does. */
   mode: "inbox" | "auto";
+  /**
+   * Who commits, pushes and opens the pull request. you: your identity and token. crew: the repository's review
+   * account (Repositories → Post reviews as), so you're not the author and can approve and merge it yourself.
+   */
+  as?: "you" | "crew";
   createdAt: number;
   updatedAt: number;
   base: string;
@@ -63,6 +68,8 @@ export interface TaskDeps extends PrDeps {
   identity?: { name: string; email: string };
   now?: () => number;
   onTask?: (e: TaskEvent) => void;
+  /** Stands in for the crew's account (tests): its token, host and commit identity. */
+  crewAccount?: (x: PrTarget) => Promise<{ token: string; host: PrTarget["host"]; identity: { name: string; email: string } }>;
 }
 
 /** What one call to advanceTask did, and whether the task can go on without you. */
@@ -130,7 +137,7 @@ async function logTask(d: Pick<PrDeps, "dirs">, id: string, e: object): Promise<
 }
 
 /** A new task on a linked repository, saved at the planning stage. The base is the repository's default branch. */
-export async function createTask(d: TaskDeps, x: PrTarget, text: string, opts: { base?: string; mode?: "inbox" | "auto" } = {}): Promise<TaskRecord> {
+export async function createTask(d: TaskDeps, x: PrTarget, text: string, opts: { base?: string; mode?: "inbox" | "auto"; as?: "you" | "crew" } = {}): Promise<TaskRecord> {
   const now = d.now?.() ?? Date.now();
   const taken = (id: string) => existsSync(taskDir(d, id));
   const id = taskId(text, now, taken);
@@ -144,6 +151,8 @@ export async function createTask(d: TaskDeps, x: PrTarget, text: string, opts: {
     repo: x.repo.id,
     text: text.trim(),
     mode: opts.mode ?? "inbox",
+    // With a second account set up, the crew acts as it unless you say otherwise: that's what it's for.
+    as: opts.as ?? (x.repo.review.account ? "crew" : "you"),
     createdAt: now,
     updatedAt: now,
     base,
@@ -216,6 +225,29 @@ async function writeContext(dir: string, rec: TaskRecord, extra: Record<string, 
   const stat = await diffStat(dir).catch(() => "");
   await writeFile(join(ctx, "progress.md"), [`# Progress`, "", "## Commits on the task branch", committed || "(none yet)", "", "## Uncommitted changes", stat || "(none)", ""].join("\n"));
   for (const [name, text] of Object.entries(extra)) await writeFile(join(ctx, name), text);
+}
+
+interface Actor {
+  token: string;
+  host: PrTarget["host"];
+  identity?: { name: string; email: string };
+  signing?: "inherit" | "off";
+}
+
+/**
+ * The account the task's commits, push and pull request are made as. The crew's account commits under its own name
+ * and without a signature (your key isn't its key); it needs write access, which a review account has.
+ */
+async function actorFor(d: TaskDeps, x: PrTarget, rec: TaskRecord): Promise<Actor> {
+  if (rec.as !== "crew") return { token: x.token, host: x.host, identity: d.identity, signing: d.signing };
+  if (d.crewAccount) return { ...(await d.crewAccount(x)), signing: "off" };
+  const account = x.repo.review.account;
+  if (!account) throw new Error("the task acts as the crew's account, but this repository has none (Repositories → Post reviews as)");
+  const tk = await resolveAccountToken(x.repo.ref, account);
+  if ("error" in tk) throw new Error(`the crew's account ${tk.name}: ${tk.error}`);
+  const t = hostTransport(x.repo.ref, tk.token, `crewreview/${d.version}`);
+  const who = await accountIdentity(x.repo.ref, t);
+  return { token: tk.token, host: createHost(x.repo.ref, t), identity: { name: who.name, email: who.email }, signing: "off" };
 }
 
 /** Who plans and who builds: the seats [roles] names, or the harness from the setup as before. */
@@ -387,7 +419,8 @@ async function build(d: TaskDeps, x: PrTarget, rec0: TaskRecord, stepId: string,
     const subject = shorten(fix ? "Address the crew's self-review" : steps.map((s) => s.title).join("; ") || stepId, 72);
     const detail = steps.map((s) => s.detail).filter(Boolean).join("\n\n");
     const message = [subject, ...(detail ? ["", detail] : []), "", `Task: ${rec.text.split("\n")[0]!.slice(0, 200)}`, "", `Assisted-by: Crewreview ${d.version} (${c.seat})`].join("\n");
-    const commit = await commitAll(dir, message, { signing: d.signing, identity: d.identity });
+    const actor = await actorFor(d, x, rec);
+    const commit = await commitAll(dir, message, { signing: actor.signing, identity: actor.identity });
     await saveProgress(mirror, dir, rec.id);
     for (const s of done) d.onTask?.({ type: "step-done", task: rec.id, step: s, commit });
     if (fix) next = { ...next, reviewRounds: next.reviewRounds + 1 };
@@ -420,6 +453,7 @@ async function review(d: TaskDeps, x: PrTarget, rec0: TaskRecord, round: number)
       language: languageFor(d),
       policy: d.config.review.policy,
       signal: d.signal,
+      onEvent: (e) => d.onJobEvent?.({ repo: rec.repo, number: 0, title: rec.text.split("\n")[0]!, kind: "task", task: rec.id }, e),
     },
     d.version,
   );
@@ -438,16 +472,17 @@ async function review(d: TaskDeps, x: PrTarget, rec0: TaskRecord, round: number)
   return { ...fixed, stage: fixed.stage === "failed" ? "failed" : "reviewing", reviewRounds: Math.max(fixed.reviewRounds, round) };
 }
 
-/** Push the branch with your token and open the pull request; the attendant answers its reviews from there. */
+/** Push the branch and open the pull request as the task's account; the attendant answers its reviews from there. */
 async function open(d: TaskDeps, x: PrTarget, rec0: TaskRecord): Promise<TaskRecord> {
-  if (!x.host.openPullRequest) return { ...rec0, stage: "failed", error: "this host can't open pull requests yet" };
+  const actor = await actorFor(d, x, rec0);
+  if (!actor.host.openPullRequest) return { ...rec0, stage: "failed", error: "this host can't open pull requests yet" };
   const { mirror, dir, rec } = await workspace(d, x, rec0);
   const ahead = rec.baseSha ? (await gitOk(["rev-list", "--count", `${rec.baseSha}..HEAD`], dir)).trim() : "0";
   if (ahead === "0") return { ...rec, stage: "failed", error: "nothing was committed: no pull request to open" };
-  const pushed = await pushHead(dir, rec.branch, gitAuthEnv(x.repo.ref, x.token));
+  const pushed = await pushHead(dir, rec.branch, gitAuthEnv(x.repo.ref, actor.token));
   if (!pushed.ok) return { ...rec, stage: "failed", error: `push: ${pushed.error}` };
   const title = rec.plan?.title ?? shorten(rec.text.split("\n")[0]!, 72);
-  const pr = await x.host.openPullRequest({ head: rec.branch, base: rec.base, title, body: pullRequestBody(rec, d.version) });
+  const pr = await actor.host.openPullRequest({ head: rec.branch, base: rec.base, title, body: pullRequestBody(rec, d.version) });
   d.onTask?.({ type: "opened", task: rec.id, url: pr.url });
   await logTask(d, rec.id, { type: "opened", url: pr.url, number: pr.number });
   await removeWorktree(mirror, dir).catch(() => {});
