@@ -21,8 +21,13 @@ export interface RenderedReview extends PostReviewInput {
   outside: Finding[];
 }
 
-/** Turn a report into what gets posted: one summary and inline comments on lines the diff shows. */
-export async function renderHostReview(report: ReviewReport, t: Translator, version: string): Promise<RenderedReview> {
+/**
+ * Turn a report into what gets posted: one summary and inline comments on lines the diff shows. The version is the
+ * one that ran the review, not the one posting it: posting the same report twice renders the same text, which is how
+ * a retry tells what it already posted.
+ */
+export async function renderHostReview(report: ReviewReport, t: Translator, fallbackVersion: string): Promise<RenderedReview> {
+  const version = report.version || fallbackVersion;
   const diff = parseUnifiedDiff(await readFile(join(report.jobDir, "ctx", "diff.patch"), "utf8"));
   const lines = new Map(diff.map((f) => [f.path, f.rightLines]));
   const files = new Map(diff.map((f) => [f.path, f]));
@@ -43,6 +48,7 @@ export async function renderHostReview(report: ReviewReport, t: Translator, vers
   const notes: string[] = [];
   const uncovered = [...new Set(report.lenses.flatMap((l) => l.uncovered))];
   if (uncovered.length) notes.push(t.t("post.notCovered", { files: uncovered.map((f) => `\`${f}\``).join(", ") }));
+  if (report.omitted?.length) notes.push(t.t("post.leftOut", { files: report.omitted.map((f) => `\`${f.path}\``).join(", ") }));
   if (report.verifier.dropped.length) notes.push(t.tp("post.droppedByVerifier", report.verifier.dropped.length));
   if (report.coveredByThreads) notes.push(t.tp("post.alreadyDiscussed", report.coveredByThreads));
   const failed = report.lenses.filter((l) => l.status !== "ok").map((l) => l.lens);

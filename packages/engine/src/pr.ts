@@ -240,7 +240,7 @@ export async function postReview(d: PrDeps, x: PrTarget, reviewId: number): Prom
   try {
     if ("error" in poster) throw new Error(poster.error);
     const r = await poster.postReview(pr, rendered);
-    d.store.update(reviewId, { status: "posted", postedUrl: r.url ?? pr.url, event: r.event });
+    d.store.update(reviewId, { status: "posted", postedUrl: r.url ?? pr.url, event: r.event, error: null });
     return { kind: "posted", reviewId, url: r.url ?? pr.url, event: r.event, findings: report.findings.length };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);

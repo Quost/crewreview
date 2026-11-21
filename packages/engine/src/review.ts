@@ -10,13 +10,16 @@ import {
   extractJson,
   mapLimit,
   newNonce,
+  normalizeRepoPath,
   parseLensOutput,
   parseVerifierOutput,
   severityRank,
+  totalChangedLines,
   type CiState,
   type ExistingComment,
   type Finding,
   type LensResult,
+  type OmittedFile,
   type Usage,
   type Verdict,
   type VerdictPolicy,
@@ -109,6 +112,8 @@ export interface ReviewReport {
   target: Omit<ReviewTarget, "root"> & { mergeBaseSha: string };
   files: { path: string; status: string; additions: number; deletions: number }[];
   changedLines: number;
+  /** Changed files the agents didn't get the diff of: minified, generated or too large. */
+  omitted?: OmittedFile[];
   commits: string[];
   guidelines: string[];
   lenses: LensResult[];
@@ -156,8 +161,11 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   const ctx = await buildContext({ ...o.target, jobDir: o.jobDir, extraContext: o.extraContext });
   o.onEvent?.({ type: "context", context: ctx });
   if (ctx.files.length === 0) throw new ReviewError("no-changes", { base: o.target.base, head: o.target.branch });
-  if (ctx.changedLines > o.config.limits.maxDiffLines) {
-    throw new ReviewError("diff-too-large", { lines: ctx.changedLines, limit: o.config.limits.maxDiffLines });
+  // Lines of files left out of the diff (a bundle, a generated file) aren't read, so they don't count.
+  const leftOut = new Set(ctx.omitted.map((f) => f.path));
+  const reviewedLines = totalChangedLines(ctx.files.filter((f) => !leftOut.has(f.path)));
+  if (reviewedLines > o.config.limits.maxDiffLines) {
+    throw new ReviewError("diff-too-large", { lines: reviewedLines, limit: o.config.limits.maxDiffLines });
   }
 
   const lenses = o.partial ? o.lenses : o.lenses.filter((l) => l.applies(ctx.files));
@@ -171,6 +179,8 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   const routed = (c: SeatChoice, routedHere: boolean) => (routedHere ? { seat: c.seat, ...(c.model ? { model: c.model } : {}) } : {});
 
   let droppedByEvidence = 0;
+  // What each agent answered, kept beside the report so a bad review can be looked into afterwards.
+  const transcripts = new Map<string, string>();
   const settled = await mapLimit(lenses, concurrency, async (lens): Promise<LensResult> => {
     const tried: string[] = [];
     let limited: LensResult | undefined;
@@ -196,19 +206,23 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
 
   function lensResult(lensId: string, c: SeatChoice, seat: { seat?: string; model?: string }, r: Awaited<ReturnType<Harness["run"]>>): LensResult {
     const lens = { id: lensId };
+    if (r.text) transcripts.set(lensId, r.text);
     if (!r.ok) return { ...failedLens(lens.id, c.harness.id, r.durationMs, r.failure ?? "crash", r.error, r.usage), ...seat };
     const parsed = parseLensOutput(extractJson(r.text));
     if (!parsed) return { ...failedLens(lens.id, c.harness.id, r.durationMs, "parse", r.text.slice(0, 300), r.usage), ...seat };
     const raw: Finding[] = parsed.findings.map((f, i) => ({ ...f, id: `${lens.id}-${i}`, lens: lens.id, lenses: [lens.id] }));
     const ev = checkEvidence(raw, oracle);
     droppedByEvidence += ev.dropped.length;
+    // A file the lens never got the diff of isn't a gap in its review.
+    const uncovered = parsed.uncovered.filter((p) => !leftOut.has(normalizeRepoPath(p) ?? p));
+    const coverage = parsed.coverage === "partial" && parsed.uncovered.length > 0 && uncovered.length === 0 ? "full" : parsed.coverage;
     return {
       lens: lens.id,
       harness: c.harness.id,
       status: ev.hallucinated ? "hallucinated" : "ok",
       findings: ev.kept,
-      coverage: parsed.coverage,
-      uncovered: parsed.uncovered,
+      coverage,
+      uncovered,
       durationMs: r.durationMs,
       usage: r.usage,
       ...seat,
@@ -255,6 +269,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
       }
       break;
     }
+    if (ran?.text) transcripts.set("verifier", ran.text);
     const r = ran ?? { ok: false as const, text: "", exitCode: null, durationMs: 0, failure: "unsupported" as const, error: `no seat: ${noSeat ?? "quota"}` };
     verifier.durationMs = r.durationMs;
     const decisions = r.ok ? parseVerifierOutput(extractJson(r.text)) : undefined;
@@ -307,6 +322,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     },
     files: ctx.files.map((f) => ({ path: f.path, status: f.status, additions: f.additions, deletions: f.deletions })),
     changedLines: ctx.changedLines,
+    ...(ctx.omitted.length ? { omitted: ctx.omitted } : {}),
     commits: ctx.commits,
     guidelines: ctx.guidelines,
     lenses: results,
@@ -320,6 +336,11 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     usage: sumUsage([...results.map((r) => r.usage), verifier.usage]),
     jobDir: o.jobDir,
   };
+  // Written last, outside ./ctx/: no agent of this review reads another's answer.
+  if (transcripts.size) {
+    await mkdir(join(o.jobDir, "agents"), { recursive: true });
+    for (const [role, text] of transcripts) await writeFile(join(o.jobDir, "agents", `${role.replace(/[^a-zA-Z0-9_-]/g, "_")}.txt`), text);
+  }
   await writeFile(join(o.jobDir, "report.json"), JSON.stringify(report, null, 2));
   return report;
 }

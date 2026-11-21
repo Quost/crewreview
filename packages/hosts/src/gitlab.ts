@@ -143,8 +143,24 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
         if (e instanceof HostError && e.status === 404) drafts = false; // older GitLab without draft notes
         else throw e;
       }
+      // GitLab can answer 500 to a batch publish and still publish it. The same report renders the same text, so what
+      // an earlier attempt already published is skipped here instead of posted twice.
+      const published = new Set<string>();
+      try {
+        const path = `${mr}/notes`;
+        const q = { per_page: 100 };
+        for (const n of await paginate<{ body?: string; system?: boolean }>(t, path, q, nextPage(path, q), 1000)) {
+          if (!n.system && n.body && parseMarker(n.body)) published.add(n.body.trim());
+        }
+      } catch {
+        // Can't tell what's there: post as if nothing were.
+      }
       const created: { id: number; c: InlineComment }[] = [];
       for (const c of input.comments) {
+        if (published.has(c.body.trim())) {
+          placed++;
+          continue;
+        }
         if (!refs) {
           unplaced.push(c);
           continue;
@@ -204,7 +220,7 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
       }
       const moved = unplaced.map((c) => `- \`${c.path}:${c.line}\`\n\n${c.body.replace(/^/gm, "  ")}`).join("\n\n");
       const body = unplaced.length ? `${input.body}\n\n### ${input.fallbackHeading}\n\n${moved}` : input.body;
-      await t.request("POST", `${mr}/notes`, { body: { body } });
+      if (!published.has(body.trim())) await t.request("POST", `${mr}/notes`, { body: { body } });
       let event = input.event;
       if (event === "approve") {
         const mine = pr.author.toLowerCase() === (await self.whoami()).toLowerCase();

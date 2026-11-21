@@ -19,6 +19,7 @@ import {
   patchFingerprint,
   redactSecrets,
   sameSignature,
+  slimDiff,
   totalChangedLines,
   unquoteGitPath,
   type Finding,
@@ -121,6 +122,34 @@ describe("diff", () => {
   });
 });
 
+describe("slimDiff", () => {
+  const section = (path: string, body: string) =>
+    `diff --git a/${path} b/${path}\nindex 1111111..2222222 100644\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n${body}\n`;
+  const small = section("src/a.ts", "-const a = 1;\n+const a = 2;");
+
+  test("leaves a minified bundle out but keeps its header, and keeps the rest byte for byte", () => {
+    const bundle = section("public/app.js", `-var a=1;\n+${"var b=2;".repeat(300)}`);
+    const r = slimDiff(bundle + small);
+    expect(r.omitted).toEqual([{ path: "public/app.js", reason: "minified", bytes: new TextEncoder().encode(bundle).length }]);
+    expect(r.text).toContain("+++ b/public/app.js\n# Crewreview: diff left out (minified or generated code");
+    expect(r.text).not.toContain("var b=2;");
+    expect(r.text.endsWith(small)).toBe(true);
+    // What is left still parses: the bundle is listed, with no lines to comment on.
+    const files = parseUnifiedDiff(r.text);
+    expect(files.map((f) => [f.path, f.rightLines.size])).toEqual([["public/app.js", 0], ["src/a.ts", 1]]);
+  });
+
+  test("a .min.js path and an oversized file are left out too", () => {
+    const r = slimDiff(section("vendor/x.min.js", "-a\n+b") + section("data/big.json", `+${"x\n+".repeat(200)}y`) + small, { maxFileBytes: 500, maxLineLength: 2000 });
+    expect(r.omitted.map((f) => [f.path, f.reason])).toEqual([["vendor/x.min.js", "minified"], ["data/big.json", "large"]]);
+  });
+
+  test("an ordinary diff comes back unchanged", () => {
+    expect(slimDiff(small)).toEqual({ text: small, omitted: [] });
+    expect(slimDiff("")).toEqual({ text: "", omitted: [] });
+  });
+});
+
 describe("evidence", () => {
   const oracle = { lineCount: (p: string) => ({ "src/app.ts": 50, "README.md": 3 })[p] ?? null };
 
@@ -144,10 +173,20 @@ describe("evidence", () => {
     expect(r.hallucinated).toBe(false);
   });
 
-  test("half of the cited files missing means hallucinated", () => {
-    const r = checkEvidence([finding(), finding({ id: "F2", path: "src/ghost.ts" })], oracle);
+  test("two or more missing files, half of those cited, means hallucinated", () => {
+    const r = checkEvidence(
+      [finding(), finding({ id: "F2", path: "README.md", line: 1 }), finding({ id: "F3", path: "src/ghost.ts" }), finding({ id: "F4", path: "src/phantom.ts" })],
+      oracle,
+    );
     expect(r.hallucinated).toBe(true);
     expect(r.kept).toEqual([]);
+  });
+
+  test("one missing file out of two costs only the finding that cites it", () => {
+    const r = checkEvidence([finding(), finding({ id: "F2", path: "node_modules" })], oracle);
+    expect(r.hallucinated).toBe(false);
+    expect(r.kept.map((f) => f.id)).toEqual(["F1"]);
+    expect(r.dropped[0]!.reason).toBe("missing-file");
   });
 });
 

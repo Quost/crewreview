@@ -1,7 +1,7 @@
-import { readFileSync, statSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseUnifiedDiff, redactSecrets, totalChangedLines, type DiffFile, type FileOracle } from "@crewreview/core";
+import { parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type OmittedFile } from "@crewreview/core";
 import { commitSubjects, diffText, exportTree, fileHistory, mergeBase, showFile } from "./git.ts";
 
 /** Project docs that hold rules a reviewer should apply, read from the rules ref. */
@@ -18,6 +18,8 @@ export interface ChangeContext {
   headSha: string;
   mergeBaseSha: string;
   files: DiffFile[];
+  /** Changed files whose diff the agents don't get: minified, generated or too large to read. */
+  omitted: OmittedFile[];
   changedLines: number;
   commits: string[];
   guidelines: string[];
@@ -47,11 +49,20 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
   const files = parseUnifiedDiff(diff);
   const commits = await commitSubjects(o.root, mb, o.headSha);
 
+  const slim = slimDiff(diff);
+  const left = new Map(slim.omitted.map((f) => [f.path, f]));
+
   await exportTree(o.root, o.headSha, headDir);
-  await writeFile(join(ctxDir, "diff.patch"), diff);
+  await writeFile(join(ctxDir, "diff.patch"), slim.text);
   await writeFile(
     join(ctxDir, "files.txt"),
-    files.map((f) => `${f.status.padEnd(8)} +${f.additions} -${f.deletions}  ${f.oldPath ? `${f.oldPath} -> ` : ""}${f.path}`).join("\n") + "\n",
+    files
+      .map((f) => {
+        const out = left.get(f.path);
+        const note = out ? `  (diff left out: ${out.reason === "minified" ? "minified or generated" : "too large"})` : "";
+        return `${f.status.padEnd(8)} +${f.additions} -${f.deletions}  ${f.oldPath ? `${f.oldPath} -> ` : ""}${f.path}${note}`;
+      })
+      .join("\n") + "\n",
   );
   await writeFile(
     join(ctxDir, "change.md"),
@@ -101,6 +112,7 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     headSha: o.headSha,
     mergeBaseSha: mb,
     files,
+    omitted: slim.omitted,
     changedLines: totalChangedLines(files),
     commits,
     guidelines,
@@ -117,7 +129,11 @@ export function treeOracle(headDir: string): FileOracle {
       try {
         const full = join(headDir, path);
         if (!full.startsWith(headDir)) return null;
-        if (statSync(full).isFile()) {
+        // A link is never followed: git stores it as a one-line blob (its target), and that is what the change
+        // shows. Following it would read outside the tree, or call a link the change adds "missing" when it dangles.
+        const st = lstatSync(full);
+        if (st.isSymbolicLink()) n = 1;
+        else if (st.isFile()) {
           const text = readFileSync(full, "utf8");
           n = text === "" ? 0 : text.split("\n").length - (text.endsWith("\n") ? 1 : 0);
         }
