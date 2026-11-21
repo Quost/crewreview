@@ -4,6 +4,19 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.12.1 — 2026-11-20
+
+Posting reviews on GitLab, fixed, and an activity log that says what it means.
+
+### Fixed
+
+- Posting a review on GitLab could fail with "500 Internal Server Error" on `draft_notes/bulk_publish` (seen on GitLab 19.5). A comment on an unchanged line went without its old line number and the file's old path, so GitLab saved the draft but couldn't place it, and then failed the whole batch. Comments now carry both. A draft GitLab still can't place goes into the summary instead, and if the batch fails anyway, each comment is published on its own.
+- Publishing the batch also published drafts you had written yourself on that merge request. The crew now publishes only its own drafts; when you have some pending, it publishes its own one by one and leaves yours alone.
+- Retrying a post that failed left the first attempt's drafts behind, and would have posted them twice. The crew now removes its own leftover drafts first, recognized by its hidden marker.
+- A merge request larger than `limits.maxDiffLines` showed "failed: diff-too-large", and then "failed too many times on this commit" on every check. It now says, once, that it's too large, with its size and the limit, and leaves it until a new commit.
+- The same skip ("it's a draft") was logged again on every check. Each one is now said once per commit and reason.
+- The check line said "pending" for pull requests queued for the next check, which read like the inbox. It now says "queued for the next check".
+
 ## 0.12.0 — 2026-11-20
 
 Seats and roles: a model and an effort for each job, shared across the plans you pay for, with a Team page.
