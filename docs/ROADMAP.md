@@ -82,6 +82,8 @@ Give the crew a task (a sentence, an issue, a Jira or GitHub issue link) and it 
 
 Multi-agent by design: planner, builder and reviewers can be different harnesses and vendors, each with the lock its role needs (read-only for review, worktree-only for building).
 
+M8.1 (seats and roles) shipped in v0.12. M8.2 (`crewreview task`: plan, approval, build, self-review, pull request, with handoffs) is in preview from the command line, verified with real agents on a sandbox; the dashboard and the daemon driving tasks come next.
+
 The design, with seats and roles (a harness, model and effort per job, shared across your plans), the task ledger and handoffs, and terminal runners: [plans/crew-mode.md](plans/crew-mode.md).
 
 ## Principles

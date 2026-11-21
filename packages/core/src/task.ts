@@ -11,7 +11,10 @@ export type StepStatus = (typeof STEP_STATUS)[number];
 
 export interface PlanStep {
   id: string;
+  /** Short and imperative: it becomes the step's commit subject. */
   title: string;
+  /** How, in a sentence or two. */
+  detail?: string;
   /** Files the step expects to touch: a hint for the builder and the reviewer, not a lock. */
   files: string[];
   /** How the step is checked: a command, or what to look at. */
@@ -20,12 +23,18 @@ export interface PlanStep {
 }
 
 export interface TaskPlan {
+  /** The pull request's title. */
+  title?: string;
   summary: string;
   steps: PlanStep[];
   risks: string[];
 }
 
-export type TaskStage = "planning" | "approval" | "building" | "reviewing" | "opening" | "done" | "failed" | "cancelled";
+/**
+ * planning → approval (the plan waits for you) → building → reviewing → ready (opening the pull request waits for
+ * you) → opening → done. In auto mode approval and ready are passed through.
+ */
+export type TaskStage = "planning" | "approval" | "building" | "reviewing" | "ready" | "opening" | "done" | "failed" | "cancelled";
 
 /** What one agent turn reported, written into handoffs/NNN-<role>-<seat>.md by code. */
 export interface Handoff {
@@ -69,47 +78,68 @@ export const DEFAULT_TASK_LIMITS: TaskLimits = { maxTurns: 12, maxReviewRounds: 
 
 const ID = /^[a-z0-9][a-z0-9-]{0,40}$/;
 
+// Long text is cut, never a reason to throw a good plan away.
+const text = (max: number) => z.string().transform((s) => (s.length > max ? `${s.slice(0, max - 1)}…` : s));
+
 const PlanSchema = z.object({
-  summary: z.string().min(1).max(4000),
+  title: text(100).optional(),
+  summary: text(4000).pipe(z.string().min(1)),
   steps: z
     .array(
       z.object({
-        id: z.string().regex(ID),
-        title: z.string().min(1).max(300),
-        files: z.array(z.string().max(300)).max(60).default([]),
-        check: z.string().max(500).optional(),
+        id: z.union([z.string(), z.number()]).transform(String),
+        title: text(300).pipe(z.string().min(1)),
+        detail: text(2000).optional(),
+        files: z.array(z.string().max(500)).default([]).transform((f) => f.slice(0, 60)),
+        check: text(1000).optional(),
       }),
     )
     .min(1)
     .max(30),
-  risks: z.array(z.string().max(500)).max(20).default([]),
+  risks: z.array(text(1000)).default([]).transform((r) => r.slice(0, 20)),
 });
 
+/** A step id as the ledger keeps it: lowercase letters, digits and dashes ("Add findUserByEmail" → "add-finduserbyemail"). */
+export function stepId(raw: string): string {
+  return raw
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/, "");
+}
+
 /**
- * The planner's answer, checked: at least one step, unique ids, no absolute paths or `..` in the files it names.
- * Undefined when it isn't a plan; the planner gets another try.
+ * The planner's answer, checked: at least one step, ids normalized and unique, no absolute paths or `..` in the
+ * files it names. Undefined when it isn't a plan.
  */
 export function parsePlan(value: unknown): TaskPlan | undefined {
   const r = PlanSchema.safeParse(value);
   if (!r.success) return undefined;
   const ids = new Set<string>();
-  for (const s of r.data.steps) {
-    if (ids.has(s.id)) return undefined;
-    ids.add(s.id);
+  for (const [i, s] of r.data.steps.entries()) {
+    let id = stepId(s.id) || `step-${i + 1}`;
+    for (let n = 2; ids.has(id); n++) id = `${stepId(s.id) || "step"}-${n}`;
+    ids.add(id);
+    s.id = id;
+    if (!ID.test(id)) return undefined;
   }
   const safe = (f: string) => f.length > 0 && !f.startsWith("/") && !/^[a-z]:/i.test(f) && !f.split(/[\\/]/).includes("..");
   return {
+    ...(r.data.title ? { title: r.data.title } : {}),
     summary: r.data.summary,
     risks: r.data.risks,
-    steps: r.data.steps.map((s) => ({ id: s.id, title: s.title, files: s.files.filter(safe), ...(s.check ? { check: s.check } : {}), status: "todo" as const })),
+    steps: r.data.steps.map((s) => ({ id: s.id, title: s.title, ...(s.detail ? { detail: s.detail } : {}), files: s.files.filter(safe), ...(s.check ? { check: s.check } : {}), status: "todo" as const })),
   };
 }
 
 const HandoffSchema = z.object({
-  done: z.array(z.string()).default([]),
-  next: z.string().max(2000).default(""),
-  blockers: z.array(z.string().max(1000)).max(20).default([]),
-  notes: z.string().max(4000).default(""),
+  done: z.array(z.union([z.string(), z.number()]).transform(String)).default([]),
+  next: text(2000).default(""),
+  blockers: z.array(text(1000)).default([]).transform((b) => b.slice(0, 20)),
+  notes: text(4000).default(""),
 });
 
 /** A builder's report at the end of its turn, checked against the plan: steps it claims must exist. */
@@ -117,7 +147,7 @@ export function parseHandoff(value: unknown, plan: TaskPlan): Pick<Handoff, "don
   const r = HandoffSchema.safeParse(value);
   if (!r.success) return undefined;
   const known = new Set(plan.steps.map((s) => s.id));
-  return { ...r.data, done: [...new Set(r.data.done.filter((id) => known.has(id)))] };
+  return { ...r.data, done: [...new Set(r.data.done.map((id) => (known.has(id) ? id : stepId(id))).filter((id) => known.has(id)))] };
 }
 
 export type TaskAction =
@@ -138,7 +168,7 @@ export function nextAction(t: TaskState, now: number, limits: TaskLimits = DEFAU
   if (t.stage === "done" || t.stage === "failed" || t.stage === "cancelled") return { kind: "stop" };
   if (t.waitingUntil !== undefined && t.waitingUntil > now) return { kind: "wait", until: t.waitingUntil };
   if (t.stage === "planning" || !t.plan) return { kind: "plan" };
-  if (t.stage === "approval") return { kind: "await-approval" };
+  if (t.stage === "approval" || t.stage === "ready") return { kind: "await-approval" };
   if (t.stage === "building") {
     const blocked = t.plan.steps.find((s) => s.status === "blocked");
     if (blocked) return { kind: "ask", reason: "blocked", step: blocked.id };
@@ -156,7 +186,7 @@ export function nextAction(t: TaskState, now: number, limits: TaskLimits = DEFAU
 }
 
 /** The ledger after a building turn: finished steps marked done, the next one in progress or blocked. */
-export function applyHandoff(t: TaskState, h: Omit<Handoff, "n">): TaskState {
+export function applyHandoff<T extends TaskState>(t: T, h: Omit<Handoff, "n">): T {
   if (!t.plan) return t;
   const n = (t.handoffs.at(-1)?.n ?? 0) + 1;
   const done = new Set(h.done);
@@ -190,6 +220,7 @@ export function planMarkdown(task: string, plan: TaskPlan): string {
   const lines = [`# ${task}`, "", plan.summary, "", "## Steps"];
   for (const s of plan.steps) {
     lines.push(`- ${mark[s.status]} **${s.id}**: ${s.title}`);
+    if (s.detail) lines.push(`  - ${s.detail}`);
     if (s.files.length) lines.push(`  - files: ${s.files.join(", ")}`);
     if (s.check) lines.push(`  - check: ${s.check}`);
   }

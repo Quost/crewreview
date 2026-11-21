@@ -5,8 +5,8 @@ import type { ConformanceStore } from "./conformance-store.ts";
 import { isPickError, reviewerOnce, writerOnce, type PickError } from "./harnesses.ts";
 import { DEFAULT_PAUSE_MS, type QuotaBook } from "./quota.ts";
 
-/** The jobs that route through seats today. Build and plan come with crew mode (docs/plans/crew-mode.md). */
-export type Role = "review" | "verify" | "attend";
+/** The jobs that route through seats: reviews, and crew mode's planning and building (docs/plans/crew-mode.md). */
+export type Role = "review" | "verify" | "attend" | "plan" | "build";
 
 /** A seat, resolved: a harness id, and what to ask it for. */
 export interface SeatSpec {
@@ -72,7 +72,7 @@ export class SeatBook {
   picker(role: Role, opts: { write?: boolean } = {}): SeatPicker | undefined {
     const route = roleRoute(this.config, role);
     if (!route) return undefined;
-    return (skip) => this.pick(role, route, skip, true, opts.write ?? role === "attend") as Promise<SeatChoice | PickError>;
+    return (skip) => this.pick(role, route, skip, true, opts.write ?? (role === "attend" || role === "build")) as Promise<SeatChoice | PickError>;
   }
 
   /**
@@ -82,7 +82,7 @@ export class SeatBook {
   async available(role: Role, opts: { write?: boolean } = {}): Promise<Harness | PickError | undefined> {
     const route = roleRoute(this.config, role);
     if (!route) return undefined;
-    const p = await this.pick(role, route, [], false, opts.write ?? role === "attend");
+    const p = await this.pick(role, route, [], false, opts.write ?? (role === "attend" || role === "build"));
     return isPickError(p) ? p : (p as { harness: Harness }).harness;
   }
 

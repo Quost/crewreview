@@ -70,7 +70,8 @@ function languageFor(repo: LinkedRepo, d: PrDeps): { t: Translator; language: st
   return { t: createTranslator(matchLocale(code) ?? "en"), language: languageName(code) };
 }
 
-async function runChecks(commands: readonly string[], cwd: string, timeoutMs: number): Promise<ValidationRun[]> {
+/** The project's own checks (the repository's validate commands), in order, stopping at the first that fails. */
+export async function runChecks(commands: readonly string[], cwd: string, timeoutMs: number): Promise<ValidationRun[]> {
   const out: ValidationRun[] = [];
   for (const command of commands) {
     const argv = process.platform === "win32" ? ["cmd", "/d", "/s", "/c", command] : ["sh", "-c", command];

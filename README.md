@@ -219,6 +219,25 @@ crewreview repo set acme-shop --conflicts on --ci on   # also fix conflicts with
 
 The attendant edits files, so its harness must prove on your machine that it can write in its worktree and can't write outside it: prove it once per harness version, with **Prove** in Harnesses & limits or `crewreview doctor --conformance`.
 
+### Give the crew a task (preview)
+
+Crew mode takes a task from a sentence to a pull request. Every step waits for you unless you say `--auto`:
+
+```bash
+crewreview task "Add findUserByEmail to src/users.ts, case-insensitive" --repo shop
+crewreview task approve <id>      # the plan is fine: build it
+crewreview task approve <id>      # the branch is fine: open the pull request
+crewreview task show <id>         # the plan, each step's status, what's next
+crewreview task list
+```
+
+1. **Plan.** A planner reads the repository, read-only, and proposes small steps: the files each step touches, how to check it, and the risks.
+2. **Build.** A builder does one step per turn, in Crewreview's own checkout. Your repository's validate commands run after each step (never commands taken from the plan), and each finished step is committed with your identity and signature.
+3. **Self-review.** The review crew reviews the branch, and the builder fixes what's blocking, for up to `task.maxReviewRounds` rounds.
+4. **Pull request.** The branch is pushed with your token and opened, with the plan, the risks and what the self-review found. Merging stays with a person.
+
+Each agent reports in a handoff, which lands in `tasks/<id>/handoffs/` in Crewreview's data folder, next to the plan and its own raw answers. Any seat can pick the task up from there. When a builder hits its usage limit mid-step, Crewreview writes the handoff itself from what the agent left, and the next seat of the `build` role carries on. Planning and building use the `plan` and `build` roles (see Seats and roles under Configuration); without them, the harness from the setup does both.
+
 ### Dashboard, service and updates
 
 ```bash
@@ -317,6 +336,33 @@ allowApprove = false
 ```
 
 A repository can tune its own review in `.crewreview/lenses/<lens>.md`: a file named like a built-in lens replaces its rubric, and any other file adds a lens.
+
+### Seats and roles
+
+A seat is one agent the crew can hire: a harness, a model and an effort. Roles say which seats do each job, and how they share it:
+
+```toml
+[seats]
+planner = { harness = "claude", model = "claude-opus-5-5", effort = "high" }
+sonnet = { harness = "claude", model = "claude-sonnet-5-5" }
+fast = { harness = "codex", effort = "low", dailyRuns = 40 }
+
+[roles]
+review = { seats = ["fast", "sonnet"], balance = "spread" }
+verify = ["planner"]
+attend = ["sonnet", "fast"]
+plan = ["planner"]
+build = ["fast", "sonnet"]
+
+[task]
+maxTurns = 12                 # building turns before a task stops and asks you
+maxReviewRounds = 2           # self-review rounds before the pull request opens
+```
+
+- **How a job shares its seats:** `balance = "order"` (the default) uses the first seat until it's paused or out of runs. `spread` shares by how much of each seat's day is left. `cheapest` picks the lowest known cost per run.
+- **Usage limits:** a seat at its limit pauses until the limit resets, and so do the seats on the same harness and model; the next seat carries on.
+- **Harness ids:** a role can name a harness (`"codex"`), meaning that harness with its own `[harness.codex]` settings.
+- **Without `[roles]`:** every job works as before. The dashboard's Team page shows each seat, its jobs, its day and its pause.
 
 ## Build from source
 

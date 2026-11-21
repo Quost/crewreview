@@ -120,7 +120,7 @@ export interface Repo {
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean };
 }
 
-export type TeamRole = "review" | "verify" | "attend";
+export type TeamRole = "review" | "verify" | "attend" | "plan" | "build";
 
 export interface TeamView {
   roles: { role: TeamRole; seats: string[]; balance: "order" | "spread" | "cheapest"; configured: boolean }[];

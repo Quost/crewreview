@@ -59,6 +59,17 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
       return me;
     },
 
+    async defaultBranch() {
+      return String((await t.request("GET", project)).data.default_branch);
+    },
+
+    async openPullRequest(input) {
+      // GitLab marks a draft by its title.
+      const title = input.draft ? `Draft: ${input.title}` : input.title;
+      const d = (await t.request("POST", `${project}/merge_requests`, { body: { source_branch: input.head, target_branch: input.base, title, description: input.body, remove_source_branch: true } })).data;
+      return { number: Number(d.iid), url: String(d.web_url) };
+    },
+
     async listOpenPullRequests() {
       const q = { state: "opened", per_page: 100 };
       const list = await paginate<any>(t, `${project}/merge_requests`, q, nextPage(`${project}/merge_requests`, q), 500);

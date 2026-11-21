@@ -103,7 +103,19 @@ export const ConfigSchema = z
     seats: z.record(z.string().regex(SEAT_ID), Seat).default({}),
     /** Which seats do each job. A job left out works as before: harness.default, verifier and fallback. */
     roles: z
-      .object({ review: Role.optional(), verify: Role.optional(), attend: Role.optional() })
+      .object({ review: Role.optional(), verify: Role.optional(), attend: Role.optional(), plan: Role.optional(), build: Role.optional() })
+      .strict()
+      .prefault({}),
+    /** Crew mode tasks (crewreview task): a plan, steps built by agents, a self-review, a pull request. */
+    task: z
+      .object({
+        /** Most building turns before a task stops and asks you. */
+        maxTurns: z.number().int().min(1).max(100).default(12),
+        /** Self-review rounds (review, then fix what it found) before the pull request opens. */
+        maxReviewRounds: z.number().int().min(0).max(5).default(2),
+        /** Task branches are named <prefix><task id>. */
+        branchPrefix: z.string().regex(/^[A-Za-z0-9._/-]*$/).default("crew/"),
+      })
       .strict()
       .prefault({}),
     limits: z

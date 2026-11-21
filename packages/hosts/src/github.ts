@@ -70,6 +70,15 @@ export function githubHost(repo: RepoRef, t: Transport): HostAdapter {
       return me;
     },
 
+    async defaultBranch() {
+      return String((await t.request("GET", base)).data.default_branch);
+    },
+
+    async openPullRequest(input) {
+      const d = (await t.request("POST", `${base}/pulls`, { body: { title: input.title, head: input.head, base: input.base, body: input.body, draft: input.draft ?? false } })).data;
+      return { number: Number(d.number), url: String(d.html_url) };
+    },
+
     async listOpenPullRequests() {
       const list = await paginate<any>(t, `${base}/pulls`, { state: "open", per_page: 100 }, nextLink, 500);
       return list.map(mapPull);

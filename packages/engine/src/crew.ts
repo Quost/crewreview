@@ -20,7 +20,7 @@ import { previewLink, type Preview } from "./preview.ts";
 import { QuotaBook } from "./quota.ts";
 import { roleRoute, SeatBook, seatSpec, type Role, type SeatSpec } from "./seats.ts";
 
-const ROLES: readonly Role[] = ["review", "verify", "attend"];
+const ROLES: readonly Role[] = ["review", "verify", "attend", "plan", "build"];
 
 export interface TeamView {
   roles: { role: Role; seats: string[]; balance: "order" | "spread" | "cheapest"; configured: boolean }[];
@@ -384,6 +384,8 @@ export class CrewDaemon {
       review: [c.harness.default, ...(c.harness.fallback ?? [])],
       verify: [c.harness.verifier ?? c.harness.default],
       attend: [c.harness.default, ...(c.harness.fallback ?? [])],
+      plan: [c.harness.default, ...(c.harness.fallback ?? [])],
+      build: [c.harness.default, ...(c.harness.fallback ?? [])],
     };
     const roles = ROLES.map((role) => {
       const route = roleRoute(c, role);

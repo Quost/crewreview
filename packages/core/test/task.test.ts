@@ -21,10 +21,10 @@ describe("the plan", () => {
     expect(planMarkdown("Discount codes", p)).toContain("- [ ] **api**: Apply a code at checkout\n  - files: src/api/checkout.ts\n  - check: bun test src/api");
   });
 
-  test("not a plan: no steps, repeated ids, or ids that could name a path", () => {
+  test("step ids are normalized and made unique; not a plan without steps", () => {
+    const p = parsePlan({ summary: "x", steps: [{ id: "Add findUserByEmail", title: "1" }, { id: "add_findUserByEmail", title: "2" }, { id: 3, title: "3" }, { id: "../", title: "4" }] })!;
+    expect(p.steps.map((s) => s.id)).toEqual(["add-finduserbyemail", "add-finduserbyemail-2", "3", "step-4"]);
     expect(parsePlan({ summary: "x", steps: [] })).toBeUndefined();
-    expect(parsePlan({ summary: "x", steps: [{ id: "a", title: "1" }, { id: "a", title: "2" }] })).toBeUndefined();
-    expect(parsePlan({ summary: "x", steps: [{ id: "../a", title: "1" }] })).toBeUndefined();
     expect(parsePlan("just do it")).toBeUndefined();
   });
 });

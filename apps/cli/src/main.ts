@@ -9,6 +9,7 @@ import { mcp, mcpSetup } from "./commands/mcp.ts";
 import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
 import { repo } from "./commands/repo.ts";
+import { task } from "./commands/task.ts";
 import { daemon, status, ui } from "./commands/daemon.ts";
 import { service, update } from "./commands/system.ts";
 import { reviewOne } from "./commands/review.ts";
@@ -35,6 +36,7 @@ function help(t: Translator): string {
     row("local", t.t("cli.cmd.local")),
     row("repo [list|add|set|remove]", t.t("cli.cmd.repo")),
     row("review <repo> <number>", t.t("cli.cmd.review")),
+    row('task "<what to do>" --repo <id>', t.t("cli.cmd.task")),
     row("attend <repo> <number>", t.t("cli.cmd.attend")),
     row("inbox [show|approve|discard]", t.t("cli.cmd.inbox")),
     row("once", t.t("cli.cmd.once")),
@@ -114,6 +116,8 @@ async function main(argv: string[]): Promise<number> {
       ci: { type: "string" },
       exclude: { type: "string" },
       post: { type: "boolean", default: false },
+      repo: { type: "string" },
+      auto: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       "no-ui": { type: "boolean", default: false },
@@ -167,6 +171,8 @@ async function main(argv: string[]): Promise<number> {
         return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id, attend: v.attend, polish: v.polish, include: v.include, exclude: v.exclude, conflicts: v.conflicts, ci: v.ci, account: v.account, paused: v.paused });
       case "review":
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
+      case "task":
+        return await task(c, rest, { repo: v.repo, base: v.base, auto: v.auto });
       case "attend":
         return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], retry: v.retry });
       case "mcp":

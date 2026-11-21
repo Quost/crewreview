@@ -97,4 +97,17 @@ export interface HostAdapter {
   comment?(pr: PullRequest, body: string): Promise<void>;
   /** The end of a failed CI job's log, when the host keeps one. */
   ciLog?(job: string): Promise<string | undefined>;
+  /** The branch pull requests go to by default. */
+  defaultBranch?(): Promise<string>;
+  /** Open a pull request from a branch already pushed (crew mode). */
+  openPullRequest?(input: OpenPullRequestInput): Promise<{ number: number; url: string }>;
+}
+
+export interface OpenPullRequestInput {
+  head: string;
+  base: string;
+  title: string;
+  body: string;
+  /** Opened as a draft, so nobody is asked to review it yet. */
+  draft?: boolean;
 }
