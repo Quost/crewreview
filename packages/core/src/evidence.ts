@@ -33,8 +33,9 @@ export interface EvidenceResult {
 }
 
 /**
- * Keep only findings that point at a real file and line. If at least two distinct files are cited and half or more
- * of them don't exist, the output as a whole is treated as hallucinated.
+ * Keep only findings that point at a real file and line. If two or more of the cited files don't exist and they are
+ * at least half of those cited, the output as a whole is treated as hallucinated. One missing file only costs the
+ * findings that cite it: a lens that cites a real file and one it got wrong is not inventing the whole review.
  */
 export function checkEvidence(findings: readonly Finding[], oracle: FileOracle): EvidenceResult {
   const kept: Finding[] = [];
@@ -64,6 +65,6 @@ export function checkEvidence(findings: readonly Finding[], oracle: FileOracle):
   }
 
   const phantomRatio = cited.size === 0 ? 0 : phantom.size / cited.size;
-  const hallucinated = cited.size >= 2 && phantomRatio >= 0.5;
+  const hallucinated = phantom.size >= 2 && phantomRatio >= 0.5;
   return { kept: hallucinated ? [] : kept, dropped, phantomRatio, hallucinated };
 }

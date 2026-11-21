@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Harness, RunRequest, RunResult } from "@crewreview/harness";
@@ -140,6 +140,53 @@ describe("review pipeline", () => {
     // Nothing changed in the user's checkout.
     expect(await sh(["status", "--porcelain"])).toBe(statusBefore);
     expect(await sh(["worktree", "list"])).toBe(worktreesBefore);
+  }, 60_000);
+
+  test("a minified bundle is left out of the diff, and a link the change adds counts as a file", async () => {
+    const r2 = await mkdtemp(join(tmpdir(), "crewreview-test-bundle-"));
+    try {
+      for (const args of [["init", "-q", "-b", "main"], ["config", "user.email", "t@example.com"], ["config", "user.name", "T"], ["config", "commit.gpgsign", "false"]]) await sh(args, r2);
+      await mkdir(join(r2, "public"));
+      await mkdir(join(r2, "src"));
+      await writeFile(join(r2, "public", "app.js"), "var a=1;\n");
+      await writeFile(join(r2, "src", "math.ts"), "export const can = () => false;\n");
+      await sh(["add", "-A"], r2);
+      await sh(["commit", "-qm", "base"], r2);
+      await sh(["checkout", "-qb", "feature"], r2);
+      await writeFile(join(r2, "public", "app.js"), `${"var x=1;".repeat(400)}\n`);
+      await writeFile(join(r2, "src", "math.ts"), "export const can = () => true;\n");
+      await symlink("../elsewhere/node_modules", join(r2, "node_modules"));
+      await sh(["add", "-A"], r2);
+      await sh(["commit", "-qm", "change"], r2);
+
+      const target = await localTarget({ cwd: r2 });
+      const lenses = (await loadLenses(target.root, target.rulesRef)).filter((l) => l.id === "correctness");
+      const h = fakeHarness((req) =>
+        req.prompt.includes("You are the verifier")
+          ? JSON.stringify({ decisions: [] })
+          : JSON.stringify({
+              findings: [
+                { path: "node_modules", line: 1, severity: "major", title: "node_modules committed as a link", body: "It points outside the repository." },
+                { path: "src/math.ts", line: 1, severity: "major", title: "everyone can", body: "Always true." },
+              ],
+              coverage: "partial",
+              uncovered: ["public/app.js"],
+            }),
+      );
+      const jobDir = join(home, "job-bundle");
+      const r = await runReview({ target, jobDir, lenses, partial: false, harness: h, config: parseConfig({}), language: "English", policy: parseConfig({}).review.policy }, "test");
+      expect(r.omitted).toEqual([expect.objectContaining({ path: "public/app.js", reason: "minified" })]);
+      const patch = await readFile(join(jobDir, "ctx", "diff.patch"), "utf8");
+      expect(patch).not.toContain("var x=1;var x=1;");
+      expect(patch).toContain("diff --git a/src/math.ts b/src/math.ts");
+      expect(await readFile(join(jobDir, "ctx", "files.txt"), "utf8")).toContain("public/app.js  (diff left out: minified or generated)");
+      const lens = r.lenses[0]!;
+      expect(lens).toMatchObject({ status: "ok", coverage: "full", uncovered: [] });
+      expect(r.findings.map((f) => f.path).sort()).toEqual(["node_modules", "src/math.ts"]);
+      expect(await readFile(join(jobDir, "agents", "correctness.txt"), "utf8")).toContain("everyone can");
+    } finally {
+      await rm(r2, { recursive: true, force: true });
+    }
   }, 60_000);
 
   test("an unparseable lens fails alone; all failing is an error", async () => {

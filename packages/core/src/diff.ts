@@ -138,3 +138,57 @@ export function sameSignature(a: Record<string, string>, b: Record<string, strin
   if (ka.length !== Object.keys(b).length) return false;
   return ka.every((k) => a[k] === b[k]);
 }
+
+export type OmitReason = "minified" | "large";
+
+export interface OmittedFile {
+  path: string;
+  reason: OmitReason;
+  /** Size of the file's section in the full diff. */
+  bytes: number;
+}
+
+export interface DiffLimits {
+  /** A file's diff larger than this is left out (bytes). */
+  maxFileBytes: number;
+  /** A changed line longer than this means generated or minified code (characters). */
+  maxLineLength: number;
+}
+
+export const DEFAULT_DIFF_LIMITS: DiffLimits = { maxFileBytes: 100_000, maxLineLength: 2_000 };
+
+const MINIFIED_PATH = /\.min\.(?:js|mjs|cjs|css)$|\.(?:js|mjs|cjs|css)\.map$|\.bundle\.js$/;
+
+/**
+ * Leave minified, generated and oversized files out of the diff the agents read. One bundle of a megabyte on a
+ * single line can push every file after it past what an agent can open, so its section keeps only its header and a
+ * note. Everything else stays byte for byte.
+ */
+export function slimDiff(text: string, limits: DiffLimits = DEFAULT_DIFF_LIMITS): { text: string; omitted: OmittedFile[] } {
+  const starts = [...text.matchAll(/^diff --git /gm)].map((m) => m.index);
+  const sections = starts.length ? [text.slice(0, starts[0]), ...starts.map((s, i) => text.slice(s, starts[i + 1]))] : [text];
+
+  const omitted: OmittedFile[] = [];
+  const out = sections.map((s) => {
+    if (!s.startsWith("diff --git ")) return s;
+    const path = parseUnifiedDiff(s)[0]?.path;
+    if (!path) return s;
+    const bytes = new TextEncoder().encode(s).length;
+    let reason: OmitReason | undefined = MINIFIED_PATH.test(path) ? "minified" : undefined;
+    if (!reason) {
+      for (const line of s.split("\n")) {
+        if ((line.startsWith("+") || line.startsWith("-")) && line.length > limits.maxLineLength) {
+          reason = "minified";
+          break;
+        }
+      }
+    }
+    if (!reason && bytes > limits.maxFileBytes) reason = "large";
+    if (!reason) return s;
+    omitted.push({ path, reason, bytes });
+    const hunk = s.search(/^@@ /m);
+    const header = (hunk === -1 ? s : s.slice(0, hunk)).replace(/\n*$/, "\n");
+    return `${header}# Crewreview: diff left out (${reason === "minified" ? "minified or generated code" : "too large"}, ${bytes} bytes). Don't review this file.\n`;
+  });
+  return { text: out.join(""), omitted };
+}

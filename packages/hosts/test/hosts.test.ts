@@ -233,6 +233,33 @@ describe("host-specific behavior", () => {
     expect(t.calls.some((c) => c.path.endsWith("/approve"))).toBe(true);
   });
 
+  test("GitLab: a retry after a publish GitLab half-did skips what's already there instead of posting it twice", async () => {
+    const p = "/projects/acme%2Fshop/merge_requests/7";
+    const pr = await gitlab().host.getPullRequest(7);
+    const one = "one\n<!-- crewreview:kind=finding;v=0.10.0;ref=F1%40h7 -->";
+    const two = "two\n<!-- crewreview:kind=finding;v=0.10.0;ref=F2%40h7 -->";
+    const summary = "Summary\n<!-- crewreview:kind=review;v=0.10.0;ref=h7 -->";
+    const drafted: string[] = [];
+    const posted: string[] = [];
+    const t = {
+      async request(method: string, path: string, o?: { body?: any }) {
+        const ok = (data: unknown) => ({ status: 200, headers: new Headers(), data });
+        if (method === "GET" && path === `${p}/draft_notes`) return ok([]);
+        // The first attempt got a 500 back, but finding one was published. A note of yours with the same text isn't ours.
+        if (method === "GET" && path === `${p}/notes`) return ok([{ body: one, system: false }, { body: "two", system: false }]);
+        if (method === "POST" && path === `${p}/draft_notes`) return drafted.push(o?.body?.note), ok({ id: 5, line_code: "abc" });
+        if (method === "POST" && path === `${p}/notes`) posted.push(o?.body?.body);
+        return ok({});
+      },
+    };
+    const gl = createHost(repoRef("gitlab", "gitlab.com", "acme/shop"), t as never);
+    const input = { headSha: "h7", event: "comment" as const, body: summary, comments: [{ path: "a.ts", line: 1, body: one }, { path: "a.ts", line: 2, body: two }], fallbackHeading: "Outside the diff" };
+    const r = await gl.postReview(pr, input);
+    expect(r).toMatchObject({ inline: 2, movedToBody: 0 });
+    expect(drafted).toEqual([two]);
+    expect(posted).toEqual([summary]);
+  });
+
   test("GitLab: a retry clears our old drafts, keeps yours, and never publishes yours with ours", async () => {
     const p = "/projects/acme%2Fshop/merge_requests/7";
     const pr = await gitlab().host.getPullRequest(7);

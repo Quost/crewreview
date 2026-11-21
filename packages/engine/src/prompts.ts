@@ -1,7 +1,7 @@
 import { fence } from "@crewreview/core";
 import type { Lens } from "./lenses.ts";
 
-export const PROMPT_VERSION = "3";
+export const PROMPT_VERSION = "4";
 
 const LENS_SCHEMA = `{
   "findings": [
@@ -24,7 +24,7 @@ const LENS_SCHEMA = `{
 const WORKSPACE = `## Workspace (your current directory)
 - ./head/ holds the full source tree at the reviewed commit. Paths in your answer are relative to it: write "src/app.ts", not "head/src/app.ts".
 - ./ctx/diff.patch is the change under review.
-- ./ctx/files.txt lists the changed files with their added and removed line counts.
+- ./ctx/files.txt lists the changed files with their added and removed line counts. A file marked "diff left out" is minified, generated or too large to read: skip it, and don't list it in "uncovered".
 - ./ctx/change.md has the branch, the base and the commit messages.
 - ./ctx/guidelines.md has the project's own written rules, if it has any.
 - ./ctx/history.md lists recent commits that touched the changed files.

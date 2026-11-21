@@ -75,6 +75,7 @@ export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN
   }
   const uncovered = [...new Set(r.lenses.flatMap((l) => l.uncovered))];
   if (uncovered.length) lines.push(st.dim(`  ${t.t("local.uncovered", { files: uncovered.join(", ") })}`));
+  if (r.omitted?.length) lines.push(st.dim(`  ${t.t("local.leftOut", { files: r.omitted.map((f) => f.path).join(", ") })}`));
   lines.push("", st.bold(`${t.t("local.findings")} (${r.findings.length})`));
   if (r.findings.length === 0) lines.push(`  ${t.t("local.noFindings")}`);
   for (const f of r.findings) lines.push(...findingBlock(f, t, st), "");
