@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.14.0 — 2026-11-20
+
+Tasks in the app: give the crew a task, approve it from the dashboard, let the daemon carry it, and choose who opens the pull request.
+
 ### Added
 
 - A Tasks page in the dashboard: give the crew a task (the repository, what to do, who does it, whether it waits for you), read the plan and approve it, follow each step, the self-review and the handoffs, and open the pull request. The nav shows how many tasks wait for you.
