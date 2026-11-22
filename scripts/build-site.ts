@@ -13,7 +13,7 @@ import { familyHtml, familyImage, makerSchema, SELF, type Family } from "./lib/f
 const version = process.env.SITE_VERSION ?? pkg.version;
 
 const ROOT = join(import.meta.dir, "..");
-const SITE = "https://crewreview.web.app";
+const SITE = "https://crewreview.pururucos.com.br";
 const LOCALES: Record<string, { path: string; lang: string; name: string }> = {
   en: { path: "/", lang: "en", name: "English" },
   "pt-BR": { path: "/pt/", lang: "pt-BR", name: "Português" },

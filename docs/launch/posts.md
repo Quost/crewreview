@@ -7,7 +7,7 @@ Drafts for launch day. Adjust the numbers to what's true that day; never claim w
 1. `MACOS_SIGNING=true` and the four macOS secrets set; a test tag on a fork or a pre-release proves notarization.
 2. Version bumped, CHANGELOG section written, tag pushed; the release has 5 binaries, `SHA256SUMS` and `.minisig`, and the Homebrew/Scoop manifests updated on main.
 3. Repository public; description, topics (`code-review`, `ai`, `pull-requests`, `github`, `gitlab`, `claude-code`, `codex`, `mcp`, `open-source`) and the social preview image set.
-4. Site `crewreview` created in Firebase project `crewreview-prd`, deployed; `crewreview.web.app` answers; `install.sh` works anonymously.
+4. Site `crewreview-pururucos` in Firebase project `crewreview-prd` deployed, with `crewreview.pururucos.com.br` attached and answering; site `crewreview` redirects `crewreview.web.app` there; `install.sh` works anonymously.
 5. Install checks on a clean machine: `curl … | sh`, `brew tap Quost/crewreview https://github.com/Quost/crewreview && brew trust quost/crewreview && brew install Quost/crewreview/crewreview`, `scoop install crewreview`, the Claude Code plugin.
 6. Google Search Console and Bing Webmaster Tools: add the site, submit `sitemap.xml`.
 7. Posts below, one channel at a time; answer every comment the first day.
@@ -26,7 +26,7 @@ How it works:
 
 It's AGPL-3.0, TypeScript on Bun, single binary for macOS/Linux/Windows, five interface languages, updates signed with minisign, and the builds are reproducible.
 
-Repo: https://github.com/Quost/crewreview · Site: https://crewreview.web.app/?ref=hn
+Repo: https://github.com/Quost/crewreview · Site: https://crewreview.pururucos.com.br/?ref=hn
 
 Happy to hear what breaks, and which hosts or harnesses you'd want next.
 
@@ -48,7 +48,7 @@ Ele roda na sua máquina, com os agentes de IA que você já assina (Claude Code
 📋 tudo passa por um inbox para você aprovar, num painel em português (e mais 4 idiomas).
 
 Gratuito, AGPL-3.0, para macOS, Linux e Windows. Feedback é muito bem-vindo 🙏
-https://crewreview.web.app/?ref=linkedin
+https://crewreview.pururucos.com.br/?ref=linkedin
 
 ## X / Bluesky thread
 
@@ -56,7 +56,7 @@ https://crewreview.web.app/?ref=linkedin
 2. Reviewer: parallel read-only lenses → evidence check (file:line or it's gone) → a verifier tries to refute each finding → a fixed rule decides. [screenshot of a review]
 3. Attendant: on your PRs, it fixes in a worktree, runs your checks, signs the commit, replies, resolves, asks for re-review. The agent never gets your git token. [screenshot of replies]
 4. "Read-only" is proven, not promised: a canary asks each harness to write a file. Kiro's fs_write escaped the folder, so it reviews but doesn't attend.
-5. AGPL-3.0, single binary, five languages, signed updates. crewreview.web.app/?ref=x
+5. AGPL-3.0, single binary, five languages, signed updates. crewreview.pururucos.com.br/?ref=x
 
 ## dev.to article outline
 

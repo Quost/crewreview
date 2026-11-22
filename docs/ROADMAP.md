@@ -40,7 +40,7 @@ Still open: a live GitLab check (needs a `glab auth login` on the test machine).
 ## v0.2: going public ✅
 
 - Make the repository public; GitHub Sponsors and Buy Me a Coffee in `FUNDING.yml`, on the site and in the README.
-- Site at crewreview.web.app (later crewreview.dev), deployed from `site/` by CI.
+- Site at crewreview.web.app (now crewreview.pururucos.com.br), deployed from `site/` by CI.
 - Signed and notarized macOS binaries (Developer ID), Homebrew tap, Scoop and winget manifests, an install script.
 - Listings: the MCP Registry, the Claude Code plugin marketplace (MCP server + skill + `/crewreview` command), awesome lists.
 - Launch kit: a short demo video, posts for Show HN, Product Hunt, dev.to, Reddit and LinkedIn, in English and Portuguese.

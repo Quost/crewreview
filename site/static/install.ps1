@@ -1,5 +1,5 @@
 # Install Crewreview on Windows:
-#   irm https://crewreview.web.app/install.ps1 | iex
+#   irm https://crewreview.pururucos.com.br/install.ps1 | iex
 # Options: $env:CREWREVIEW_VERSION = "0.2.0" (default: latest)
 $ErrorActionPreference = "Stop"
 $repo = "Quost/crewreview"
