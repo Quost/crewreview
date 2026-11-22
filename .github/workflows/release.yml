@@ -286,6 +286,10 @@ jobs:
           gh release create "$GITHUB_REF_NAME" dist/* --title "Crewreview ${GITHUB_REF_NAME#v}" --notes-file notes.md $pre
       - name: Update the Homebrew formula and the Scoop manifest
         if: ${{ !contains(github.ref_name, '-') }}
+        env:
+          # Deploy key with write access to this repository only. main is protected (pull request, checks,
+          # signatures) and only deploy keys may bypass that, so the bot pushes with it when it is set.
+          DEPLOY_KEY: ${{ secrets.RELEASE_DEPLOY_KEY }}
         run: |
           v="${GITHUB_REF_NAME#v}"
           cp dist/SHA256SUMS "$RUNNER_TEMP/SHA256SUMS"
@@ -297,7 +301,14 @@ jobs:
           bot="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -m "chore(release): update package manifests to $v" -m "Signed-off-by: $bot"
-          git push origin main
+          if [ -n "$DEPLOY_KEY" ]; then
+            key="$RUNNER_TEMP/deploy_key"; (umask 077; printf '%s\n' "$DEPLOY_KEY" > "$key")
+            GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+              git push "git@github.com:$GITHUB_REPOSITORY.git" HEAD:main
+            rm -f "$key"
+          else
+            git push origin main
+          fi
 
   # The site names the version: redeploy it once the release is out.
   site:
