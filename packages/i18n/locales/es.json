@@ -299,6 +299,8 @@
   "web.inbox.published": "Publicado.",
   "web.inbox.stale": "El pull request tiene commits nuevos; se volverá a hacer.",
   "web.inbox.failed": "No se pudo: {error}",
+  "web.inbox.retryFix": "Reintentar",
+  "web.inbox.retryHelp": "El último intento falló: {error}. Corrige el problema y vuelve a intentarlo.",
   "web.openOnHost": "Abrir en el host",
   "web.discard": "Descartar",
   "web.approveReview": "Publicar revisión",

@@ -5,6 +5,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ## Unreleased
 
 - Keep failed thread resolutions retryable without posting the same reply twice.
+- Show saved errors in the inbox so you know why an answer needs another try.
 
 ## 0.14.1 — 2026-11-21
 

@@ -61,6 +61,7 @@ function FixDetail({ d }: { d: Extract<InboxDetail, { kind: "fix" }> }) {
   const p = d.payload;
   return (
     <>
+      {d.row.error && <p className="notice warn">{t.t("web.inbox.retryHelp", { error: String(d.row.error) })}</p>}
       {p.forcedInbox && <p className="notice warn">{t.t(`attend.forced.${p.forcedInbox}` as never)}</p>}
       <ul className="decisions">
         {p.decisions.map((dec) => {
@@ -131,6 +132,9 @@ export function InboxPage({ version }: { version: number }) {
     setMessage(undefined);
     try {
       const r = await api.post<any>(`/api/inbox/${selected}/${action}`);
+      if (action === "approve" && typeof r.error === "string") {
+        setDetail((current) => current?.kind === "fix" ? { ...current, row: { ...current.row, error: r.error } } : current);
+      }
       const ok = action === "discard" ? r.ok : r.kind === "posted" || r.kind === "done";
       const text =
         action === "discard"
@@ -196,7 +200,7 @@ export function InboxPage({ version }: { version: number }) {
                     {t.t("web.discard")}
                   </button>
                   <button className="btn primary" disabled={busy} onClick={() => act("approve")}>
-                    {current.kind === "review" ? t.t("web.approveReview") : t.t("web.approveFix")}
+                    {current.kind === "review" ? t.t("web.approveReview") : detail?.kind === "fix" && detail.row.error ? t.t("web.inbox.retryFix") : t.t("web.approveFix")}
                   </button>
                 </>
               )

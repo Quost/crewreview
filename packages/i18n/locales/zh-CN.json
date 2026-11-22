@@ -291,6 +291,8 @@
   "web.inbox.published": "已发布。",
   "web.inbox.stale": "合并请求已有新提交，将重新处理。",
   "web.inbox.failed": "未成功：{error}",
+  "web.inbox.retryFix": "重试",
+  "web.inbox.retryHelp": "上次尝试失败：{error}。修复问题后重试。",
   "web.openOnHost": "在平台上打开",
   "web.discard": "丢弃",
   "web.approveReview": "发布审查",
