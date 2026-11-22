@@ -1,6 +1,6 @@
 #!/bin/sh
 # Install Crewreview on macOS or Linux:
-#   curl -fsSL https://crewreview.web.app/install.sh | sh
+#   curl -fsSL https://crewreview.pururucos.com.br/install.sh | sh
 # Options (environment): CREWREVIEW_VERSION=0.2.0 (default: latest), CREWREVIEW_BIN_DIR=/usr/local/bin (default: ~/.local/bin)
 set -eu
 

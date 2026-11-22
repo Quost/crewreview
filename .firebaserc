@@ -1,6 +1,11 @@
 {
   "projects": { "default": "crewreview-prd" },
   "targets": {
-    "crewreview-prd": { "hosting": { "crewreview": ["crewreview"] } }
+    "crewreview-prd": {
+      "hosting": {
+        "crewreview": ["crewreview-pururucos"],
+        "crewreview-legacy": ["crewreview", "crewreview-prd"]
+      }
+    }
   }
 }

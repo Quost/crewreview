@@ -9,4 +9,4 @@ The user ran `/crewreview $ARGUMENTS`.
 - With `status`: call `crewreview_status` and say in a few lines what the crew watches and what waits in the inbox.
 - With `inbox`: call `crewreview_inbox`, and `crewreview_inbox_item` for anything the user wants to see. Approving is the user's call: point them to `crewreview ui` or `crewreview inbox approve <id>`.
 
-If the `crewreview` tools aren't available, Crewreview isn't installed or isn't on the PATH: tell the user to install it (`curl -fsSL https://crewreview.web.app/install.sh | sh`, or `brew tap Quost/crewreview https://github.com/Quost/crewreview && brew trust quost/crewreview && brew install Quost/crewreview/crewreview`) and run `crewreview doctor`.
+If the `crewreview` tools aren't available, Crewreview isn't installed or isn't on the PATH: tell the user to install it (`curl -fsSL https://crewreview.pururucos.com.br/install.sh | sh`, or `brew tap Quost/crewreview https://github.com/Quost/crewreview && brew trust quost/crewreview && brew install Quost/crewreview/crewreview`) and run `crewreview doctor`.

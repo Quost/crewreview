@@ -67,7 +67,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
       <path d="M ${HEAD[0]!.x} ${HEAD[0]!.y} L ${TIP.x} ${TIP.y} L ${HEAD[1]!.x} ${HEAD[1]!.y}"/>
     </g>
   </svg>
-  <p class="foot"><b>Free and open source</b> · crewreview.web.app</p>
+  <p class="foot"><b>Free and open source</b> · crewreview.pururucos.com.br</p>
 </body></html>`;
 
 const b = await openBrowser();
