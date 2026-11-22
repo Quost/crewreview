@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   extractJson,
   makeMarker,
+  parseMarker,
   parseAttendOutput,
   pendingItems,
   redactSecrets,
@@ -38,6 +39,8 @@ export interface ValidationRun {
 export interface AttendPayload {
   items: AttendItem[];
   decisions: AttendDecision[];
+  /** Items whose reply was posted; a retry may still need to resolve their thread. */
+  replied?: string[];
   summary: string;
   changed: string[];
   sensitive: string[];
@@ -64,6 +67,8 @@ export interface AttendDeps extends PrDeps {
   identity?: { name: string; email: string };
   now?: () => number;
 }
+
+class ThreadResolveError extends Error {}
 
 function languageFor(repo: LinkedRepo, d: PrDeps): { t: Translator; language: string } {
   const code = repo.attend.commentLanguage ?? repo.review.commentLanguage ?? d.config.review.commentLanguage ?? d.ui.locale;
@@ -381,6 +386,10 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       }
     }
     const { t } = languageFor(repo, d);
+    // A publish retry after a failed resolve must not post the same reply again. The marker check also
+    // covers a crash between posting the reply and saving the updated payload.
+    const publishedReplies = new Set(payload.replied ?? []);
+    const threads = await host.listThreads(row.number);
     let replies = 0;
     let resolved = 0;
     for (const dec of payload.decisions) {
@@ -389,12 +398,32 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       if (!item) continue;
       const fixedIn = dec.action === "fixed" && row.commitSha ? ` · ${t.t("attend.fixedIn", { sha: row.commitSha.slice(0, 7) })}` : "";
       const body = `${dec.reply.trim()}\n\n<sub>🤖 ${t.t("attend.footer")}${fixedIn}</sub>\n${makeMarker({ kind: "reply", ref: dec.key, version: d.version })}`;
-      if (item.threadId) await host.reply(pr, item.threadId, body);
-      else if (host.comment) await host.comment(pr, body);
-      else continue;
-      replies++;
+      const alreadyPosted = publishedReplies.has(dec.key) || threads.some((thread) =>
+        thread.comments.some((comment) => {
+          const marker = parseMarker(comment.body);
+          return marker?.kind === "reply" && marker.ref === dec.key;
+        }),
+      );
+      if (!alreadyPosted) {
+        if (item.threadId) await host.reply(pr, item.threadId, body);
+        else if (host.comment) await host.comment(pr, body);
+        else continue;
+        replies++;
+        publishedReplies.add(dec.key);
+        payload.replied = [...publishedReplies];
+        d.store.updateAttend(attendId, { payload: JSON.stringify(payload) });
+      } else if (!publishedReplies.has(dec.key)) {
+        publishedReplies.add(dec.key);
+        payload.replied = [...publishedReplies];
+        d.store.updateAttend(attendId, { payload: JSON.stringify(payload) });
+      }
       if (dec.action === "fixed" && item.kind === "thread" && item.threadId && s.resolve) {
-        await host.resolve(pr, item.threadId).then(() => resolved++, () => {});
+        try {
+          await host.resolve(pr, item.threadId);
+        } catch (e) {
+          throw new ThreadResolveError(e instanceof Error ? e.message : String(e));
+        }
+        resolved++;
       }
     }
     const handled = payload.decisions.filter((x) => x.action !== "needs-human").map((x) => x.key);
@@ -408,12 +437,22 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       const askers = payload.items.filter((i) => !i.fromCrew && i.author).map((i) => i.author);
       reReview = await host.requestReReview(pr, [...reviewers, ...askers]).catch(() => false);
     }
-    d.store.updateAttend(attendId, { status: "done" });
+    d.store.updateAttend(attendId, { status: "done", error: null });
     await finish();
     return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, reReview, needsHuman: human.length };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    d.store.updateAttend(attendId, { error: error.slice(0, 2000), status: row.status === "pending" ? "pending" : "failed" });
+    const resolveFailed = e instanceof ThreadResolveError;
+    const stayRetryable = resolveFailed || row.status === "pending";
+    d.store.updateAttend(attendId, { error: error.slice(0, 2000), status: stayRetryable ? "pending" : "failed" });
+    if (resolveFailed && row.status !== "pending") {
+      return {
+        kind: "pending",
+        attendId,
+        fixed: payload.decisions.filter((x) => x.action === "fixed").length,
+        replies: payload.decisions.filter((x) => x.action !== "needs-human" && x.reply).length,
+      };
+    }
     return { kind: "failed", attendId, error };
   }
 }

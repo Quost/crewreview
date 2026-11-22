@@ -4,6 +4,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+- Keep failed thread resolutions retryable without posting the same reply twice.
+
 ## 0.14.1 — 2026-11-21
 
 Reviews that read the whole change, fair to every lens, and posted once on GitLab.

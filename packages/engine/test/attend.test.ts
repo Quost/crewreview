@@ -51,6 +51,7 @@ afterAll(async () => {
 class FakeHost implements HostAdapter {
   replies: { threadId: string; body: string }[] = [];
   resolved: string[] = [];
+  resolveError?: string;
   reReviews: string[][] = [];
   perms: Record<string, Permission> = { bia: "write", eve: "read" };
   constructor(
@@ -85,6 +86,7 @@ class FakeHost implements HostAdapter {
     th?.comments.push({ id: `reply-${this.replies.length}`, author: "quost", authorIsBot: false, body, createdAt: new Date().toISOString() });
   }
   async resolve(_pr: PullRequest, threadId: string) {
+    if (this.resolveError) throw new Error(this.resolveError);
     this.resolved.push(threadId);
     const th = this.threads.find((t) => t.id === threadId);
     if (th) th.resolved = true;
@@ -197,6 +199,45 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     await sh(["update-ref", "refs/pull/1/head", row.commitSha!], remote);
     expect((await attendPullRequest(d, target, 1, "inbox")).kind).toBe("nothing");
     expect(h.prompts).toHaveLength(1);
+  });
+
+  test("a failed resolve stays retryable without posting the reply twice", async () => {
+    const sha = await branchAt("discount-resolve-retry", 6);
+    const h = writer(fixCart);
+    const { d, repo, ref, store } = await setup(h);
+    const host = new FakeHost(ref, mkPr(6, sha, "discount-resolve-retry"), [thread("T1", "bia", "Clamp pct.")]);
+    const target: PrTarget = { repo, host, token: "t" };
+
+    const prepared = await attendPullRequest(d, target, 6, "inbox");
+    expect(prepared.kind).toBe("pending");
+    const attendId = (prepared as { attendId: number }).attendId;
+    const key = "thread:T1:T1-c1";
+
+    host.resolveError = "permission denied";
+    expect(await publishAttend(d, target, attendId)).toMatchObject({ kind: "failed", error: "permission denied" });
+    expect(host.replies).toHaveLength(1);
+    expect(store.getAttend(attendId)).toMatchObject({ status: "pending", error: "permission denied" });
+    expect(store.attendDone(repo.id, 6).has(key)).toBe(false);
+
+    host.resolveError = undefined;
+    expect(await publishAttend(d, target, attendId)).toMatchObject({ kind: "done", replies: 0, resolved: 1 });
+    expect(host.replies).toHaveLength(1);
+    expect(host.resolved).toEqual(["T1"]);
+    expect(store.getAttend(attendId)).toMatchObject({ status: "done", error: null });
+  });
+
+  test("an automatic resolve failure moves to the inbox for a safe retry", async () => {
+    const sha = await branchAt("discount-auto-resolve-retry", 7);
+    const h = writer(fixCart);
+    const { d, repo, ref, store } = await setup(h, { mode: "auto" });
+    const host = new FakeHost(ref, mkPr(7, sha, "discount-auto-resolve-retry"), [thread("T1", "bia", "Clamp pct.")]);
+    host.resolveError = "permission denied";
+
+    const outcome = await attendPullRequest(d, { repo, host, token: "t" }, 7, "auto");
+    expect(outcome).toMatchObject({ kind: "pending", fixed: 1, replies: 1 });
+    expect(store.attendInbox()).toHaveLength(1);
+    expect(store.attendInbox()[0]).toMatchObject({ status: "pending", error: "permission denied" });
+    expect(host.replies).toHaveLength(1);
   });
 
   test("auto mode waits anyway for sensitive files; 'fixed' with no change becomes 'needs you'", async () => {
