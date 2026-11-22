@@ -298,3 +298,11 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -m "chore(release): update package manifests to $v" -m "Signed-off-by: $bot"
           git push origin main
+
+  # The site names the version: redeploy it once the release is out.
+  site:
+    needs: publish
+    uses: ./.github/workflows/site.yml
+    permissions:
+      contents: read
+      id-token: write
