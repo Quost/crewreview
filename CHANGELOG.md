@@ -7,6 +7,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - A thread the attendant couldn't resolve is reported instead of silently skipped; the answer still counts as done.
 - Retrying an answer whose publishing failed halfway no longer marks it stale because of its own push, and never posts a reply twice.
 - The inbox shows why an answer failed and offers to retry it.
+- The website shows that Crewreview is a Pururucos product: the footer links to the company, and a band above it lists the other Pururucos apps.
 
 ## 0.14.1 — 2026-11-21
 
