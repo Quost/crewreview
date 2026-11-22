@@ -1,10 +1,13 @@
 #!/usr/bin/env bun
 // Build the website into site/public from site/template.html and site/i18n/*.json: English at /, the others at
 // /pt/, /es/, /de/, /zh/, with hreflang links, a sitemap, robots.txt and llms.txt. Edit the template and the texts,
-// never the generated pages.
+// never the generated pages. The Pururucos apps band and footer credit come from site/family.json, which only
+// scripts/sync-family.ts changes: the build never goes online.
+import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import pkg from "../package.json";
+import { familyHtml, familyImage, makerSchema, SELF, type Family } from "./lib/family.ts";
 
 /** The version the site names: the package's, or SITE_VERSION while a newer one isn't published yet. */
 const version = process.env.SITE_VERSION ?? pkg.version;
@@ -23,6 +26,13 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 const template = await readFile(join(ROOT, "site", "template.html"), "utf8");
 const texts: Record<string, Record<string, string>> = {};
 for (const f of await readdir(join(ROOT, "site", "i18n"))) texts[f.replace(/\.json$/, "")] = JSON.parse(await readFile(join(ROOT, "site", "i18n", f), "utf8"));
+
+const family = JSON.parse(await readFile(join(ROOT, "site", "family.json"), "utf8")) as Family;
+const familyImages = [family.maker.logo, ...family.products.filter((p) => p.id !== SELF).map((p) => p.icon)];
+for (const url of familyImages) {
+  if (!existsSync(join(ROOT, "site", "static", familyImage(url)))) throw new Error(`site/static${familyImage(url)} is missing: run bun scripts/sync-family.ts`);
+}
+const maker = makerSchema(family);
 
 // Every language has exactly the English keys.
 const enKeys = Object.keys(texts.en!).sort().join("\n");
@@ -53,12 +63,15 @@ for (const [loc, info] of Object.entries(LOCALES)) {
     url: `${SITE}${info.path}`,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     codeRepository: "https://github.com/Quost/crewreview",
+    publisher: maker,
+    author: maker,
   });
   // The questions on the page, as FAQ structured data: what search engines and AI assistants quote.
   const faq = Object.keys(t)
     .filter((k) => /^faq\.q\d+$/.test(k))
     .map((k) => ({ "@type": "Question", name: t[k], acceptedAnswer: { "@type": "Answer", text: t[k.replace(".q", ".a")] } }));
   const graph = JSON.stringify([JSON.parse(jsonld), { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq }]).replace(/</g, "\\u003c");
+  const fam = familyHtml(family, loc);
   const vars: Record<string, string> = {
     lang: info.lang,
     url: `${SITE}${info.path}`,
@@ -68,6 +81,10 @@ for (const [loc, info] of Object.entries(LOCALES)) {
     jsonld: graph,
     shots: `/shots/${loc}`,
     pathsJson: JSON.stringify(paths),
+    familyTitle: fam.title,
+    familyCards: fam.cards,
+    familyCredit: fam.credit,
+    familyCta: fam.cta,
     langOptions: Object.entries(LOCALES)
       .map(([k, l]) => `<option value="${k}"${k === loc ? " selected" : ""}>${l.name}</option>`)
       .join(""),
@@ -101,6 +118,7 @@ await writeFile(
 > ${en["meta.description"]}
 
 Version ${version}. Free software (AGPL-3.0). Source: https://github.com/Quost/crewreview
+Made by ${family.maker.name}, ${family.maker.url}
 
 ## What it does
 - Reviewer: ${en["jobs.reviewerLead"]} ${en["jobs.r1"]} ${en["jobs.r2"]} ${en["jobs.r3"]} ${en["jobs.r4"]}

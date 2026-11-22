@@ -168,7 +168,7 @@
   "sponsor.text": "Crewreview 免费开源，由一位开发者制作。如果它为你的团队节省了审查时间，赞助可以支持新的托管平台、harness 和功能。",
   "sponsor.button": "♥ 在 GitHub 上赞助",
   "sponsor.short": "赞助",
-  "footer.license_html": "基于 <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a> 的自由软件。由 Matheus Quost 制作。",
+  "footer.license_html": "基于 <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a> 的自由软件。",
   "footer.counted_html": "访问量由 <a href=\"https://www.goatcounter.com\">GoatCounter</a> 统计：不使用 Cookie，不收集个人信息。",
   "footer.releases": "版本",
   "next.started": "下载已开始",

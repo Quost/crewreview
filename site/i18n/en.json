@@ -168,7 +168,7 @@
   "sponsor.text": "Crewreview is free and open source, made by one developer. If it saves your team review time, sponsoring it pays for new hosts, harnesses and features.",
   "sponsor.button": "♥ Sponsor on GitHub",
   "sponsor.short": "Sponsor",
-  "footer.license_html": "Free software under the <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>. Made by Matheus Quost.",
+  "footer.license_html": "Free software under the <a href=\"https://github.com/Quost/crewreview/blob/main/LICENSE\">AGPL-3.0</a>.",
   "footer.counted_html": "Visits are counted with <a href=\"https://www.goatcounter.com\">GoatCounter</a>: no cookies, nothing personal.",
   "footer.releases": "Releases",
   "next.started": "Your download has started",
