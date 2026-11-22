@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // Tells Bing (and Yandex, Naver, Seznam…) through IndexNow that the site changed, so it is recrawled in hours.
-// Bing feeds ChatGPT search and Copilot. Run it after `firebase deploy --only hosting:crewreview`.
+// Bing feeds ChatGPT search and Copilot. The Site workflow runs it after each deploy.
 // The key is public by design: it is served at /c3b7fc291b57266cc5c297ee19c4dd87.txt (site/static/).
 export {};
 
