@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+- A thread the attendant couldn't resolve is reported instead of silently skipped; the answer still counts as done.
+- Retrying an answer whose publishing failed halfway no longer marks it stale because of its own push, and never posts a reply twice.
+- The inbox shows why an answer failed and offers to retry it.
+
 ## 0.14.1 — 2026-11-21
 
 Reviews that read the whole change, fair to every lens, and posted once on GitLab.

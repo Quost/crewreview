@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   extractJson,
   makeMarker,
+  parseMarker,
   parseAttendOutput,
   pendingItems,
   redactSecrets,
@@ -38,6 +39,8 @@ export interface ValidationRun {
 export interface AttendPayload {
   items: AttendItem[];
   decisions: AttendDecision[];
+  /** Items whose reply was posted; a retry may still need to resolve their thread. */
+  replied?: string[];
   summary: string;
   changed: string[];
   sensitive: string[];
@@ -51,7 +54,7 @@ export type AttendOutcome =
   | { kind: "nothing" }
   | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" | "busy" }
   | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"] }
-  | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; reReview: boolean; needsHuman: number }
+  | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number }
   | { kind: "stale"; attendId: number; error?: string }
   | { kind: "failed"; attendId?: number; error: string }
   | { kind: "harness"; error: PickError }
@@ -366,13 +369,15 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
   const s = repo.attend;
   const pr = await host.getPullRequest(row.number);
   const finish = async () => removeStale(row.worktree!);
-  if (pr.headSha !== row.headSha) {
+  // A retry after a failure further down finds our own commit already on the branch: that isn't stale.
+  const alreadyPushed = Boolean(row.commitSha) && pr.headSha === row.commitSha;
+  if (pr.headSha !== row.headSha && !alreadyPushed) {
     d.store.updateAttend(attendId, { status: "stale" });
     await finish();
     return { kind: "stale", attendId };
   }
   try {
-    if (row.commitSha) {
+    if (row.commitSha && !alreadyPushed) {
       const pushed = await pushHead(row.worktree, pr.headRef, gitAuthEnv(repo.ref, x.token));
       if (!pushed.ok) {
         d.store.updateAttend(attendId, { status: "stale", error: pushed.error });
@@ -381,20 +386,41 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       }
     }
     const { t } = languageFor(repo, d);
+    // A retry must not post a reply twice. The saved list covers a failure after some replies went out;
+    // the markers on the host cover a crash between posting a reply and saving that list.
+    const posted = new Set(payload.replied ?? []);
+    const alreadyResolved = new Set<string>();
+    for (const thread of await host.listThreads(row.number)) {
+      if (thread.resolved) alreadyResolved.add(thread.id);
+      for (const comment of thread.comments) {
+        const marker = parseMarker(comment.body);
+        if (marker?.kind === "reply" && marker.ref) posted.add(marker.ref);
+      }
+    }
     let replies = 0;
     let resolved = 0;
+    const unresolved: string[] = [];
     for (const dec of payload.decisions) {
       if (dec.action === "needs-human" || !dec.reply.trim()) continue;
       const item = payload.items.find((i) => i.key === dec.key);
       if (!item) continue;
-      const fixedIn = dec.action === "fixed" && row.commitSha ? ` · ${t.t("attend.fixedIn", { sha: row.commitSha.slice(0, 7) })}` : "";
-      const body = `${dec.reply.trim()}\n\n<sub>🤖 ${t.t("attend.footer")}${fixedIn}</sub>\n${makeMarker({ kind: "reply", ref: dec.key, version: d.version })}`;
-      if (item.threadId) await host.reply(pr, item.threadId, body);
-      else if (host.comment) await host.comment(pr, body);
-      else continue;
-      replies++;
-      if (dec.action === "fixed" && item.kind === "thread" && item.threadId && s.resolve) {
-        await host.resolve(pr, item.threadId).then(() => resolved++, () => {});
+      if (!posted.has(dec.key)) {
+        const fixedIn = dec.action === "fixed" && row.commitSha ? ` · ${t.t("attend.fixedIn", { sha: row.commitSha.slice(0, 7) })}` : "";
+        const body = `${dec.reply.trim()}\n\n<sub>🤖 ${t.t("attend.footer")}${fixedIn}</sub>\n${makeMarker({ kind: "reply", ref: dec.key, version: d.version })}`;
+        if (item.threadId) await host.reply(pr, item.threadId, body);
+        else if (host.comment) await host.comment(pr, body);
+        else continue;
+        replies++;
+        posted.add(dec.key);
+        payload.replied = [...(payload.replied ?? []), dec.key];
+        d.store.updateAttend(attendId, { payload: JSON.stringify(payload) });
+      }
+      if (dec.action === "fixed" && item.kind === "thread" && item.threadId && s.resolve && !alreadyResolved.has(item.threadId)) {
+        // Resolving is a courtesy: the fix and the reply are already out. A failure is reported, not fatal.
+        await host.resolve(pr, item.threadId).then(
+          () => resolved++,
+          (e) => unresolved.push(e instanceof Error ? e.message : String(e)),
+        );
       }
     }
     const handled = payload.decisions.filter((x) => x.action !== "needs-human").map((x) => x.key);
@@ -408,9 +434,9 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       const askers = payload.items.filter((i) => !i.fromCrew && i.author).map((i) => i.author);
       reReview = await host.requestReReview(pr, [...reviewers, ...askers]).catch(() => false);
     }
-    d.store.updateAttend(attendId, { status: "done" });
+    d.store.updateAttend(attendId, { status: "done", error: unresolved[0]?.slice(0, 2000) ?? null });
     await finish();
-    return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, reReview, needsHuman: human.length };
+    return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, unresolved: unresolved.length, resolveError: unresolved[0], reReview, needsHuman: human.length };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     d.store.updateAttend(attendId, { error: error.slice(0, 2000), status: row.status === "pending" ? "pending" : "failed" });
