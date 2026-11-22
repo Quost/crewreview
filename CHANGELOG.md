@@ -7,6 +7,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Changed
 
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
+- The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
 
 ## 0.14.2 — 2026-11-22
 

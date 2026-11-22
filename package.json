@@ -18,6 +18,7 @@
     "build": "bun scripts/build.ts",
     "build:all": "bun scripts/build.ts --all",
     "site": "bun scripts/build-site.ts",
+    "site:indexnow": "bun scripts/indexnow.ts",
     "check:versions": "bun scripts/check-versions.ts"
   },
   "devDependencies": {

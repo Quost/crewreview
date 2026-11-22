@@ -123,7 +123,7 @@ Made by ${family.maker.name}, ${family.maker.url}
 ## What it does
 - Reviewer: ${en["jobs.reviewerLead"]} ${en["jobs.r1"]} ${en["jobs.r2"]} ${en["jobs.r3"]} ${en["jobs.r4"]}
 - Attendant: ${en["jobs.attendantLead"]} ${en["jobs.a1"]} ${en["jobs.a2"]} ${en["jobs.a3"]} ${en["jobs.a4"]}
-- Dashboard: ${en["crew.nowd"]} ${en["crew.inboxd"]} ${en["crew.reposd"]}
+- Dashboard: ${en["crew.sub"]} ${en["crew.capNow"]} ${en["crew.capInbox"]} ${en["crew.capRepos"]}
 - Hosts: GitHub and GitLab (cloud and self-managed).
 - Harnesses: Claude Code and Codex CLI (review and attend), Kiro CLI (review), any Agent Client Protocol agent or custom CLI after a conformance test.
 - Runs on macOS, Linux and Windows as a CLI, a background service and a local dashboard. Interface in English, Brazilian Portuguese, Spanish, German and Simplified Chinese.
