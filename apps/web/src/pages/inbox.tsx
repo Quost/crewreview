@@ -61,6 +61,7 @@ function FixDetail({ d }: { d: Extract<InboxDetail, { kind: "fix" }> }) {
   const p = d.payload;
   return (
     <>
+      {d.row.error && <p className="notice warn">{t.t("web.inbox.retryHelp", { error: String(d.row.error) })}</p>}
       {p.forcedInbox && <p className="notice warn">{t.t(`attend.forced.${p.forcedInbox}` as never)}</p>}
       <ul className="decisions">
         {p.decisions.map((dec) => {
@@ -110,7 +111,7 @@ export function InboxPage({ version }: { version: number }) {
   }, []);
   const [detail, setDetail] = useState<InboxDetail | undefined>();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string } | undefined>();
+  const [message, setMessage] = useState<{ tone: "ok" | "warn" | "bad"; text: string } | undefined>();
 
   useEffect(() => {
     api.get<InboxItem[]>("/api/inbox").then((list) => {
@@ -131,16 +132,20 @@ export function InboxPage({ version }: { version: number }) {
     setMessage(undefined);
     try {
       const r = await api.post<any>(`/api/inbox/${selected}/${action}`);
+      if (action === "approve" && r.kind === "failed") {
+        setDetail((current) => current?.kind === "fix" ? { ...current, row: { ...current.row, error: r.error } } : current);
+      }
       const ok = action === "discard" ? r.ok : r.kind === "posted" || r.kind === "done";
+      const unresolved = r.kind === "done" && r.unresolved ? ` ${t.tp("attend.unresolved", r.unresolved, { error: String(r.resolveError ?? "") })}` : "";
       const text =
         action === "discard"
           ? t.t("inbox.discarded", { id: selected })
           : r.kind === "posted" || r.kind === "done"
-            ? t.t("web.inbox.published")
+            ? t.t("web.inbox.published") + unresolved
             : r.kind === "stale"
               ? t.t("web.inbox.stale")
               : t.t("web.inbox.failed", { error: String(r.error ?? r.kind) });
-      setMessage({ tone: ok ? "ok" : "bad", text });
+      setMessage({ tone: ok ? (unresolved ? "warn" : "ok") : "bad", text });
       const list = await api.get<InboxItem[]>("/api/inbox");
       setItems(list);
       setSelected(list[0]?.id);
@@ -196,7 +201,7 @@ export function InboxPage({ version }: { version: number }) {
                     {t.t("web.discard")}
                   </button>
                   <button className="btn primary" disabled={busy} onClick={() => act("approve")}>
-                    {current.kind === "review" ? t.t("web.approveReview") : t.t("web.approveFix")}
+                    {current.kind === "review" ? t.t("web.approveReview") : detail?.kind === "fix" && detail.row.error ? t.t("web.inbox.retryFix") : t.t("web.approveFix")}
                   </button>
                 </>
               )

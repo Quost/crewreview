@@ -28,6 +28,7 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
       if (o.commit) parts.push(t.t("attend.pushed", { sha: o.commit.slice(0, 7) }));
       if (o.reReview) parts.push(t.t("attend.reReview"));
       if (o.needsHuman) parts.push(st.yellow(t.tp("attend.needsHuman", o.needsHuman)));
+      if (o.unresolved) parts.push(st.yellow(t.tp("attend.unresolved", o.unresolved, { error: o.resolveError ?? "" })));
       return parts.join(" ");
     }
     case "stale":

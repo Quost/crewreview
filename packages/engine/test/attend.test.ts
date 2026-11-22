@@ -51,6 +51,8 @@ afterAll(async () => {
 class FakeHost implements HostAdapter {
   replies: { threadId: string; body: string }[] = [];
   resolved: string[] = [];
+  resolveError?: string;
+  replyError?: string;
   reReviews: string[][] = [];
   perms: Record<string, Permission> = { bia: "write", eve: "read" };
   constructor(
@@ -80,11 +82,13 @@ class FakeHost implements HostAdapter {
     throw new Error("not used");
   }
   async reply(_pr: PullRequest, threadId: string, body: string) {
+    if (this.replyError && threadId === this.replyError) throw new Error(`cannot reply on ${threadId}`);
     this.replies.push({ threadId, body });
     const th = this.threads.find((t) => t.id === threadId);
     th?.comments.push({ id: `reply-${this.replies.length}`, author: "quost", authorIsBot: false, body, createdAt: new Date().toISOString() });
   }
   async resolve(_pr: PullRequest, threadId: string) {
+    if (this.resolveError) throw new Error(this.resolveError);
     this.resolved.push(threadId);
     const th = this.threads.find((t) => t.id === threadId);
     if (th) th.resolved = true;
@@ -197,6 +201,64 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     await sh(["update-ref", "refs/pull/1/head", row.commitSha!], remote);
     expect((await attendPullRequest(d, target, 1, "inbox")).kind).toBe("nothing");
     expect(h.prompts).toHaveLength(1);
+  });
+
+  test("a failed resolve is reported, not fatal: the answer is done and the thread left open", async () => {
+    const sha = await branchAt("discount-resolve-fail", 6);
+    const h = writer(fixCart);
+    const { d, repo, ref, store } = await setup(h);
+    const host = new FakeHost(ref, mkPr(6, sha, "discount-resolve-fail"), [thread("T1", "bia", "Clamp pct.")]);
+    const target: PrTarget = { repo, host, token: "t" };
+
+    const prepared = await attendPullRequest(d, target, 6, "inbox");
+    const attendId = (prepared as { attendId: number }).attendId;
+    host.resolveError = "permission denied";
+    const done = await publishAttend(d, target, attendId);
+    expect(done).toMatchObject({ kind: "done", replies: 1, resolved: 0, unresolved: 1, resolveError: "permission denied" });
+    expect(store.getAttend(attendId)).toMatchObject({ status: "done", error: "permission denied" });
+    expect(store.attendDone(repo.id, 6).has("thread:T1:T1-c1")).toBe(true);
+    expect(store.attendInbox()).toHaveLength(0);
+  });
+
+  test("a retry after a failed reply skips the push it already made and never posts a reply twice", async () => {
+    const sha = await branchAt("discount-reply-retry", 7);
+    const h = writer(fixCart);
+    const { d, repo, ref, store } = await setup(h);
+    const host = new FakeHost(ref, mkPr(7, sha, "discount-reply-retry"), [thread("T1", "bia", "Clamp pct."), thread("T2", "bia", "Why not a Money type?")]);
+    const target: PrTarget = { repo, host, token: "t" };
+
+    const prepared = await attendPullRequest(d, target, 7, "inbox");
+    const attendId = (prepared as { attendId: number }).attendId;
+    const commit = store.getAttend(attendId)!.commitSha!;
+
+    host.replyError = "T2";
+    expect(await publishAttend(d, target, attendId)).toMatchObject({ kind: "failed", error: "cannot reply on T2" });
+    expect(await sh(["rev-parse", "refs/heads/discount-reply-retry"], remote)).toBe(commit);
+    expect(host.replies.map((r) => r.threadId)).toEqual(["T1"]);
+    expect(store.getAttend(attendId)).toMatchObject({ status: "pending", error: "cannot reply on T2" });
+
+    // The push moved the branch to our own commit; the retry must not take that for someone else's.
+    host.pr = mkPr(7, commit, "discount-reply-retry");
+    host.replyError = undefined;
+    expect(await publishAttend(d, target, attendId)).toMatchObject({ kind: "done", replies: 1 });
+    expect(host.replies.map((r) => r.threadId)).toEqual(["T1", "T2"]);
+    expect(host.resolved).toEqual(["T1"]);
+    expect(store.getAttend(attendId)).toMatchObject({ status: "done", error: null });
+  });
+
+  test("a reply already on the host is not posted again, even if the saved list missed it", async () => {
+    const sha = await branchAt("discount-marker", 8);
+    const h = writer(fixCart);
+    const { d, repo, ref } = await setup(h);
+    const host = new FakeHost(ref, mkPr(8, sha, "discount-marker"), [thread("T1", "bia", "Clamp pct.")]);
+    const target: PrTarget = { repo, host, token: "t" };
+    const prepared = await attendPullRequest(d, target, 8, "inbox");
+    const attendId = (prepared as { attendId: number }).attendId;
+
+    // As if a crash came between posting the reply and saving that it went out.
+    host.threads[0]!.comments.push({ id: "earlier", author: "quost", authorIsBot: false, body: `Done.\n${makeMarker({ kind: "reply", ref: "thread:T1:T1-c1", version: "test" })}`, createdAt: old() });
+    expect(await publishAttend(d, target, attendId)).toMatchObject({ kind: "done", replies: 0, resolved: 1 });
+    expect(host.replies).toHaveLength(0);
   });
 
   test("auto mode waits anyway for sensitive files; 'fixed' with no change becomes 'needs you'", async () => {

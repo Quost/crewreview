@@ -36,7 +36,11 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
     }
     case "attend-outcome": {
       const o = e.outcome;
-      if (o.kind === "done") return { text: t.t("attend.done", { ...ref(e), replies: o.replies, resolved: o.resolved }), tone: "ok" };
+      if (o.kind === "done") {
+        const text = t.t("attend.done", { ...ref(e), replies: o.replies, resolved: o.resolved });
+        if (!o.unresolved) return { text, tone: "ok" };
+        return { text: `${text} ${t.tp("attend.unresolved", o.unresolved, { error: String(o.resolveError ?? "").slice(0, 200) })}`, tone: "warn" };
+      }
       if (o.kind === "pending") return { text: t.t("web.log.answerWaiting", { ...ref(e), fixed: o.fixed, replies: o.replies }), tone: "warn" };
       if (o.kind === "waiting") return { text: o.reason === "fork" ? t.t("attend.fork", ref(e)) : o.reason === "busy" ? t.t("attend.busy", ref(e)) : t.t("attend.settling", ref(e)), tone: "neutral" };
       if (o.kind === "stale") return { text: t.t("attend.stale", { id: `f${o.attendId}` }), tone: "warn" };
