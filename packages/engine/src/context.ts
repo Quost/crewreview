@@ -1,8 +1,8 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fitGuidelines, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
-import { commitSubjects, diffText, exportTree, fileHistory, listDir, mergeBase, showFile } from "./git.ts";
+import { changedSymbols, fitGuidelines, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
+import { commitSubjects, diffText, exportTree, fileHistory, grepWord, listDir, mergeBase, showFile } from "./git.ts";
 
 /** Project docs that hold rules a reviewer should apply, read from the rules ref. */
 const GUIDELINE_FILES = ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", ".github/copilot-instructions.md", ".cursorrules", "docs/CONTRIBUTING.md"];
@@ -121,6 +121,7 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     if (log.length) history.push(`## ${f.path}`, ...log.map((l) => `- ${redactSecrets(l)}`), "");
   }
   await writeFile(join(ctxDir, "history.md"), history.join("\n"));
+  await writeFile(join(ctxDir, "callers.md"), await callersMarkdown(o.root, o.headSha, diff));
   for (const [name, content] of Object.entries(o.extraContext ?? {})) {
     if (!/^[a-z0-9-]+\.(md|patch|txt|json)$/.test(name)) throw new Error(`bad context file name: ${name}`);
     await writeFile(join(ctxDir, name), content);
@@ -142,6 +143,30 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     guidelines,
     guidelinesCut: fit.cut,
   };
+}
+
+const CALLERS_PER_NAME = 25;
+
+/**
+ * For each function the change defines or modifies, where else its name appears at the reviewed commit: the callers
+ * a changed contract can break, which usually aren't in the diff. Found by git here, so the agents only have to judge
+ * them, not remember to look.
+ */
+async function callersMarkdown(root: string, headSha: string, diff: string): Promise<string> {
+  const out = ["# Where the changed functions are used", "", "For each function this change defines, modifies or removes: every other line in ./head/ that names it (a whole-word match, so some may be unrelated). A caller here that wasn't changed still has to handle what the function does now.", ""];
+  const symbols = changedSymbols(diff);
+  if (symbols.length === 0) return `${out.join("\n")}(No function definitions found in the change.)\n`;
+  for (const s of symbols) {
+    const { hits, more } = await grepWord(root, headSha, s.name, CALLERS_PER_NAME + 10);
+    // The definition itself isn't a use.
+    const uses = hits.filter((h) => !(h.path === s.path && new RegExp(`\\b(def|defp|function|func|fn|fun)\\s+${s.name.replace(/[$?!]/g, "\\$&")}\\b`).test(h.text)));
+    out.push(`## ${s.name} (defined in ${s.path})`);
+    if (uses.length === 0) out.push("- no other uses found");
+    for (const h of uses.slice(0, CALLERS_PER_NAME)) out.push(`- ${h.path}:${h.line}: ${redactSecrets(h.text.trim()).slice(0, 200)}`);
+    if (more || uses.length > CALLERS_PER_NAME) out.push(`- … more uses not listed: search ./head/ for "${s.name}"`);
+    out.push("");
+  }
+  return out.join("\n");
 }
 
 /** Answers line counts from the exported tree, refusing anything outside it. */

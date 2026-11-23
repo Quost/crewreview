@@ -25,6 +25,8 @@ const EvalCaseSchema = z.object({
   /** The linked repository (its id in repos.toml), for the mirror and the token. */
   repo: z.string().min(1),
   number: z.number().int().positive(),
+  /** The pull request's address: finds it when the repository comes in through an organization or group link. */
+  url: z.string().url().optional(),
   /** The commit that was reviewed. */
   head: z.string().regex(/^[0-9a-f]{7,40}$/),
   /** The merge base it was reviewed against: the base moved on since, and may contain the change by now. */

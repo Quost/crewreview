@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { summarizeEval, type EvalScore } from "@crewreview/core";
-import { connect, loadEvalCases, PROMPT_VERSION, runEvalCase } from "@crewreview/engine";
+import { connect, findLinked, loadEvalCases, loadRepos, PROMPT_VERSION, reposFile, runEvalCase } from "@crewreview/engine";
 import type { Ctx } from "../ctx.ts";
 import { findRepo, noTokenText } from "./repo.ts";
 import { deps } from "./review.ts";
@@ -26,7 +26,9 @@ export async function evaluate(c: Ctx, dirArg: string | undefined, only: string 
   try {
     for (const { case: ec } of picked) {
       c.err(st.dim(t.t("eval.running", { id: ec.id, repo: ec.repo, number: ec.number, head: ec.head.slice(0, 8) })));
-      const repo = await findRepo(c, ec.repo);
+      // A repository of an organization or group link is found by the pull request's address.
+      const linked = ec.url ? findLinked(await loadRepos(reposFile(c.dirs)), ec.repo, ec.url) : undefined;
+      const repo = linked ?? (await findRepo(c, ec.repo));
       if (typeof repo === "string") {
         c.err(st.red(repo));
         continue;

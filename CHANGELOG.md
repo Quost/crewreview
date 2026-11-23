@@ -6,6 +6,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Added
 
+- A contracts lens, on by default: for each function a change defines or modifies, Crewreview lists where else it's used (`ctx/callers.md`, found with git, not left to the model to remember), and the lens checks that each caller handles what the function now returns, raises, leaves behind or how long it blocks. Every lens now counts a caller the change didn't touch, but that breaks because of it, as a problem the change introduces. Before, a new error or state that an untouched caller mishandled was out of every lens's scope.
 - `crewreview eval` (and `bun run eval`) reviews calibration cases, real pull requests pinned to the commits that were reviewed, and scores what a good review must find, at what severity, and what it must not claim. It reports recall, findings said too softly, false positives and how many small findings each review posts. Cases describe your code, so they live in your config folder (`eval/`, files ending in `.case.json`), and so do the results; only the scoring is part of Crewreview.
 
 ## 0.18.0 — 2026-11-23

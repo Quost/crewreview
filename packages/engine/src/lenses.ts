@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { DiffFile } from "@crewreview/core";
 import architecture from "../lenses/architecture.md" with { type: "text" };
+import contracts from "../lenses/contracts.md" with { type: "text" };
 import correctness from "../lenses/correctness.md" with { type: "text" };
 import security from "../lenses/security.md" with { type: "text" };
 import tests from "../lenses/tests.md" with { type: "text" };
@@ -25,6 +26,7 @@ const onlyDocs = (files: readonly DiffFile[]) => files.length > 0 && files.every
 
 const BUILTIN: Lens[] = [
   { id: "correctness", title: "Correctness", rubric: correctness, source: "builtin", applies: () => true },
+  { id: "contracts", title: "Contracts", rubric: contracts, source: "builtin", applies: (f) => !onlyDocs(f) },
   { id: "security", title: "Security", rubric: security, source: "builtin", applies: (f) => !onlyDocs(f) },
   { id: "architecture", title: "Architecture", rubric: architecture, source: "builtin", applies: (f) => !onlyDocs(f) },
   { id: "tests", title: "Tests", rubric: tests, source: "builtin", applies: (f) => !onlyDocs(f) },

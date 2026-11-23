@@ -131,7 +131,7 @@ const harnesses = [
 const limits = {
   limits: { maxConcurrentAgents: 4, agentTimeout: 20 * 60_000, stallTimeout: 8 * 60_000, maxDiffLines: 4000 },
   schedule: { interval: 3 * 60_000, offHoursInterval: 20 * 60_000, peakHours: "8-19", maxReviewsPerCycle: 2 },
-  review: { settle: 5 * 60_000, ciMaxWait: 30 * 60_000, maxFailures: 3, lenses: ["correctness", "security", "architecture", "tests", "ui"], policy: { allowApprove: true, requestChangesAt: "major" } },
+  review: { settle: 5 * 60_000, ciMaxWait: 30 * 60_000, maxFailures: 3, lenses: ["correctness", "contracts", "security", "architecture", "tests", "ui"], policy: { allowApprove: true, requestChangesAt: "major" } },
   attend: { quiet: 45_000, validateTimeout: 10 * 60_000, maxPerCycle: 2 },
   harness: { default: "claude", verifier: "codex" },
   configPath: "~/.config/crewreview/config.toml",
