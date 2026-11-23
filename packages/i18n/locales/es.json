@@ -772,5 +772,8 @@
   "trust.reason.ci-pending": "el CI no terminó",
   "post.moreNits.one": "{count} detalle más, listado aquí",
   "post.moreNits.other": "{count} detalles más, listados aquí",
-  "post.cut": "Demasiado grandes para mostrarlos enteros: se mostraron los primeros fragmentos y el resto se leyó del código: {files}."
+  "post.cut": "Demasiado grandes para mostrarlos enteros: se mostraron los primeros fragmentos y el resto se leyó del código: {files}.",
+  "post.scenario": "Escenario:",
+  "post.noScenario": "rebajado desde {from}: sin escenario",
+  "post.unconfirmed": "No confirmado: preguntas, no hallazgos"
 }

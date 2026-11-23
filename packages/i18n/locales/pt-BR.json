@@ -772,5 +772,8 @@
   "trust.reason.ci-pending": "o CI não terminou",
   "post.moreNits.one": "Mais {count} detalhe, listado aqui",
   "post.moreNits.other": "Mais {count} detalhes, listados aqui",
-  "post.cut": "Grandes demais para mostrar inteiros: os primeiros trechos foram mostrados e o resto lido do código: {files}."
+  "post.cut": "Grandes demais para mostrar inteiros: os primeiros trechos foram mostrados e o resto lido do código: {files}.",
+  "post.scenario": "Cenário:",
+  "post.noScenario": "rebaixado de {from}: sem cenário",
+  "post.unconfirmed": "Não confirmado: perguntas, não achados"
 }

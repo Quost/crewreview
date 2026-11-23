@@ -14,7 +14,7 @@ test("the post opens with the trust seal and what it rests on, in the chosen sty
     await mkdir(join(jobDir, "ctx"));
     const hunk = Array.from({ length: 6 }, (_, i) => `+line ${i + 1}`).join("\n");
     await writeFile(join(jobDir, "ctx", "diff.patch"), `diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n@@ -0,0 +1,6 @@\n${hunk}\n`);
-    const findings = [f("F1", "major", 1), f("F2", "nit", 2), f("F3", "nit", 3), f("F4", "nit", 4)];
+    const findings = [{ ...f("F1", "major", 1), scenario: "A retry after a 5xx sends the command twice." }, f("F2", "nit", 2), f("F3", "nit", 3), f("F4", "nit", 4), { ...f("F5", "minor", 5), confidence: "low" as const, capped: { from: "major" as const, reason: "no-scenario" as const } }];
     const report = {
       version: "test",
       promptVersion: "6",
@@ -37,6 +37,11 @@ test("the post opens with the trust seal and what it rests on, in the chosen sty
     expect(r.comments[1]!.body.startsWith("💅")).toBe(true);
     expect(r.body).toContain("<summary>2 more nits, listed here</summary>");
     expect(r.body).toContain("- 💅 `src/a.ts:3` title F3");
+    expect(r.comments[0]!.body).toContain("**Scenario:** A retry after a 5xx sends the command twice.");
+    // Low confidence: a question in the summary, not a comment on a line.
+    expect(r.comments.some((c) => c.line === 5)).toBe(false);
+    expect(r.body).toContain("#### Not confirmed: questions, not findings");
+    expect(r.body).toContain("`src/a.ts:5` **title F5**");
     expect(DEFAULT_POLICY.requestChangesAt).toBe("blocker");
   } finally {
     await rm(jobDir, { recursive: true, force: true });

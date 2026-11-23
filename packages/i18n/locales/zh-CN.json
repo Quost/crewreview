@@ -756,5 +756,8 @@
   "trust.reason.ci-pending": "CI 尚未完成",
   "post.moreNits.one": "还有 {count} 个细节，列在这里",
   "post.moreNits.other": "还有 {count} 个细节，列在这里",
-  "post.cut": "文件过大无法完整展示：已展示前几个片段，其余部分从代码中读取：{files}。"
+  "post.cut": "文件过大无法完整展示：已展示前几个片段，其余部分从代码中读取：{files}。",
+  "post.scenario": "场景：",
+  "post.noScenario": "从 {from} 下调：没有场景",
+  "post.unconfirmed": "未确认：是问题，不是发现"
 }

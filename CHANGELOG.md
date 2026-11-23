@@ -11,6 +11,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - More of the verdict can be set per repository: `requestChangesAt` (a severity, or `"never"` to only comment and approve), `requireTrusted`, and globally in `[review.policy]`.
 - `severityStyle = "tupi"` posts ⛔ / ⚠️ / 💅 instead of 🔴 / 🟠 / 🟡 / ⚪, globally or per repository.
 - At most `maxNits` nits (5 by default) get their own comment; the rest are listed once, folded, in the summary.
+- A blocker or major finding has to come with a scenario (what has to be true, what someone does, the wrong result), shown in its comment. Without one, Crewreview posts it as minor and says why.
+- Findings their own lens couldn't confirm go in a "Not confirmed" section of the summary, as questions, instead of being posted on a line as if they were facts.
 
 ### Changed
 

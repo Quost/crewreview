@@ -27,6 +27,7 @@ const RawFinding = z.object({
   title: z.string().min(1).transform((s) => s.trim().slice(0, 200)),
   body: z.string().default(""),
   evidence: z.string().optional().catch(undefined),
+  scenario: z.string().optional().catch(undefined),
   suggestion: z.string().optional().catch(undefined),
   confidence: z.unknown().optional().transform(coerceConfidence),
 });
@@ -165,4 +166,16 @@ export function applyVerifier(findings: readonly Finding[], decisions: readonly 
     kept.push({ ...f, verification: { action: "confirm", reason: d.reason } });
   }
   return { kept, dropped };
+}
+
+/**
+ * A blocker or major finding has to say how it goes wrong: what has to be true, what someone does, the wrong result.
+ * One that doesn't is lowered to minor, by code. A severe claim nobody can picture happening is the kind people skim.
+ */
+export function requireScenario(findings: readonly Finding[]): Finding[] {
+  return findings.map((f) =>
+    (f.severity === "blocker" || f.severity === "major") && (f.scenario?.trim().length ?? 0) < 20
+      ? { ...f, severity: "minor" as const, capped: { from: f.severity, reason: "no-scenario" as const } }
+      : f,
+  );
 }

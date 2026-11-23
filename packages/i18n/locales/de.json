@@ -772,5 +772,8 @@
   "trust.reason.ci-pending": "das CI ist nicht fertig",
   "post.moreNits.one": "{count} weiteres Detail, hier aufgelistet",
   "post.moreNits.other": "{count} weitere Details, hier aufgelistet",
-  "post.cut": "Zu groß für die ganze Ansicht: die ersten Abschnitte wurden gezeigt, der Rest aus dem Code gelesen: {files}."
+  "post.cut": "Zu groß für die ganze Ansicht: die ersten Abschnitte wurden gezeigt, der Rest aus dem Code gelesen: {files}.",
+  "post.scenario": "Szenario:",
+  "post.noScenario": "von {from} herabgestuft: kein Szenario",
+  "post.unconfirmed": "Nicht bestätigt: Fragen, keine Befunde"
 }

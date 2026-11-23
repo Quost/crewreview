@@ -772,5 +772,8 @@
   "trust.reason.ci-pending": "CI hasn't finished",
   "post.moreNits.one": "{count} more nit, listed here",
   "post.moreNits.other": "{count} more nits, listed here",
-  "post.cut": "Too large to show whole, so their first hunks were shown and the rest read from the code: {files}."
+  "post.cut": "Too large to show whole, so their first hunks were shown and the rest read from the code: {files}.",
+  "post.scenario": "Scenario:",
+  "post.noScenario": "lowered from {from}: no scenario",
+  "post.unconfirmed": "Not confirmed: questions, not findings"
 }

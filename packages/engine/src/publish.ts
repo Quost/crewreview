@@ -21,10 +21,12 @@ const DEFAULT_STYLE: PostStyle = { severityStyle: "crewreview", maxNits: Number.
 
 function findingBody(f: Finding, t: Translator, version: string, headSha: string, ICON: Record<Severity, string>): string {
   const lines = [`${ICON[f.severity]} **${t.t(`severity.${f.severity}`)}** · ${f.lenses.join(", ")} — **${f.title}**`, "", f.body.trim()];
+  if (f.scenario?.trim()) lines.push("", `**${t.t("post.scenario")}** ${f.scenario.trim()}`);
   if (f.suggestion?.trim()) lines.push("", `<details><summary>${t.t("post.suggestion")}</summary>`, "", "```", f.suggestion.trim(), "```", "", "</details>");
   const meta = [t.t(`confidence.${f.confidence}`)];
   if (f.verification?.action === "confirm") meta.push(t.t("post.verified"));
   if (f.verification?.action === "downgrade" && f.verification.from) meta.push(t.t("post.downgraded", { from: t.t(`severity.${f.verification.from}`) }));
+  if (f.capped) meta.push(t.t("post.noScenario", { from: t.t(`severity.${f.capped.from}`) }));
   if (f.verification?.action === "upgrade" && f.verification.from) meta.push(t.t("post.upgraded", { from: t.t(`severity.${f.verification.from}`), place: f.verification.evidence ?? "" }));
   lines.push("", `<sub>Crewreview · ${meta.join(" · ")}</sub>`, makeMarker({ kind: "finding", ref: `${f.id}@${headSha.slice(0, 12)}`, version }));
   return lines.join("\n");
@@ -48,7 +50,9 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   // Past the cap, nits are listed once in the summary instead of each getting a comment: they're the noise.
   const nits = report.findings.filter((f) => f.severity === "nit");
   const extraNits = nits.slice(style.maxNits);
-  const posted = report.findings.filter((f) => !extraNits.includes(f));
+  // A finding its own lens couldn't confirm is a question for the author, not a comment on a line stated as fact.
+  const unconfirmed = report.findings.filter((f) => f.confidence === "low" && !extraNits.includes(f));
+  const posted = report.findings.filter((f) => !extraNits.includes(f) && !unconfirmed.includes(f));
   const { inline, outside } = splitInline(posted, (p) => lines.get(p));
   const head = report.target.headSha;
 
@@ -85,6 +89,10 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   if (still.length) {
     body.push("", `#### ${t.t("post.stillOpen")}`, "");
     for (const f of still) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` ${f.title}`);
+  }
+  if (unconfirmed.length) {
+    body.push("", `#### ${t.t("post.unconfirmed")}`, "");
+    for (const f of unconfirmed) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` **${f.title}**`, "", f.body.trim().replace(/^/gm, "  "), "");
   }
   if (extraNits.length) {
     body.push("", `<details><summary>${t.tp("post.moreNits", extraNits.length)}</summary>`, "");

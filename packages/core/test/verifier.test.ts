@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { applyVerifier, unreadFindings, type FileOracle, type Finding } from "../src/index.ts";
+import { applyVerifier, requireScenario, unreadFindings, type FileOracle, type Finding } from "../src/index.ts";
 
 const finding = (p: Partial<Finding> = {}): Finding => ({ id: "F1", lens: "correctness", lenses: ["correctness"], path: "lib/devices.ex", line: 10, severity: "nit", title: "t", body: "b", confidence: "medium", ...p });
 const oracle: FileOracle = { lineCount: (p) => (p === "lib/station_live.ex" ? 2100 : p === "lib/devices.ex" ? 300 : null) };
@@ -44,5 +44,18 @@ describe("findings on files the lens didn't review", () => {
   test("are left out: its own answer says it didn't read them", () => {
     const r = unreadFindings([finding({ path: "lib/apply_worker.ex" }), finding({ id: "F2" })], ["head/lib/apply_worker.ex"]);
     expect(r).toEqual({ kept: [finding({ id: "F2" })], dropped: 1 });
+  });
+});
+
+describe("a severe finding has to say how it goes wrong", () => {
+  test("a blocker or major without a scenario is posted as minor, and says why", () => {
+    const [a, b, c] = requireScenario([
+      finding({ severity: "major" }),
+      finding({ id: "F2", severity: "blocker", scenario: "With the flag off, a forged handle_event still writes to the device." }),
+      finding({ id: "F3", severity: "nit" }),
+    ]);
+    expect(a).toMatchObject({ severity: "minor", capped: { from: "major", reason: "no-scenario" } });
+    expect(b!.severity).toBe("blocker");
+    expect(c!.severity).toBe("nit");
   });
 });

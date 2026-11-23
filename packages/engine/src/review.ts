@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   applyVerifier,
   unreadFindings,
+  requireScenario,
   checkEvidence,
   decideVerdict,
   trustLevel,
@@ -242,7 +243,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     // A file the lens never got the diff of isn't a gap in its review.
     const uncovered = parsed.uncovered.filter((p) => !leftOut.has(normalizeRepoPath(p) ?? p));
     // A lens can't speak for a file it says it didn't review: decided here, not left to the model.
-    const unread = unreadFindings(ev.kept, parsed.uncovered);
+    const unread = unreadFindings(requireScenario(ev.kept), parsed.uncovered);
     droppedUnread += unread.dropped;
     const coverage = parsed.coverage === "partial" && parsed.uncovered.length > 0 && uncovered.length === 0 ? "full" : parsed.coverage;
     return {
@@ -274,7 +275,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   if (o.config.review.verifier && findings.length > 0) {
     await writeFile(
       join(ctx.ctxDir, "findings.json"),
-      JSON.stringify(findings.map(({ id, path, line, endLine, severity, title, body, evidence, lenses: l }) => ({ id, path, line, endLine, severity, title, body, evidence, lenses: l })), null, 2),
+      JSON.stringify(findings.map(({ id, path, line, endLine, severity, title, body, evidence, scenario, lenses: l }) => ({ id, path, line, endLine, severity, title, body, evidence, scenario, lenses: l })), null, 2),
     );
     const tried: string[] = [];
     let ran: Awaited<ReturnType<Harness["run"]>> | undefined;
