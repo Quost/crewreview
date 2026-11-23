@@ -89,7 +89,7 @@ function threadsMarkdown(threads: readonly Thread[]): string {
   return out.join("\n");
 }
 
-function prMarkdown(pr: PullRequest): string {
+export function prMarkdown(pr: PullRequest): string {
   return [
     `# ${redactSecrets(pr.title)}`,
     "",

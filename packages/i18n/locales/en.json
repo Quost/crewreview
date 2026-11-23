@@ -742,5 +742,16 @@
   "attend.leftKind.ci": "the red CI",
   "web.repos.protected": "Protected files a reviewer commented on, without waiting",
   "web.repos.protectedHint": "The attendant may change protected files (CI, deployment, AGENTS.md, CLAUDE.md) when a reviewer commented on them, to do what that comment asks. Off: that change waits for your approval, even in auto mode. On: it goes out like any fix. Secrets never change.",
-  "cli.opt.protected": "approve: changes to protected files a reviewer commented on (CI, AGENTS.md…) wait for you; auto: they go out like any fix"
+  "cli.opt.protected": "approve: changes to protected files a reviewer commented on (CI, AGENTS.md…) wait for you; auto: they go out like any fix",
+  "cli.cmd.eval": "Review your calibration cases at their pinned commits and score what was found and what was wrongly claimed (cases in <config>/eval).",
+  "eval.none": "No calibration cases in {dir} (files ending in .case.json).",
+  "eval.badCase": "{file}: not a valid case: {error}",
+  "eval.running": "{id}: reviewing {repo}#{number} at {head}…",
+  "eval.failed": "{id}: couldn't run: {error}",
+  "eval.case": "{id}: found {found} of {must}, {findings} findings",
+  "eval.missed": "missed: {list}",
+  "eval.falsePositives": "claimed what it must not: {list}",
+  "eval.summary": "{cases} cases · recall {recall} · underrated {underrated} · false positives {falsePositives} · {findings} findings per review, {small} minor or nit · prompt v{prompt}",
+  "eval.saved": "Results: {path}",
+  "eval.underrated": "said too softly: {list}"
 }

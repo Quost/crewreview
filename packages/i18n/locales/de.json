@@ -742,5 +742,16 @@
   "attend.leftKind.ci": "das rote CI",
   "web.repos.protected": "Kommentierte geschützte Dateien, ohne Warten",
   "web.repos.protectedHint": "Der Assistent darf geschützte Dateien (CI, Deployment, AGENTS.md, CLAUDE.md) ändern, wenn ein Reviewer sie kommentiert hat, um zu tun, was der Kommentar verlangt. Aus: Diese Änderung wartet auf deine Freigabe, auch im Auto-Modus. An: Sie geht raus wie jede Korrektur. Geheimnisse ändern sich nie.",
-  "cli.opt.protected": "approve: Änderungen an kommentierten geschützten Dateien (CI, AGENTS.md…) warten auf dich; auto: sie gehen raus wie jede Korrektur"
+  "cli.opt.protected": "approve: Änderungen an kommentierten geschützten Dateien (CI, AGENTS.md…) warten auf dich; auto: sie gehen raus wie jede Korrektur",
+  "cli.cmd.eval": "Prüft deine Kalibrierungsfälle auf ihren festen Commits und bewertet, was gefunden und was fälschlich behauptet wurde (Fälle in <config>/eval).",
+  "eval.none": "Keine Kalibrierungsfälle in {dir} (Dateien mit Endung .case.json).",
+  "eval.badCase": "{file}: kein gültiger Fall: {error}",
+  "eval.running": "{id}: prüfe {repo}#{number} bei {head}…",
+  "eval.failed": "{id}: lief nicht: {error}",
+  "eval.case": "{id}: {found} von {must} gefunden, {findings} Befunde",
+  "eval.missed": "übersehen: {list}",
+  "eval.falsePositives": "behauptet, was es nicht sollte: {list}",
+  "eval.summary": "{cases} Fälle · Recall {recall} · unterschätzt {underrated} · Fehlalarme {falsePositives} · {findings} Befunde pro Review, {small} klein oder Detail · Prompt v{prompt}",
+  "eval.saved": "Ergebnisse: {path}",
+  "eval.underrated": "zu schwach eingestuft: {list}"
 }

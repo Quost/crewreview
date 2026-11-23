@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- `crewreview eval` (and `bun run eval`) reviews calibration cases, real pull requests pinned to the commits that were reviewed, and scores what a good review must find, at what severity, and what it must not claim. It reports recall, findings said too softly, false positives and how many small findings each review posts. Cases describe your code, so they live in your config folder (`eval/`, files ending in `.case.json`), and so do the results; only the scoring is part of Crewreview.
+
 ## 0.18.0 — 2026-11-23
 
 The attendant answers what reviewers pointed out in protected files, and tells you what it left for you.

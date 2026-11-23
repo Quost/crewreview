@@ -742,5 +742,16 @@
   "attend.leftKind.ci": "el CI en rojo",
   "web.repos.protected": "Archivos protegidos comentados, sin esperar",
   "web.repos.protectedHint": "El asistente puede cambiar archivos protegidos (CI, despliegue, AGENTS.md, CLAUDE.md) cuando un revisor los comentó, para hacer lo que pide el comentario. Apagado: ese cambio espera tu aprobación, incluso en modo automático. Encendido: sale como cualquier corrección. Los secretos nunca cambian.",
-  "cli.opt.protected": "approve: los cambios en archivos protegidos comentados por un revisor (CI, AGENTS.md…) te esperan; auto: salen como cualquier corrección"
+  "cli.opt.protected": "approve: los cambios en archivos protegidos comentados por un revisor (CI, AGENTS.md…) te esperan; auto: salen como cualquier corrección",
+  "cli.cmd.eval": "Revisa tus casos de calibración en sus commits fijados y puntúa lo encontrado y lo afirmado por error (casos en <config>/eval).",
+  "eval.none": "No hay casos de calibración en {dir} (archivos que terminan en .case.json).",
+  "eval.badCase": "{file}: caso no válido: {error}",
+  "eval.running": "{id}: revisando {repo}#{number} en {head}…",
+  "eval.failed": "{id}: no se pudo ejecutar: {error}",
+  "eval.case": "{id}: encontró {found} de {must}, {findings} hallazgos",
+  "eval.missed": "se le escapó: {list}",
+  "eval.falsePositives": "afirmó lo que no debía: {list}",
+  "eval.summary": "{cases} casos · recall {recall} · subestimados {underrated} · falsos positivos {falsePositives} · {findings} hallazgos por revisión, {small} menores o detalles · prompt v{prompt}",
+  "eval.saved": "Resultados: {path}",
+  "eval.underrated": "dicho con severidad demasiado baja: {list}"
 }
