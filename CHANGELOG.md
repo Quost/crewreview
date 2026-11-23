@@ -4,14 +4,22 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- Automatic approvals can be turned on or off per repository, in the dashboard (Repositories) and with `crewreview repo set <id> --approve on|off|default`. `default` follows the setting for all repositories (`review.policy.allowApprove`, in Settings).
+
 ### Changed
 
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
 - The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
+- The activity log folds empty checks in a row into one line that says how many and since when.
 
-### Added
+### Fixed
 
-- Automatic approvals can be turned on or off per repository, in the dashboard (Repositories) and with `crewreview repo set <id> --approve on|off|default`. `default` follows the setting for all repositories (`review.policy.allowApprove`, in Settings).
+- When no harness can answer comments, the activity says why and what to do (a harness that hasn't passed its test on this computer points to Harnesses & limits), instead of "no harness can do this yet".
+- That problem is said once per repository and reason, not on every check and with a different pull request each time.
+- Without a network connection, the check says "no connection" once, in its summary, instead of the host's raw error for each repository, and no longer counts the repositories it couldn't reach as checked.
+- A lens whose answer came after a sentence with a brace in it, such as quoted code like `:if={@x != []}`, no longer fails with "parse" and loses its findings: the answer is found after the sentence.
 
 ## 0.14.2 — 2026-11-22
 
