@@ -116,8 +116,8 @@ export interface Repo {
   exclude?: string[];
   /** Linked but left alone: no reviews or answers until resumed. */
   paused?: boolean;
-  /** `account`: reviews post as this account (a gh login, or env:VARIABLE) instead of you. */
-  review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine"; account?: string };
+  /** `account`: reviews post as this account (a gh login, or env:VARIABLE) instead of you. `allowApprove` unset: the setting for all. */
+  review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine"; account?: string; allowApprove?: boolean };
   attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean };
 }
 

@@ -385,17 +385,20 @@ export class CrewDaemon {
 
   async updateRepo(
     id: string,
-    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">>; paused?: boolean },
+    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null; allowApprove?: boolean | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci">>; paused?: boolean },
   ): Promise<LinkedRepo | undefined> {
     const repos = await this.repos();
     const idx = repos.findIndex((r) => r.id === id);
     if (idx === -1) return undefined;
     const entries = repos.map(({ ref: _ref, ...e }) => e);
     const e = entries[idx]!;
-    const { account, ...rest } = patch.review ?? {};
+    const { account, allowApprove, ...rest } = patch.review ?? {};
     const review = { ...e.review, ...rest };
     if (account === null) delete review.account;
     else if (account !== undefined) review.account = account;
+    // null: back to the setting for every repository (review.policy.allowApprove).
+    if (allowApprove === null) delete review.allowApprove;
+    else if (allowApprove !== undefined) review.allowApprove = allowApprove;
     const paused = patch.paused === undefined ? e.paused : patch.paused || undefined;
     const merged = newRepoEntry(repos[idx]!.ref, { ...e, paused, review, attend: { ...e.attend, ...patch.attend } });
     entries[idx] = merged;

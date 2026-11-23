@@ -20,8 +20,11 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       if (ev.type === "asks") return { text: t.t("web.log.taskAsks", { ...name, step: ev.step ?? "" }), tone: "warn" };
       return { text: t.t("web.log.taskFailed", { ...name, error: String(ev.error ?? "").slice(0, 200) }), tone: "bad" };
     }
-    case "cycle":
-      return { text: t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting }), tone: "neutral" };
+    case "cycle": {
+      const text = t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting });
+      if (!e.offline?.length) return { text, tone: "neutral" };
+      return { text: `${text} ${t.t("run.offline", { repos: e.offline.join(", ") })}`, tone: "warn" };
+    }
     case "repo-error":
       return { text: `${e.repo}: ${e.code === "no-token" ? t.t("web.log.noToken") : e.error}`, tone: "bad" };
     case "outcome": {
@@ -56,10 +59,61 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
   }
 }
 
+/** Why no harness could take the job, and what to do about it: each problem has its own way out. */
 function harnessLine(t: Translator, e: { repo: string; number: number }, error: any): { text: string; tone: "bad" } {
-  if (error?.error === "paused")
-    return { text: t.t("web.log.paused", { repo: e.repo, number: e.number, name: error.name, when: new Date(error.until).toLocaleString(t.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }) }), tone: "bad" };
-  if (error?.error === "budget") return { text: t.t("web.log.budget", { repo: e.repo, number: e.number, limit: error.limit }), tone: "bad" };
-  if (error?.error === "signed-out") return { text: t.t("web.log.signedOut", { repo: e.repo, number: e.number, name: error.name, command: error.command ?? "" }), tone: "bad" };
-  return { text: t.t("web.log.noHarness", { repo: e.repo, number: e.number }), tone: "bad" };
+  const pr = { repo: e.repo, number: e.number };
+  const at = (text: string) => ({ text: `${e.repo}#${e.number}: ${text}`, tone: "bad" as const });
+  switch (error?.error) {
+    case "paused":
+      return { text: t.t("web.log.paused", { ...pr, name: error.name, when: new Date(error.until).toLocaleString(t.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" }) }), tone: "bad" };
+    case "budget":
+      return { text: t.t("web.log.budget", { ...pr, limit: error.limit }), tone: "bad" };
+    case "signed-out":
+      return { text: t.t("web.log.signedOut", { ...pr, name: error.name, command: error.command ?? "" }), tone: "bad" };
+    case "needs-conformance":
+    case "needs-write-check":
+      return { text: t.t("web.log.needsProof", { ...pr, name: error.name }), tone: "bad" };
+    case "unknown-harness":
+      return at(t.t("error.unknownHarness", { name: error.name }));
+    case "no-harness":
+      return at(t.t("error.noHarness"));
+    case "cannot-write":
+      return at(t.t("error.cannotWrite", { name: error.name }));
+    case "write-escapes":
+      return at(t.t("error.writeEscapes", { name: error.name }));
+    default:
+      return at(t.t("error.harnessNotReadOnly", { name: error?.name ?? "?" }));
+  }
+}
+
+export interface LogLine {
+  at: number;
+  event: any;
+}
+
+/** A line of the activity log; `quiet` when it stands for several empty checks in a row. */
+export type FoldedEntry<T extends LogLine = LogLine> = T & { quiet?: { count: number; since: number } };
+
+const isQuiet = (e: any): boolean => e?.type === "cycle" && !e.reviewed && !e.waiting && !e.offline?.length;
+
+/**
+ * Empty checks in a row, with nothing else said between them, become one line: the latest, with how many and since
+ * when. A check every few minutes that found nothing isn't news each time.
+ */
+export function foldQuiet<T extends LogLine>(log: readonly T[]): FoldedEntry<T>[] {
+  const out: FoldedEntry<T>[] = [];
+  for (const e of log) {
+    const last = out[out.length - 1];
+    if (last && isQuiet(e.event) && isQuiet(last.event) && last.event.repos === e.event.repos) {
+      out[out.length - 1] = { ...e, quiet: { count: (last.quiet?.count ?? 1) + 1, since: last.quiet?.since ?? last.at } };
+    } else out.push(e);
+  }
+  return out;
+}
+
+/** One line for a folded log entry. */
+export function describeEntry(t: Translator, x: FoldedEntry): { text: string; tone: "neutral" | "ok" | "warn" | "bad" } {
+  if (!x.quiet) return describe(t, x.event);
+  const since = new Date(x.quiet.since).toLocaleTimeString(t.locale, { hour: "2-digit", minute: "2-digit" });
+  return { text: t.t("web.log.quiet", { repos: t.tp("run.repoCount", x.event.repos), count: x.quiet.count, since }), tone: "neutral" };
 }

@@ -3,15 +3,17 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createTranslator } from "@crewreview/i18n";
-import { appDirs, ConformanceStore, CrewDaemon, parseConfig, readApiInfo, startApi, Store } from "../src/index.ts";
+import { repoRef } from "@crewreview/hosts";
+import { appDirs, ConformanceStore, CrewDaemon, loadRepos, newRepoEntry, parseConfig, readApiInfo, reposFile, saveRepos, startApi, Store } from "../src/index.ts";
 
 let home: string;
 let server: Awaited<ReturnType<typeof startApi>>;
 let crew: CrewDaemon;
+let dirs: ReturnType<typeof appDirs>;
 
 beforeAll(async () => {
   home = await mkdtemp(join(tmpdir(), "crewreview-api-"));
-  const dirs = appDirs({ CREWREVIEW_HOME: home });
+  dirs = appDirs({ CREWREVIEW_HOME: home });
   crew = new CrewDaemon({ dirs, config: parseConfig({}), version: "test", ui: createTranslator("en"), store: new Store(":memory:"), conformance: ConformanceStore.in(dirs.state), registry: new Map() });
   server = await startApi({ crew, page: new Response("<html>dashboard</html>", { headers: { "content-type": "text/html" } }), stateDir: dirs.state });
 });
@@ -58,6 +60,23 @@ describe("local API", () => {
     expect(bad.status).toBe(400);
     expect(((await bad.json()) as { error: string }).error).toBe("url");
     expect((await fetch(`${server.url}api/inbox/r999`, { headers: auth() })).status).toBe(404);
+  });
+
+  test("automatic approvals per repository: on, off, or back to the setting for all", async () => {
+    const h = { ...auth(), "x-crewreview": "1", "content-type": "application/json" };
+    await saveRepos(reposFile(dirs), [newRepoEntry(repoRef("github", "github.com", "acme/shop"))]);
+    const set = (allowApprove: unknown) => fetch(`${server.url}api/repos/acme-shop`, { method: "PATCH", headers: h, body: JSON.stringify({ review: { allowApprove } }) });
+    const now = async () => (await loadRepos(reposFile(dirs)))[0]!.review.allowApprove;
+    expect(await now()).toBeUndefined();
+    expect((await set(true)).status).toBe(200);
+    expect(await now()).toBe(true);
+    await set("yes"); // not a flag: left as it was
+    expect(await now()).toBe(true);
+    await set(false);
+    expect(await now()).toBe(false);
+    await set(null);
+    expect(await now()).toBeUndefined();
+    await saveRepos(reposFile(dirs), []);
   });
 
   test("tasks: none yet, a task on a repository that isn't linked, an unknown task, a malformed id", async () => {

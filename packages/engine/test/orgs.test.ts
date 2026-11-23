@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseOwnerUrl, parseRepoUrl } from "@crewreview/hosts";
+import { HostError, parseOwnerUrl, parseRepoUrl } from "@crewreview/hosts";
 import type { PullRequest } from "@crewreview/core";
 import { expandOrgs, findLinked, loadRepos, newRepoEntry, parseConfig, previewLink, runCycle, saveRepos, Store, type DaemonEvent, type LinkedRepo, type PrDeps, type PrTarget } from "../src/index.ts";
 
@@ -65,6 +65,24 @@ describe("organization links", () => {
     );
     expect(reached).toEqual(["acme-shop", "acme-api"]);
     expect(events.filter((e) => e.type === "repo-error").map((e) => (e as { repo: string }).repo)).toEqual(["acme-shop", "acme-api"]);
+  });
+
+  test("a host out of reach is said once, in the cycle's summary, not as an error of each repository", async () => {
+    const d = { config: parseConfig({}), version: "test", store: new Store(":memory:") } as unknown as PrDeps;
+    const events: DaemonEvent[] = [];
+    const down = (): never => {
+      throw new HostError("network", 0, "Unable to connect. Is the computer able to access the url?");
+    };
+    await runCycle(
+      d,
+      [org("https://github.com/acme"), own("https://github.com/other/y")],
+      (e) => events.push(e),
+      Date.now,
+      async (r) => ({ repo: r, token: "t", host: { whoami: async () => down(), listOpenPullRequests: async () => down() } }) as unknown as PrTarget,
+      async () => down(),
+    );
+    expect(events.filter((e) => e.type === "repo-error")).toEqual([]);
+    expect(events.at(-1)).toEqual({ type: "cycle", repos: 0, reviewed: 0, waiting: 0, offline: ["acme", "other-y"] });
   });
 
   test("paused links are left alone: a paused repository stays paused inside an active organization", async () => {

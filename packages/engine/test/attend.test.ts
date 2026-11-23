@@ -7,7 +7,7 @@ import { makeMarker, parseMarker, type PullRequest } from "@crewreview/core";
 import type { Harness, RunRequest, RunResult } from "@crewreview/harness";
 import { repoRef, type Checks, type HostAdapter, type Permission, type RepoRef, type Thread } from "@crewreview/hosts";
 import { createTranslator } from "@crewreview/i18n";
-import { appDirs, attendPullRequest, ConformanceStore, git, newRepoEntry, parseConfig, publishAttend, Store, type AttendDeps, type LinkedRepo, type PrTarget } from "../src/index.ts";
+import { appDirs, attendPullRequest, ConformanceStore, git, newRepoEntry, parseConfig, publishAttend, runCycle, Store, type AttendDeps, type DaemonEvent, type LinkedRepo, type PrDeps, type PrTarget } from "../src/index.ts";
 
 let root: string;
 let remote: string;
@@ -404,5 +404,25 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(seen).not.toContain("lint"); // allowed to fail: not this job's problem
     expect(seen).not.toContain("ghp_abcdefghijklmnopqrstuvwxyz0123456789");
   });
-});
 
+  test("an attendant no harness can be is said once per repository and reason, not every cycle", async () => {
+    const sha = await branchAt("discount-proof", 1);
+    const h = writer(fixCart);
+    const { d, repo, ref, dirs } = await setup(h, { mode: "inbox" });
+    // A harness that never proved where it writes, on this machine.
+    const conformance = ConformanceStore.in(join(dirs.state, "fresh"));
+    const host = new FakeHost(ref, mkPr(40, sha, "discount-proof"), [thread("T1", "bia", "A pct above 1 gives a negative total.")]);
+    const deps = { ...d, conformance, skipsSaid: new Map<string, string>() } as unknown as PrDeps;
+    const cycle = async () => {
+      const events: DaemonEvent[] = [];
+      await runCycle(deps, [{ ...repo, review: { ...repo.review, mode: "off" } }], (e) => events.push(e), Date.now, async () => ({ repo, host, token: "t" }));
+      return events.filter((e) => e.type === "attend-outcome");
+    };
+    expect(await cycle()).toMatchObject([{ number: 40, outcome: { kind: "harness", error: { error: "needs-write-check", name: "claude" } } }]);
+    expect(await cycle()).toEqual([]);
+    // A different problem is news again.
+    await conformance.put({ harness: "claude", version: "test", at: "", structured: "pass", readOnly: "pass", writeScope: "fail", durationMs: 1 });
+    expect(await cycle()).toMatchObject([{ outcome: { kind: "harness", error: { error: "write-escapes" } } }]);
+    expect(h.prompts).toEqual([]);
+  });
+});
