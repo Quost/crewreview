@@ -40,7 +40,9 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
     case "attend-outcome": {
       const o = e.outcome;
       if (o.kind === "done") {
-        const text = t.t("attend.done", { ...ref(e), replies: o.replies, resolved: o.resolved });
+        const text = o.synced
+          ? t.t(o.synced.why === "restack" ? "attend.restacked" : "attend.synced", { ...ref(e), base: o.synced.base, parent: o.synced.parent })
+          : t.t("attend.done", { ...ref(e), replies: o.replies, resolved: o.resolved });
         if (!o.unresolved) return { text, tone: "ok" };
         return { text: `${text} ${t.tp("attend.unresolved", o.unresolved, { error: String(o.resolveError ?? "").slice(0, 200) })}`, tone: "warn" };
       }

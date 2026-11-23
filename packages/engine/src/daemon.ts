@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { DEFAULT_RULES, reviewEligibility, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
+import { DEFAULT_RULES, reviewEligibility, stackOrder, stackParents, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
 import { createHost, HostError, hostTransport, reposWithOpenPullRequests, resolveToken, type HostAdapter } from "@crewreview/hosts";
 import { posterFor } from "./account.ts";
 import type { Config } from "./config.ts";
@@ -104,11 +104,21 @@ export async function runCycle(
     }
     try {
       const me = (await target.host.whoami()).toLowerCase();
-      for (const pr of await target.host.listOpenPullRequests()) {
+      const open = await target.host.listOpenPullRequests();
+      // Stacks bottom up: a branch that takes in the one below goes first, so the one above sees it this same check.
+      const parents = stackParents(open);
+      for (const pr of stackOrder(open)) {
+        const parent = parents.get(pr.number);
+        // Remember what each of your pull requests sits on: once the one below is merged, the link is all that's left.
+        if (parent && pr.author.toLowerCase() === me) d.store.setStackLink(repo.id, pr.number, { parent: parent.number, parentRef: parent.headRef, parentSha: parent.headSha });
+      }
+      for (const pr of stackOrder(open)) {
         if (attended >= d.config.attend.maxPerCycle || d.signal?.aborted) break;
         if (pr.author.toLowerCase() !== me || pr.draft) continue;
         const job = { repo: repo.id, number: pr.number, title: pr.title, kind: "attend" as const };
-        const outcome = await attendPullRequest({ ...(d as AttendDeps), onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox");
+        const parent = parents.get(pr.number);
+        const opts = parent ? { parent: { number: parent.number, headRef: parent.headRef, headSha: parent.headSha } } : {};
+        const outcome = await attendPullRequest({ ...(d as AttendDeps), onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox", opts);
         if (outcome.kind === "nothing" || (outcome.kind === "waiting" && outcome.reason === "not-yours")) continue;
         if (outcome.kind === "harness") {
           // No harness can answer here: that's about the repository, not this pull request. Said once until it changes.
@@ -116,7 +126,8 @@ export async function runCycle(
           const said = `${outcome.error.error}:${"name" in outcome.error ? outcome.error.name : ""}`;
           if (d.skipsSaid?.get(key) !== said) log({ type: "attend-outcome", repo: repo.id, number: pr.number, outcome });
           d.skipsSaid?.set(key, said);
-          break;
+          // The next one may only need its base merged in, which needs no harness.
+          continue;
         }
         if (outcome.kind !== "waiting") d.skipsSaid?.delete(`attend-harness:${repo.id}`);
         log({ type: "attend-outcome", repo: repo.id, number: pr.number, outcome });

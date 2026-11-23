@@ -24,7 +24,13 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
       return o.forced ? `${line}\n${st.yellow(t.t(`attend.forced.${o.forced}`))}` : line;
     }
     case "done": {
-      const parts = [st.green(t.t("attend.done", { repo, number, replies: o.replies, resolved: o.resolved }))];
+      const parts = [
+        st.green(
+          o.synced
+            ? t.t(o.synced.why === "restack" ? "attend.restacked" : "attend.synced", { repo, number, base: o.synced.base, parent: o.synced.parent })
+            : t.t("attend.done", { repo, number, replies: o.replies, resolved: o.resolved }),
+        ),
+      ];
       if (o.commit) parts.push(t.t("attend.pushed", { sha: o.commit.slice(0, 7) }));
       if (o.reReview) parts.push(t.t("attend.reReview"));
       if (o.needsHuman) parts.push(st.yellow(t.tp("attend.needsHuman", o.needsHuman)));
