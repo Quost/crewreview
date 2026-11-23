@@ -6,6 +6,14 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Added
 
+- Every posted review opens with a trust seal, decided by code from what the review did: trusted (every lens finished, every changed file read, the verifier ran, CI green, nothing blocker or major open), partial (with the reasons, such as a file no lens read or a major finding still open), or don't rely on it alone (a blocker open, CI red, or a change too large for one review). It also says which commit it reviewed up to.
+- Review profiles, globally (`review.profile`) or per repository (`profile` in `[repo.review]`): `fast` (no contracts lens, a verifier that doesn't raise), `standard` (the default) and `gate` (approves only a trusted review).
+- More of the verdict can be set per repository: `requestChangesAt` (a severity, or `"never"` to only comment and approve), `requireTrusted`, and globally in `[review.policy]`.
+- `severityStyle = "tupi"` posts ⛔ / ⚠️ / 💅 instead of 🔴 / 🟠 / 🟡 / ⚪, globally or per repository.
+- At most `maxNits` nits (5 by default) get their own comment; the rest are listed once, folded, in the summary.
+
+### Added
+
 - A contracts lens, on by default: for each function a change defines or modifies, Crewreview lists where else it's used (`ctx/callers.md`, found with git, not left to the model to remember), and the lens checks that each caller handles what the function now returns, raises, leaves behind or how long it blocks. Every lens now counts a caller the change didn't touch, but that breaks because of it, as a problem the change introduces. Before, a new error or state that an untouched caller mishandled was out of every lens's scope.
 - `crewreview eval` (and `bun run eval`) reviews calibration cases, real pull requests pinned to the commits that were reviewed, and scores what a good review must find, at what severity, and what it must not claim. It reports recall, findings said too softly, false positives and how many small findings each review posts. Cases describe your code, so they live in your config folder (`eval/`, files ending in `.case.json`), and so do the results; only the scoring is part of Crewreview.
 

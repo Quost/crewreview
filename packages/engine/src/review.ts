@@ -6,6 +6,8 @@ import {
   unreadFindings,
   checkEvidence,
   decideVerdict,
+  trustLevel,
+  type Trust,
   dedupeAgainstThreads,
   dedupeFindings,
   extractJson,
@@ -135,6 +137,8 @@ export interface ReviewReport {
   delta?: string;
   verifier: VerifierSummary;
   verdict: Verdict;
+  /** How far the review can be trusted (trustLevel): shown at the top of what's posted. */
+  trust?: Trust;
   usage: Usage;
   jobDir: string;
 }
@@ -316,8 +320,19 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     findings = d.fresh;
   }
   findings = sortFindings(findings);
+  // Decided by code from what happened: what the review read, what ran, what's still open.
+  const trust = trustLevel({
+    findings: [...findings, ...repeated],
+    lenses: results,
+    ci: o.target.ci,
+    changedLines: ctx.changedLines,
+    maxChangedLines: o.policy.approveMaxChangedLines,
+    verifierRan: verifier.ran,
+    partial: o.partial,
+    leftOut: (ctx.omitted ?? []).filter((f) => f.reason === "large").length,
+  });
   const verdict = decideVerdict(
-    { findings: [...findings, ...repeated], lenses: results, ci: o.target.ci, changedLines: ctx.changedLines, verifierRan: verifier.ran, partial: o.partial },
+    { findings: [...findings, ...repeated], lenses: results, ci: o.target.ci, changedLines: ctx.changedLines, verifierRan: verifier.ran, partial: o.partial, trust },
     o.policy,
   );
 
@@ -350,6 +365,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     delta: o.deltaFrom,
     verifier,
     verdict,
+    trust,
     usage: sumUsage([...results.map((r) => r.usage), verifier.usage]),
     jobDir: o.jobDir,
   };

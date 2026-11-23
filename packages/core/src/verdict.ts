@@ -1,8 +1,9 @@
 import { atLeast, type CiState, type Finding, type LensResult, type Severity, type VerdictEvent } from "./model.ts";
+import type { Trust } from "./trust.ts";
 
 export interface VerdictPolicy {
-  /** A verified finding at or above this severity requests changes. */
-  requestChangesAt: Severity;
+  /** A verified finding at or above this severity requests changes. "never": a review only comments or approves. */
+  requestChangesAt: Severity | "never";
   /** Posting approvals is opt-in: an approval from a person's own account carries weight. */
   allowApprove: boolean;
   /** Any finding at or above this severity blocks an approval. */
@@ -11,6 +12,8 @@ export interface VerdictPolicy {
   approveMaxChangedLines: number;
   /** Blockers found without the verifier only comment. */
   requireVerifier: boolean;
+  /** Approve only a review whose trust is "trusted" (see trustLevel): every file read, nothing left out. */
+  requireTrusted?: boolean;
 }
 
 export const DEFAULT_POLICY: VerdictPolicy = {
@@ -31,6 +34,7 @@ export type VerdictReason =
   | "ci-not-green"
   | "diff-too-large"
   | "verifier-missing"
+  | "not-trusted"
   | "clean";
 
 export interface VerdictInput {
@@ -41,6 +45,8 @@ export interface VerdictInput {
   verifierRan: boolean;
   /** Only some lenses were asked to run (e.g. `--lens security`). */
   partial: boolean;
+  /** The review's trust, for policies that approve only a trusted one. */
+  trust?: Trust;
 }
 
 export interface Verdict {
@@ -71,7 +77,8 @@ export function decideVerdict(input: VerdictInput, policy: VerdictPolicy = DEFAU
   const counts: Record<Severity, number> = { blocker: 0, major: 0, minor: 0, nit: 0 };
   for (const f of input.findings) counts[f.severity]++;
 
-  const blocking = input.findings.filter((f) => atLeast(f.severity, policy.requestChangesAt));
+  const at = policy.requestChangesAt;
+  const blocking = at === "never" ? [] : input.findings.filter((f) => atLeast(f.severity, at));
   if (blocking.length > 0) {
     if (input.verifierRan || !policy.requireVerifier) return { event: "request_changes", reasons: ["blocking-findings"], counts };
     return { event: "comment", reasons: ["unverified-blockers"], counts };
@@ -85,6 +92,7 @@ export function decideVerdict(input: VerdictInput, policy: VerdictPolicy = DEFAU
   if (!(input.ci === "green" || input.ci === "none")) reasons.push("ci-not-green");
   if (input.changedLines > policy.approveMaxChangedLines) reasons.push("diff-too-large");
   if (!input.verifierRan) reasons.push("verifier-missing");
+  if (policy.requireTrusted && input.trust?.level !== "trusted") reasons.push("not-trusted");
 
   if (reasons.length === 0) return { event: "approve", reasons: ["clean"], counts };
   return { event: "comment", reasons, counts };

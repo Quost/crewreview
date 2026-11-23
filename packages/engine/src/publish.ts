@@ -1,13 +1,25 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { makeMarker, parseMarker, parseUnifiedDiff, splitInline, unreviewedFiles, type Finding, type Severity } from "@crewreview/core";
+import { makeMarker, parseMarker, parseUnifiedDiff, splitInline, unreviewedFiles, type Finding, type Severity, type SeverityStyle } from "@crewreview/core";
 import type { InlineComment, PostReviewInput, Thread } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
 
-const ICON: Record<Severity, string> = { blocker: "🔴", major: "🟠", minor: "🟡", nit: "⚪" };
+const ICONS: Record<SeverityStyle, Record<Severity, string>> = {
+  crewreview: { blocker: "🔴", major: "🟠", minor: "🟡", nit: "⚪" },
+  // ⛔ blocks, ⚠ is worth fixing, 💅 is polish.
+  tupi: { blocker: "⛔", major: "⚠️", minor: "⚠️", nit: "💅" },
+};
 
-function findingBody(f: Finding, t: Translator, version: string, headSha: string): string {
+export interface PostStyle {
+  severityStyle: SeverityStyle;
+  /** At most this many nits go inline; the rest are listed in the summary, in one place. */
+  maxNits: number;
+}
+
+const DEFAULT_STYLE: PostStyle = { severityStyle: "crewreview", maxNits: Number.POSITIVE_INFINITY };
+
+function findingBody(f: Finding, t: Translator, version: string, headSha: string, ICON: Record<Severity, string>): string {
   const lines = [`${ICON[f.severity]} **${t.t(`severity.${f.severity}`)}** · ${f.lenses.join(", ")} — **${f.title}**`, "", f.body.trim()];
   if (f.suggestion?.trim()) lines.push("", `<details><summary>${t.t("post.suggestion")}</summary>`, "", "```", f.suggestion.trim(), "```", "", "</details>");
   const meta = [t.t(`confidence.${f.confidence}`)];
@@ -27,24 +39,34 @@ export interface RenderedReview extends PostReviewInput {
  * one that ran the review, not the one posting it: posting the same report twice renders the same text, which is how
  * a retry tells what it already posted.
  */
-export async function renderHostReview(report: ReviewReport, t: Translator, fallbackVersion: string): Promise<RenderedReview> {
+export async function renderHostReview(report: ReviewReport, t: Translator, fallbackVersion: string, style: PostStyle = DEFAULT_STYLE): Promise<RenderedReview> {
   const version = report.version || fallbackVersion;
+  const ICON = ICONS[style.severityStyle];
   const diff = parseUnifiedDiff(await readFile(join(report.jobDir, "ctx", "diff.patch"), "utf8"));
   const lines = new Map(diff.map((f) => [f.path, f.rightLines]));
   const files = new Map(diff.map((f) => [f.path, f]));
-  const { inline, outside } = splitInline(report.findings, (p) => lines.get(p));
+  // Past the cap, nits are listed once in the summary instead of each getting a comment: they're the noise.
+  const nits = report.findings.filter((f) => f.severity === "nit");
+  const extraNits = nits.slice(style.maxNits);
+  const posted = report.findings.filter((f) => !extraNits.includes(f));
+  const { inline, outside } = splitInline(posted, (p) => lines.get(p));
   const head = report.target.headSha;
 
   const counts = (Object.keys(report.verdict.counts) as Severity[])
     .filter((s) => report.verdict.counts[s] > 0)
     .map((s) => `${ICON[s]} ${t.t(`severity.${s}`)}: ${report.verdict.counts[s]}`);
-  const body: string[] = [
-    `### Crewreview · ${t.t(`verdict.${report.verdict.event}`)}`,
-    "",
+  const body: string[] = [`### Crewreview · ${t.t(`verdict.${report.verdict.event}`)}`, ""];
+  // The seal first: whether someone can rely on this review, and why, decided by code.
+  if (report.trust) {
+    body.push(`**${t.t(`trust.${report.trust.level}`)}** · ${t.t("trust.reviewedUpTo", { sha: `\`${head.slice(0, 7)}\`` })}`);
+    if (report.trust.reasons.length) body.push(t.t("trust.because", { reasons: report.trust.reasons.map((r) => t.t(`trust.reason.${r}`)).join("; ") }));
+    body.push("");
+  }
+  body.push(
     counts.length ? counts.join(" · ") : t.t("post.noFindings"),
     "",
     t.t("post.why", { reasons: report.verdict.reasons.map((r) => t.t(`reason.${r}`)).join("; ") }),
-  ];
+  );
   if (report.delta) body.push("", t.t("post.delta", { sha: report.delta.slice(0, 7) }));
   const notes: string[] = [];
   const uncovered = unreviewedFiles(report.lenses);
@@ -61,6 +83,11 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
     body.push("", `#### ${t.t("post.stillOpen")}`, "");
     for (const f of still) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` ${f.title}`);
   }
+  if (extraNits.length) {
+    body.push("", `<details><summary>${t.tp("post.moreNits", extraNits.length)}</summary>`, "");
+    for (const f of extraNits) body.push(`- ${ICON.nit} \`${f.path}:${f.line}\` ${f.title}`);
+    body.push("", "</details>");
+  }
   if (outside.length) {
     body.push("", `#### ${t.t("post.outsideDiff")}`, "");
     for (const f of outside) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` **${f.title}**`, "", f.body.trim().replace(/^/gm, "  "), "");
@@ -73,7 +100,7 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   const comments: InlineComment[] = inline.map((f) => {
     const file = files.get(f.path);
     const oldLine = file?.contextOld.get(f.line);
-    return { path: f.path, line: f.line, body: findingBody(f, t, version, head), ...(file?.oldPath ? { oldPath: file.oldPath } : {}), ...(oldLine ? { oldLine } : {}) };
+    return { path: f.path, line: f.line, body: findingBody(f, t, version, head, ICON), ...(file?.oldPath ? { oldPath: file.oldPath } : {}), ...(oldLine ? { oldLine } : {}) };
   });
   return { headSha: head, event: report.verdict.event, body: body.join("\n"), comments, fallbackHeading: t.t("post.outsideDiff"), outside };
 }

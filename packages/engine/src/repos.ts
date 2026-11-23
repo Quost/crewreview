@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { DEFAULT_RULES } from "@crewreview/core";
+import { DEFAULT_RULES, REVIEW_PROFILES, SEVERITIES } from "@crewreview/core";
 import { globMatch, parseOwnerUrl, parseRepoUrl, repoRef, type RepoRef } from "@crewreview/hosts";
 import { z } from "zod";
 import { ConfigError, parseDuration } from "./config.ts";
@@ -23,6 +23,16 @@ const ReviewSettings = z
     harness: z.string().optional(),
     verifier: z.string().optional(),
     allowApprove: z.boolean().optional(),
+    /** fast, standard or gate: over the global review.profile. */
+    profile: z.enum(REVIEW_PROFILES).optional(),
+    /** From which severity a review requests changes, or "never": over review.policy.requestChangesAt. */
+    requestChangesAt: z.union([z.enum(SEVERITIES), z.literal("never")]).optional(),
+    /** Approve only a trusted review: over review.policy.requireTrusted (the gate profile turns it on). */
+    requireTrusted: z.boolean().optional(),
+    /** crewreview (🔴 🟠 🟡 ⚪) or tupi (⛔ ⚠ 💅). */
+    severityStyle: z.enum(["crewreview", "tupi"]).optional(),
+    /** At most this many nits inline; the rest listed in the summary. */
+    maxNits: z.number().int().min(0).optional(),
     /** More project rules for the reviewers, besides AGENTS.md and the like: paths in the repository; a folder gives its .md files. */
     guidelines: z.array(z.string()).optional(),
     /** Post reviews as this account instead of yours: a login signed in to gh, or env:VARIABLE with its token. */

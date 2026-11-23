@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { patchFingerprint, redactSecrets, type ExistingComment, type PullRequest } from "@crewreview/core";
+import { patchFingerprint, redactSecrets, resolveReview, type ExistingComment, type PullRequest, type ReviewKnobs } from "@crewreview/core";
 import { gitAuthEnv, type Checks, type HostAdapter, type Thread } from "@crewreview/hosts";
 import type { Harness } from "@crewreview/harness";
 import { createTranslator, languageName, matchLocale, type Translator } from "@crewreview/i18n";
@@ -114,6 +114,16 @@ function existing(threads: readonly Thread[]): ExistingComment[] {
   return threads.map((th) => ({ path: th.path, line: th.line, body: th.comments.map((c) => c.body).join("\n"), resolved: th.resolved }));
 }
 
+/** The review settings one repository runs with: its own over the global ones, then its profile. */
+export function reviewKnobs(config: Config, repo?: LinkedRepo): ReviewKnobs {
+  const r = config.review;
+  const g = repo?.review;
+  return resolveReview(
+    { profile: r.profile, lenses: r.lenses, verifierRaise: r.verifierRaise, policy: r.policy, severityStyle: r.severityStyle, maxNits: r.maxNits },
+    g ? { profile: g.profile, lenses: g.lenses, allowApprove: g.allowApprove, requestChangesAt: g.requestChangesAt, requireTrusted: g.requireTrusted, severityStyle: g.severityStyle, maxNits: g.maxNits } : {},
+  );
+}
+
 export function commentTranslator(repo: LinkedRepo, config: Config, ui: Translator): { t: Translator; language: string } {
   const code = repo.review.commentLanguage ?? config.review.commentLanguage ?? ui.locale;
   return { t: createTranslator(matchLocale(code) ?? "en"), language: languageName(code) };
@@ -178,8 +188,8 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
     const checks = await host.getChecks({ ...pr, headSha });
     const { language } = commentTranslator(repo, d.config, d.ui);
     const all = await loadLenses(fetched.mirror, fetched.baseSha);
-    const wanted = repo.review.lenses ?? d.config.review.lenses;
-    const lenses = all.filter((l) => wanted.includes(l.id) || (l.source === "repo" && !BUILTIN_LENS_IDS.includes(l.id)));
+    const knobs = reviewKnobs(d.config, repo);
+    const lenses = all.filter((l) => knobs.lenses.includes(l.id) || (l.source === "repo" && !BUILTIN_LENS_IDS.includes(l.id)));
 
     const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const extraContext: Record<string, string> = { "pr.md": prMarkdown(pr), "threads.md": threadsMarkdown(threads), "checks.md": checksMarkdown(checks) };
@@ -195,9 +205,9 @@ export async function reviewPullRequest(d: PrDeps, x: PrTarget, number: number, 
         verifySeats,
         harness,
         verifier,
-        config: d.config,
+        config: { ...d.config, review: { ...d.config.review, verifierRaise: knobs.verifierRaise } },
         language,
-        policy: { ...d.config.review.policy, allowApprove: repo.review.allowApprove ?? d.config.review.policy.allowApprove },
+        policy: knobs.policy,
         existingComments: existing(threads),
         extraContext,
         guidelines: repo.review.guidelines,
@@ -239,7 +249,8 @@ export async function postReview(d: PrDeps, x: PrTarget, reviewId: number): Prom
     return { kind: "stale", reviewId };
   }
   const { t } = commentTranslator(x.repo, d.config, d.ui);
-  const rendered = await renderHostReview(report, t, d.version);
+  const knobs = reviewKnobs(d.config, x.repo);
+  const rendered = await renderHostReview(report, t, d.version, { severityStyle: knobs.severityStyle, maxNits: knobs.maxNits });
   const poster = x.poster ?? x.host;
   try {
     if ("error" in poster) throw new Error(poster.error);

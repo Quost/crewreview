@@ -6,7 +6,7 @@ import { git, resolveRef } from "./git.ts";
 import { isPickError, pickReviewer } from "./harnesses.ts";
 import { BUILTIN_LENS_IDS, loadLenses } from "./lenses.ts";
 import { fetchPull } from "./mirror.ts";
-import { prMarkdown, type PrDeps, type PrTarget } from "./pr.ts";
+import { prMarkdown, reviewKnobs, type PrDeps, type PrTarget } from "./pr.ts";
 import { pickLimits } from "./quota.ts";
 import { runReview, type ReviewReport } from "./review.ts";
 import { languageName } from "@crewreview/i18n";
@@ -67,7 +67,8 @@ export async function runEvalCase(d: PrDeps, x: PrTarget, c: EvalCase): Promise<
   if (isPickError(verifier)) return { error: `verifier: ${verifier.error}` };
 
   const all = await loadLenses(fetched.mirror, baseSha);
-  const wanted = c.lenses ?? repo.review.lenses ?? d.config.review.lenses;
+  const knobs = reviewKnobs(d.config, repo);
+  const wanted = c.lenses ?? knobs.lenses;
   const lenses = all.filter((l) => wanted.includes(l.id) || (!c.lenses && l.source === "repo" && !BUILTIN_LENS_IDS.includes(l.id)));
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   // The language the real reviews were written in: the words a case looks for are in it.
@@ -81,9 +82,9 @@ export async function runEvalCase(d: PrDeps, x: PrTarget, c: EvalCase): Promise<
       partial: false,
       harness,
       verifier,
-      config: d.config,
+      config: { ...d.config, review: { ...d.config.review, verifierRaise: knobs.verifierRaise } },
       language: languageName(code),
-      policy: { ...d.config.review.policy, allowApprove: repo.review.allowApprove ?? d.config.review.policy.allowApprove },
+      policy: knobs.policy,
       extraContext: { "pr.md": prMarkdown(pr) },
       guidelines: repo.review.guidelines,
       signal: d.signal,
