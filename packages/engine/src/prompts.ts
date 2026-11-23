@@ -1,7 +1,7 @@
 import { fence } from "@crewreview/core";
 import type { Lens } from "./lenses.ts";
 
-export const PROMPT_VERSION = "5";
+export const PROMPT_VERSION = "6";
 
 const LENS_SCHEMA = `{
   "findings": [
@@ -83,13 +83,13 @@ export function verifierPrompt(ctx: PromptContext): string {
     "",
     "For each finding, open the cited file and line in ./head/ and decide:",
     "- confirm: the problem is real, as described, at that place.",
-    "- downgrade: it is real but less severe than stated. Give the new, lower severity.",
+    '- downgrade: it is real but the code shows it is less severe than stated: a guard, a caller that handles it, a path that never runs. Give the new, lower severity and, in "evidence", the path:line in ./head/ that shows it.',
     '- upgrade: it is real and worse than stated: the code shows data lost or corrupted, a person or a request left waiting, or a failure that looks like success. Give the new severity (at most major) and, in "evidence", the path:line in ./head/ that shows it.',
     "- drop: it is wrong, can't be shown from the code, is already handled elsewhere, isn't caused by this change, or points at the wrong place.",
     '- duplicate: it describes the same underlying problem as another finding in the list. Give that finding\'s id in "of"; keep the clearer or more severe one as the original.',
     "",
     "Rules:",
-    "1. Judge the severity by what the code shows, both ways. Raise only with a place that shows the impact; without one, when in doubt, keep or lower it.",
+    "1. Judge the severity by what the code shows, both ways, and only with a place that shows it: raising needs the place that shows the harm, lowering needs the place that limits it. Without one, confirm the severity as it is. A wait a person or request sits through, a write that is lost or a final state that can be wrong keeps its severity unless you can show otherwise.",
     "2. A finding whose own text admits it isn't a real problem must be dropped or downgraded. One that admits it didn't check something it depends on (another file, a caller, a setting): check it yourself, and drop it if the code says otherwise or you can't tell.",
     "3. Check the conclusion, not only that the code exists: follow the mechanism the finding describes to the effect it claims. If the mechanism or the effect is wrong, drop it, or downgrade it and say in the reason what really happens.",
     "4. When a finding says a test is missing or wrong, check whether the existing tests would actually fail if the code were wrong.",
@@ -98,7 +98,7 @@ export function verifierPrompt(ctx: PromptContext): string {
     `7. ${SEVERITY}`,
     "",
     "Reply with one JSON object and nothing else. Every finding id must appear exactly once:",
-    '{"decisions": [{"id": "F1", "action": "confirm | downgrade | upgrade | drop | duplicate", "severity": "only for downgrade or upgrade", "evidence": "only for upgrade: path:line", "of": "only for duplicate", "reason": "one sentence"}]}',
+    '{"decisions": [{"id": "F1", "action": "confirm | downgrade | upgrade | drop | duplicate", "severity": "only for downgrade or upgrade", "evidence": "for upgrade or downgrade: path:line", "of": "only for duplicate", "reason": "one sentence"}]}',
   ].join("\n");
 }
 

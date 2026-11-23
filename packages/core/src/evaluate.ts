@@ -32,6 +32,8 @@ const EvalCaseSchema = z.object({
   /** The merge base it was reviewed against: the base moved on since, and may contain the change by now. */
   base: z.string().regex(/^[0-9a-f]{7,40}$/),
   lenses: z.array(z.string()).optional(),
+  /** The language the reviews are written in (e.g. "pt-BR"): the one the real reviews used, since the words to find are in it. */
+  language: z.string().optional(),
   must: z.array(Expectation).default([]),
   mustNot: z.array(Expectation).default([]),
 });

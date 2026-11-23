@@ -11,7 +11,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Changed
 
-- The verifier can raise a severity, not only lower it, when the code shows the harm: data lost, a person or a request left waiting, a failure that looks like success. It has to name the place (path:line), Crewreview checks that line exists in the reviewed code, and it can raise up to major (a blocker still has to come from a lens). The post says when a finding was raised and where to look. Turn it off with `review.verifierRaise = false`. In calibration, most real risks the reviews saw went out as minor or nit.
+- The verifier can raise a severity, not only lower it, when the code shows the harm: data lost, a person or a request left waiting, a failure that looks like success. It has to name the place (path:line), Crewreview checks that line exists in the reviewed code, and it can raise up to major (a blocker still has to come from a lens). Lowering works the same way now: it needs the place that limits the harm (a guard, a caller that handles it), or the severity stays. In calibration the verifier had lowered the very risks the lenses got right. The post says when a finding was raised and where to look. Turn it off with `review.verifierRaise = false`. In calibration, most real risks the reviews saw went out as minor or nit.
 - The verifier checks a finding's conclusion, not only that the code is there: a finding whose mechanism or effect is wrong is dropped or corrected, and one that admits it didn't check something it depends on is checked or dropped.
 
 ### Fixed

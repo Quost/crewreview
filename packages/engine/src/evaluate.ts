@@ -70,7 +70,8 @@ export async function runEvalCase(d: PrDeps, x: PrTarget, c: EvalCase): Promise<
   const wanted = c.lenses ?? repo.review.lenses ?? d.config.review.lenses;
   const lenses = all.filter((l) => wanted.includes(l.id) || (!c.lenses && l.source === "repo" && !BUILTIN_LENS_IDS.includes(l.id)));
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const code = repo.review.commentLanguage ?? d.config.review.commentLanguage ?? d.ui.locale;
+  // The language the real reviews were written in: the words a case looks for are in it.
+  const code = c.language ?? repo.review.commentLanguage ?? d.config.review.commentLanguage ?? d.ui.locale;
 
   const report = await runReview(
     {

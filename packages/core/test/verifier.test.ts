@@ -31,6 +31,15 @@ describe("the verifier raising a severity", () => {
   });
 });
 
+describe("the verifier lowering a severity", () => {
+  test("with the rules on, lowering needs the place that limits the impact; without it the severity stays", () => {
+    const down = (evidence?: string) => applyVerifier([finding({ severity: "major" })], [{ id: "F1", action: "downgrade", severity: "nit", evidence, reason: "only on retry" }], rules).kept[0]!;
+    expect(down()).toMatchObject({ severity: "major", verification: { action: "confirm" } });
+    expect(down("lib/devices.ex:9999").severity).toBe("major");
+    expect(down("lib/devices.ex:270")).toMatchObject({ severity: "nit", verification: { action: "downgrade", from: "major" } });
+  });
+});
+
 describe("findings on files the lens didn't review", () => {
   test("are left out: its own answer says it didn't read them", () => {
     const r = unreadFindings([finding({ path: "lib/apply_worker.ex" }), finding({ id: "F2" })], ["head/lib/apply_worker.ex"]);

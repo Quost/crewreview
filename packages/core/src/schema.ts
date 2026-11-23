@@ -106,6 +106,8 @@ function placeExists(evidence: string | undefined, oracle: FileOracle | undefine
  * Apply the verifier's decisions. It may confirm, downgrade, drop, or mark a finding as a duplicate of another (its
  * lenses move to the one that stays). When the rules allow, it may also raise a severity, but only with a reason and
  * a real place (path:line) that shows the impact, and never past `raiseTo`; an upgrade without them stays a confirm.
+ * With the same rules, a downgrade needs a real place too (what makes the impact smaller), or it stays a confirm: in
+ * calibration the verifier lowered the very risks the lenses had found right, with nothing to show for it.
  * A finding the verifier skipped stays as it was, without a verification mark.
  */
 export function applyVerifier(findings: readonly Finding[], decisions: readonly VerifierDecision[], rules: VerifierRules = RAISE): {
@@ -148,7 +150,8 @@ export function applyVerifier(findings: readonly Finding[], decisions: readonly 
       dropped.push({ ...f, verification: { action: "drop", reason: d.reason } });
       continue;
     }
-    if (d.action === "downgrade" && d.severity && lessSevere(d.severity, f.severity)) {
+    // Lowering needs proof as much as raising: a guard, a caller that handles it, a path that never runs.
+    if (d.action === "downgrade" && d.severity && lessSevere(d.severity, f.severity) && (!rules.raise || placeExists(d.evidence, rules.oracle))) {
       kept.push({ ...f, severity: d.severity, verification: { action: "downgrade", reason: d.reason, from: f.severity } });
       continue;
     }
