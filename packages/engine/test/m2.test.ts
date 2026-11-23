@@ -128,7 +128,7 @@ function fakeHarness(): Harness & { runs: number } {
       h.runs++;
       if (req.prompt.includes("You are the verifier")) return { ok: true, text: '{"decisions":[{"id":"F1","action":"confirm","reason":"pct is a fraction"}]}', exitCode: 0, durationMs: 1 };
       if (req.prompt.includes("Correctness reviewer")) {
-        return { ok: true, text: JSON.stringify({ findings: [{ path: "src/cart.ts", line: 2, severity: "major", title: "discount accepts pct above 1", body: "A pct of 20 gives a negative total.", confidence: "high" }] }), exitCode: 0, durationMs: 1 };
+        return { ok: true, text: JSON.stringify({ findings: [{ path: "src/cart.ts", line: 2, severity: "major", title: "discount accepts pct above 1", body: "A pct of 20 gives a negative total.", scenario: "A cart of 100 with pct 20 totals -1900.", confidence: "high" }] }), exitCode: 0, durationMs: 1 };
       }
       return { ok: true, text: '{"findings":[]}', exitCode: 0, durationMs: 1 };
     },

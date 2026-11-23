@@ -108,7 +108,7 @@ describe("review pipeline", () => {
       if (req.prompt.includes("Correctness reviewer")) {
         return "Sure!\n```json\n" + JSON.stringify({
           findings: [
-            { path: "src/math.ts", line: 1, severity: "critical", title: "add subtracts", body: "`add` returns a - b.", confidence: "high" },
+            { path: "src/math.ts", line: 1, severity: "critical", title: "add subtracts", body: "`add` returns a - b.", scenario: "add(2, 1) returns 1 instead of 3 for every caller.", confidence: "high" },
             { path: "src/math.ts", line: 99, severity: "major", title: "past the end", body: "x" },
           ],
         }) + "\n```";
