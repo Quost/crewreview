@@ -1,6 +1,6 @@
 import type { LiveAgent } from "../api.ts";
 import type { Live } from "../app.tsx";
-import { describe } from "../describe.ts";
+import { describeEntry, foldQuiet } from "../describe.ts";
 import { clock, duration, lensName, useT } from "../i18n.ts";
 import { Card, Empty, Pill } from "../ui.tsx";
 
@@ -19,7 +19,7 @@ export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => vo
     const k = a.job.task ? `${a.job.repo} · ${a.job.task}` : `${a.job.repo}#${a.job.number}`;
     jobs.set(k, [...(jobs.get(k) ?? []), a]);
   }
-  const log = [...live.log].reverse().slice(0, 60);
+  const log = foldQuiet(live.log).reverse().slice(0, 60);
   return (
     <>
       <header className="page-head">
@@ -69,7 +69,7 @@ export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => vo
         ) : (
           <ol className="log">
             {log.map((e, i) => {
-              const d = describe(t, e.event);
+              const d = describeEntry(t, e);
               return (
                 <li key={`${e.at}-${i}`} className={`tone-${d.tone}`}>
                   <time className="mono muted">{clock(t, e.at)}</time>

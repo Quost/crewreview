@@ -4,19 +4,30 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- Automatic approvals can be turned on or off per repository, in the dashboard (Repositories) and with `crewreview repo set <id> --approve on|off|default`. `default` follows the setting for all repositories (`review.policy.allowApprove`, in Settings).
+- Reviewers read the project's rule folders too, `.kiro/steering/` and `.github/instructions/` (their .md files), and any more files or folders a repository names with `crewreview repo set <id> --guidelines <a,b>` (`[repo.review] guidelines`).
+
 ### Changed
 
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
 - The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
-
-### Added
-
-- Reviewers read the project's rule folders too, `.kiro/steering/` and `.github/instructions/` (their .md files), and any more files or folders a repository names with `crewreview repo set <id> --guidelines <a,b>` (`[repo.review] guidelines`).
+- The activity log folds empty checks in a row into one line that says how many and since when.
 
 ### Fixed
 
+- When no harness can answer comments, the activity says why and what to do (a harness that hasn't passed its test on this computer points to Harnesses & limits), instead of "no harness can do this yet".
+- That problem is said once per repository and reason, not on every check and with a different pull request each time.
+- Without a network connection, the check says "no connection" once, in its summary, instead of the host's raw error for each repository, and no longer counts the repositories it couldn't reach as checked.
+- A lens whose answer came after a sentence with a brace in it, such as quoted code like `:if={@x != []}`, no longer fails with "parse" and loses its findings: the answer is found after the sentence.
 - Project rules are no longer cut at 20,000 characters per file: each file gets up to 60,000 and all of them 120,000. A long AGENTS.md lost most of its rules before. When rules are still cut, the review says which ones.
 - "Not reviewed" lists only the changed files no lens read. A file one lens skipped as outside its concern but another lens read is no longer listed, and no longer keeps the review from approving.
+
+### Security
+
+- Kiro no longer gets `--trust-tools=fs_write` when it edits files: that trusted writes on every path, outside its folder too, and Kiro failed the write test. Each write run now gets a Kiro agent, made for that run and removed after it, that writes without asking only inside its folder; anything else needs an approval nobody can give, so it's denied. Kiro passes the write test again (`crewreview doctor --conformance`).
+- In read mode, `--agent` is refused like the other flags that could widen what a harness may do.
 
 ## 0.14.2 — 2026-11-22
 

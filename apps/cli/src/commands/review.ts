@@ -96,5 +96,8 @@ export function logEvent(c: Ctx, e: DaemonEvent): void {
   else if (e.type === "outcome") c.err(`${time} ${outcomeText(c, e.repo, e.number, e.outcome)}`);
   else if (e.type === "attend-outcome") c.err(`${time} ${attendText(c, e.repo, e.number, e.outcome)}`);
   else if (e.type === "update") c.err(`${time} ${e.error ? st.red(t.t("update.failed", { error: e.error })) : e.installed ? st.green(t.t("update.installed", { from: c.version, to: e.version })) : t.t("update.available", { version: e.version, current: c.version })}`);
-  else if (e.type === "cycle") c.err(`${time} ${st.dim(t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting }))}`);
+  else if (e.type === "cycle") {
+    const line = st.dim(t.t("run.cycle", { repos: t.tp("run.repoCount", e.repos), reviewed: e.reviewed, waiting: e.waiting }));
+    c.err(`${time} ${line}${e.offline?.length ? ` ${st.yellow(t.t("run.offline", { repos: e.offline.join(", ") }))}` : ""}`);
+  }
 }

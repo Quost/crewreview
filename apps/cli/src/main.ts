@@ -73,6 +73,7 @@ function help(t: Translator): string {
     row("--account <login>|env:<VAR>|none", t.t("cli.opt.account")),
     row("--paused on|off", t.t("cli.opt.paused")),
     row("--guidelines <a,b>|none", t.t("cli.opt.guidelines")),
+    row("--approve on|off|default", t.t("cli.opt.approve")),
     row("--include <a,b>", t.t("cli.opt.include")),
     row("--exclude <a,b>", t.t("cli.opt.exclude")),
     row("--lang <code>", t.t("cli.opt.lang")),
@@ -115,6 +116,7 @@ async function main(argv: string[]): Promise<number> {
       account: { type: "string" },
       paused: { type: "string" },
       guidelines: { type: "string" },
+      approve: { type: "string" },
       ci: { type: "string" },
       exclude: { type: "string" },
       post: { type: "boolean", default: false },
@@ -171,7 +173,7 @@ async function main(argv: string[]): Promise<number> {
           json: v.json,
         });
       case "repo":
-        return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id, attend: v.attend, polish: v.polish, include: v.include, exclude: v.exclude, conflicts: v.conflicts, ci: v.ci, account: v.account, paused: v.paused, guidelines: v.guidelines });
+        return await repo(c, rest[0], rest.slice(1), { kind: v.kind, mode: v.mode, authors: v.authors, clone: v.clone, lang: v.lang, id: v.id, attend: v.attend, polish: v.polish, include: v.include, exclude: v.exclude, conflicts: v.conflicts, ci: v.ci, account: v.account, paused: v.paused, guidelines: v.guidelines, approve: v.approve });
       case "review":
         return await reviewOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], force: v.force });
       case "task":

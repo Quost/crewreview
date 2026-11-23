@@ -138,6 +138,22 @@ export function ReposPage({ version }: { version: number }) {
             </div>
             <div className="setting">
               <div>
+                <strong>{t.t("web.repos.approve")}</strong>
+                <p className="muted small">{t.t("web.repos.approveHint")}</p>
+              </div>
+              <Segmented
+                label={t.t("web.repos.approve")}
+                value={r.review.allowApprove === undefined ? "default" : r.review.allowApprove ? "on" : "off"}
+                options={[
+                  { value: "default" as const, label: t.t("web.repos.approveDefault") },
+                  { value: "on" as const, label: t.t("web.on") },
+                  { value: "off" as const, label: t.t("web.off") },
+                ]}
+                onChange={(v) => patch(r.id, { review: { allowApprove: v === "default" ? null : v === "on" } })}
+              />
+            </div>
+            <div className="setting">
+              <div>
                 <strong>{t.t("web.repos.account")}</strong>
                 <p className="muted small">
                   {t.t("web.repos.accountHint")} <a href="#/account">{t.t("web.account.setupLink")}</a>

@@ -113,7 +113,13 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
           user = check.user;
         } else account = null;
       }
-      const updated = await crew.updateRepo(repoMatch[1]!, { review: { ...clean(review), ...(account !== undefined ? { account } : {}) }, attend: clean(attend), paused: flag(b.paused) });
+      // Automatic approvals: true or false for this repository, null to follow the setting for all of them.
+      const approve = b.review?.allowApprove === null ? null : flag(b.review?.allowApprove);
+      const updated = await crew.updateRepo(repoMatch[1]!, {
+        review: { ...clean(review), ...(account !== undefined ? { account } : {}), ...(approve !== undefined ? { allowApprove: approve } : {}) },
+        attend: clean(attend),
+        paused: flag(b.paused),
+      });
       return updated ? json({ ok: true, ...(user ? { user } : {}) }) : json({ error: "not-found" }, 404);
     }
     const previewMatch = /^\/api\/repos\/([a-z0-9._-]+)\/preview$/.exec(p);
