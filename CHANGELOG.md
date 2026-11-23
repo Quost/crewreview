@@ -12,6 +12,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Fixed
 
 - A `crewreview` in the terminal older than the service that runs the crew says so on every command. `crewreview doctor --conformance` from such a copy no longer records harness tests: they'd test a version that no longer runs, and the service would use them. A 0.14 copy in the terminal had kept Kiro's failed write test on record after the app moved to 0.15.
+- A pull request whose diff was too large for a version before 0.12.1 (which counted that as a failure) said "failed too many times" forever. Those attempts no longer count: it's checked again and says "too large", like any other.
 
 ## 0.16.0 — 2026-11-23
 

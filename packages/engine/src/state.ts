@@ -128,9 +128,10 @@ export class Store {
   }
 
   failures(repo: string, number: number, sha: string): number {
-    // Login and quota failures say nothing about the pull request: they don't count.
+    // Login and quota failures say nothing about the pull request: they don't count. Nor does a diff too large,
+    // which versions before 0.12.1 recorded as a failure: it's a skip, with its own message.
     const r = this.db
-      .query("SELECT COUNT(*) AS n FROM reviews WHERE repo = ? AND number = ? AND head_sha = ? AND status = 'failed' AND COALESCE(error, '') NOT LIKE 'auth:%' AND COALESCE(error, '') NOT LIKE 'quota:%'")
+      .query("SELECT COUNT(*) AS n FROM reviews WHERE repo = ? AND number = ? AND head_sha = ? AND status = 'failed' AND COALESCE(error, '') NOT LIKE 'auth:%' AND COALESCE(error, '') NOT LIKE 'quota:%' AND COALESCE(error, '') NOT LIKE 'diff-too-large%'")
       .get(repo, number, sha) as { n: number };
     return r.n;
   }

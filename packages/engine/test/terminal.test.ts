@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmod, lstat, mkdir, mkdtemp, readlink, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { linkTerminalCommand } from "../src/index.ts";
+import { linkTerminalCommand, Store } from "../src/index.ts";
 
 let root: string;
 let self: string;
@@ -62,5 +62,17 @@ describe.skipIf(process.platform === "win32")("the app's link for the terminal's
 
   test("no crewreview on PATH: nothing is created", async () => {
     expect(await linkTerminalCommand(self, join(root, "e"))).toBeUndefined();
+  });
+});
+
+describe("failures on a head", () => {
+  test("a diff too large, recorded as a failure by versions before 0.12.1, is a skip and doesn't count", () => {
+    const store = new Store(":memory:");
+    const start = () => store.start({ repo: "r", number: 1156, title: "Angular 20", url: "", headSha: "705a956" });
+    store.update(start(), { status: "failed", error: "diff-too-large" });
+    store.update(start(), { status: "failed", error: "diff-too-large" });
+    expect(store.failures("r", 1156, "705a956")).toBe(0);
+    store.update(start(), { status: "failed", error: "parse: the answer wasn't valid JSON" });
+    expect(store.failures("r", 1156, "705a956")).toBe(1);
   });
 });
