@@ -751,10 +751,10 @@
   "trust.reason.major-open": "仍有重要问题未解决",
   "trust.reason.lens-failed": "有视角未完成",
   "trust.reason.files-unread": "部分改动的文件未被阅读",
-  "trust.reason.files-left-out": "部分 diff 太大，未交给代理",
   "trust.reason.verifier-missing": "验证者未运行",
   "trust.reason.some-lenses": "只运行了部分视角",
   "trust.reason.ci-pending": "CI 尚未完成",
   "post.moreNits.one": "还有 {count} 个细节，列在这里",
-  "post.moreNits.other": "还有 {count} 个细节，列在这里"
+  "post.moreNits.other": "还有 {count} 个细节，列在这里",
+  "post.cut": "文件过大无法完整展示：已展示前几个片段，其余部分从代码中读取：{files}。"
 }

@@ -767,10 +767,10 @@
   "trust.reason.major-open": "ein wichtiger Befund ist noch offen",
   "trust.reason.lens-failed": "eine Linse ist nicht fertig geworden",
   "trust.reason.files-unread": "einige geänderte Dateien wurden nicht gelesen",
-  "trust.reason.files-left-out": "einige Diffs waren zu groß für die Agenten",
   "trust.reason.verifier-missing": "der Prüfer ist nicht gelaufen",
   "trust.reason.some-lenses": "nur einige Linsen liefen",
   "trust.reason.ci-pending": "das CI ist nicht fertig",
   "post.moreNits.one": "{count} weiteres Detail, hier aufgelistet",
-  "post.moreNits.other": "{count} weitere Details, hier aufgelistet"
+  "post.moreNits.other": "{count} weitere Details, hier aufgelistet",
+  "post.cut": "Zu groß für die ganze Ansicht: die ersten Abschnitte wurden gezeigt, der Rest aus dem Code gelesen: {files}."
 }

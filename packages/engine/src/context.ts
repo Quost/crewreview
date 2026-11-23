@@ -88,7 +88,7 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     files
       .map((f) => {
         const out = left.get(f.path);
-        const note = out ? `  (diff left out: ${out.reason === "minified" ? "minified or generated" : "too large"})` : "";
+        const note = out ? (out.reason === "minified" ? "  (diff left out: minified or generated)" : "  (diff cut: too large; the rest is in ./head/, see the note in diff.patch)") : "";
         return `${f.status.padEnd(8)} +${f.additions} -${f.deletions}  ${f.oldPath ? `${f.oldPath} -> ` : ""}${f.path}${note}`;
       })
       .join("\n") + "\n",

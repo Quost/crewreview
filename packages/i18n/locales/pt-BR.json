@@ -767,10 +767,10 @@
   "trust.reason.major-open": "há um achado importante em aberto",
   "trust.reason.lens-failed": "uma lente não terminou",
   "trust.reason.files-unread": "alguns arquivos alterados não foram lidos",
-  "trust.reason.files-left-out": "alguns diffs eram grandes demais para os agentes",
   "trust.reason.verifier-missing": "o verificador não rodou",
   "trust.reason.some-lenses": "só algumas lentes rodaram",
   "trust.reason.ci-pending": "o CI não terminou",
   "post.moreNits.one": "Mais {count} detalhe, listado aqui",
-  "post.moreNits.other": "Mais {count} detalhes, listados aqui"
+  "post.moreNits.other": "Mais {count} detalhes, listados aqui",
+  "post.cut": "Grandes demais para mostrar inteiros: os primeiros trechos foram mostrados e o resto lido do código: {files}."
 }

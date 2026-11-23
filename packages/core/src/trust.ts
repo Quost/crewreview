@@ -17,7 +17,6 @@ export type TrustReason =
   | "major-open"
   | "lens-failed"
   | "files-unread"
-  | "files-left-out"
   | "verifier-missing"
   | "some-lenses"
   | "ci-pending";
@@ -33,8 +32,6 @@ export interface TrustInput {
   verifierRan: boolean;
   /** Only some lenses were asked for. */
   partial: boolean;
-  /** Changed files whose diff was too large to give the agents (minified or generated code doesn't count). */
-  leftOut: number;
 }
 
 export interface Trust {
@@ -53,7 +50,6 @@ export function trustLevel(i: TrustInput): Trust {
   if (i.findings.some((f) => f.severity === "major")) partial.push("major-open");
   if (i.lenses.some((l) => l.status === "failed" || l.status === "hallucinated" || (l.coverage === "partial" && l.uncovered.length === 0))) partial.push("lens-failed");
   if (unreviewedFiles(i.lenses).length) partial.push("files-unread");
-  if (i.leftOut > 0) partial.push("files-left-out");
   if (!i.verifierRan) partial.push("verifier-missing");
   if (i.partial) partial.push("some-lenses");
   if (i.ci === "running" || i.ci === "unknown") partial.push("ci-pending");

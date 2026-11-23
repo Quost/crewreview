@@ -141,9 +141,15 @@ describe("slimDiff", () => {
     expect(files.map((f) => [f.path, f.rightLines.size])).toEqual([["public/app.js", 0], ["src/a.ts", 1]]);
   });
 
-  test("a .min.js path and an oversized file are left out too", () => {
-    const r = slimDiff(section("vendor/x.min.js", "-a\n+b") + section("data/big.json", `+${"x\n+".repeat(200)}y`) + small, { maxFileBytes: 500, maxLineLength: 2000 });
-    expect(r.omitted.map((f) => [f.path, f.reason])).toEqual([["vendor/x.min.js", "minified"], ["data/big.json", "large"]]);
+  test("a .min.js path is left out; an oversized file is cut at a hunk, with where the rest is", () => {
+    const hunk = (start: number) => `@@ -${start},2 +${start},3 @@\n ctx\n-old\n+${"new line ".repeat(20)}\n+more\n`;
+    const big = `diff --git a/docs/STATUS.md b/docs/STATUS.md\nindex 1..2 100644\n--- a/docs/STATUS.md\n+++ b/docs/STATUS.md\n${hunk(10)}${hunk(200)}${hunk(900)}`;
+    const r = slimDiff(section("vendor/x.min.js", "-a\n+b") + big + small, { maxFileBytes: 400, maxLineLength: 2000 });
+    expect(r.omitted.map((f) => [f.path, f.reason])).toEqual([["vendor/x.min.js", "minified"], ["docs/STATUS.md", "cut"]]);
+    expect(r.text).toContain("@@ -10,2 +10,3 @@");
+    expect(r.text).not.toContain("@@ -900,2");
+    expect(r.text).toContain("Its other changes are at these lines of ./head/docs/STATUS.md: 200-202, 900-902.");
+    expect(r.text.endsWith(small)).toBe(true);
   });
 
   test("an ordinary diff comes back unchanged", () => {

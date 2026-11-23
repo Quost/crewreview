@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { DEFAULT_POLICY, decideVerdict, resolveReview, trustLevel, type LensResult, type TrustInput } from "../src/index.ts";
 
 const lens = (p: Partial<LensResult> = {}): LensResult => ({ lens: "correctness", harness: "kiro", status: "ok", findings: [], coverage: "full", uncovered: [], durationMs: 1, ...p });
-const base: TrustInput = { findings: [], lenses: [lens()], ci: "green", changedLines: 100, maxChangedLines: 1500, verifierRan: true, partial: false, leftOut: 0 };
+const base: TrustInput = { findings: [], lenses: [lens()], ci: "green", changedLines: 100, maxChangedLines: 1500, verifierRan: true, partial: false };
 
 describe("trust in a review", () => {
   test.each([
@@ -15,7 +15,6 @@ describe("trust in a review", () => {
     ["a lens failed", { lenses: [lens(), lens({ lens: "security", status: "failed" })] }, "partial", ["lens-failed"]],
     ["partial without saying what", { lenses: [lens({ coverage: "partial" })] }, "partial", ["lens-failed"]],
     ["a file no lens read", { lenses: [lens({ coverage: "partial", uncovered: ["docs/STATUS.md"] })] }, "partial", ["files-unread"]],
-    ["a diff too large to give the agents", { leftOut: 1 }, "partial", ["files-left-out"]],
     ["no verifier", { verifierRan: false }, "partial", ["verifier-missing"]],
     ["only some lenses asked", { partial: true }, "partial", ["some-lenses"]],
     ["CI still running", { ci: "running" as const }, "partial", ["ci-pending"]],
@@ -40,7 +39,7 @@ describe("what a review may do", () => {
   test("requireTrusted: no approval unless the review is trusted", () => {
     const policy = { ...DEFAULT_POLICY, allowApprove: true, requireTrusted: true };
     expect(decideVerdict({ ...input, trust: { level: "trusted", reasons: [] } }, policy).event).toBe("approve");
-    expect(decideVerdict({ ...input, trust: { level: "partial", reasons: ["files-left-out"] } }, policy)).toMatchObject({ event: "comment", reasons: ["not-trusted"] });
+    expect(decideVerdict({ ...input, trust: { level: "partial", reasons: ["files-unread"] } }, policy)).toMatchObject({ event: "comment", reasons: ["not-trusted"] });
   });
 });
 

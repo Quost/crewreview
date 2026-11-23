@@ -203,6 +203,16 @@ describe("review pipeline", () => {
     ).rejects.toThrow("all-lenses-failed");
   }, 60_000);
 
+  test("a lens that answers garbage once gets one more run; twice, it fails", async () => {
+    const target = await localTarget({ cwd: repo });
+    const lenses = (await loadLenses(target.root, target.rulesRef)).filter((l) => ["correctness", "security"].includes(l.id));
+    let tries = 0;
+    const flaky = fakeHarness((req) => (req.prompt.includes("Correctness") && tries++ === 0 ? "no json" : JSON.stringify({ findings: [] })));
+    const r = await runReview({ target, jobDir: join(home, "job-retry"), lenses, partial: false, harness: flaky, config: parseConfig({}), language: "English", policy: parseConfig({}).review.policy }, "test");
+    expect(r.lenses.find((l) => l.lens === "correctness")?.status).toBe("ok");
+    expect(flaky.prompts.filter((p) => p.includes("Correctness reviewer"))).toHaveLength(2);
+  }, 60_000);
+
   test("with seats, a lens that hits its usage limit goes on the next seat, with that seat's model and effort", async () => {
     const target = await localTarget({ cwd: repo });
     const lenses = (await loadLenses(target.root, target.rulesRef)).filter((l) => ["correctness", "security"].includes(l.id));

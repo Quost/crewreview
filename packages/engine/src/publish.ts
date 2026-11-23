@@ -72,7 +72,10 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   const uncovered = unreviewedFiles(report.lenses);
   if (uncovered.length) notes.push(t.t("post.notCovered", { files: uncovered.map((f) => `\`${f}\``).join(", ") }));
   if (report.guidelinesCut?.length) notes.push(t.t("post.guidelinesCut", { files: report.guidelinesCut.map((f) => `\`${f}\``).join(", ") }));
-  if (report.omitted?.length) notes.push(t.t("post.leftOut", { files: report.omitted.map((f) => `\`${f.path}\``).join(", ") }));
+  const minified = (report.omitted ?? []).filter((f) => f.reason === "minified");
+  const cut = (report.omitted ?? []).filter((f) => f.reason === "cut");
+  if (minified.length) notes.push(t.t("post.leftOut", { files: minified.map((f) => `\`${f.path}\``).join(", ") }));
+  if (cut.length) notes.push(t.t("post.cut", { files: cut.map((f) => `\`${f.path}\``).join(", ") }));
   if (report.verifier.dropped.length) notes.push(t.tp("post.droppedByVerifier", report.verifier.dropped.length));
   if (report.coveredByThreads) notes.push(t.tp("post.alreadyDiscussed", report.coveredByThreads));
   const failed = report.lenses.filter((l) => l.status !== "ok").map((l) => l.lens);

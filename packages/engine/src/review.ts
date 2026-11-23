@@ -37,6 +37,8 @@ import { fixedSeat, type SeatChoice, type SeatPicker } from "./seats.ts";
 
 /** How many seats one lens or the verifier tries when each hits its usage limit. */
 const MAX_SEAT_TRIES = 4;
+/** Failures worth one more run: not a login, a usage limit or a harness that can't do the job. */
+const RETRYABLE = /^(timeout|stalled|crash|parse)\b/;
 
 export type ReviewEvent =
   | { type: "context"; context: ChangeContext }
@@ -175,7 +177,8 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   o.onEvent?.({ type: "context", context: ctx });
   if (ctx.files.length === 0) throw new ReviewError("no-changes", { base: o.target.base, head: o.target.branch });
   // Lines of files left out of the diff (a bundle, a generated file) aren't read, so they don't count.
-  const leftOut = new Set(ctx.omitted.map((f) => f.path));
+  // Only minified or generated files are out of scope: a cut file is still to be reviewed, from ./head/.
+  const leftOut = new Set(ctx.omitted.filter((f) => f.reason === "minified").map((f) => f.path));
   const reviewedLines = totalChangedLines(ctx.files.filter((f) => !leftOut.has(f.path)));
   if (reviewedLines > o.config.limits.maxDiffLines) {
     throw new ReviewError("diff-too-large", { lines: reviewedLines, limit: o.config.limits.maxDiffLines });
@@ -198,6 +201,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   const settled = await mapLimit(lenses, concurrency, async (lens): Promise<LensResult> => {
     const tried: string[] = [];
     let limited: LensResult | undefined;
+    let retried = false;
     for (let attempt = 0; attempt < MAX_SEAT_TRIES; attempt++) {
       const c = await lensSeats(tried);
       // No seat left: the run that hit its limit says why; a pick that found none at all says that.
@@ -213,7 +217,15 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
         limited = { ...failedLens(lens.id, c.harness.id, r.durationMs, "quota", r.error, r.usage), ...seat };
         continue;
       }
-      return lensResult(lens.id, c, seat, r);
+      const result = lensResult(lens.id, c, seat, r);
+      // A lens that timed out, stalled, crashed or answered garbage gets one more run on the same seat: a review with
+      // a lens missing can't be trusted, and these failures are often passing.
+      if (result.status === "failed" && !retried && RETRYABLE.test(result.error ?? "") && !o.signal?.aborted) {
+        retried = true;
+        tried.pop();
+        continue;
+      }
+      return result;
     }
     return limited ?? failedLens(lens.id, o.harness.id, 0, "quota");
   });
@@ -329,7 +341,6 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     maxChangedLines: o.policy.approveMaxChangedLines,
     verifierRan: verifier.ran,
     partial: o.partial,
-    leftOut: (ctx.omitted ?? []).filter((f) => f.reason === "large").length,
   });
   const verdict = decideVerdict(
     { findings: [...findings, ...repeated], lenses: results, ci: o.target.ci, changedLines: ctx.changedLines, verifierRan: verifier.ran, partial: o.partial, trust },
