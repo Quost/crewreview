@@ -139,7 +139,8 @@ export function sameSignature(a: Record<string, string>, b: Record<string, strin
   return ka.every((k) => a[k] === b[k]);
 }
 
-export type OmitReason = "minified" | "large";
+/** minified: generated or minified code, left out. cut: too large, so only its first hunks are there, with where the rest is. */
+export type OmitReason = "minified" | "cut";
 
 export interface OmittedFile {
   path: string;
@@ -160,7 +161,37 @@ export const DEFAULT_DIFF_LIMITS: DiffLimits = { maxFileBytes: 100_000, maxLineL
 const MINIFIED_PATH = /\.min\.(?:js|mjs|cjs|css)$|\.(?:js|mjs|cjs|css)\.map$|\.bundle\.js$/;
 
 /**
- * Leave minified, generated and oversized files out of the diff the agents read. One bundle of a megabyte on a
+ * An oversized file's diff, cut at a hunk boundary: the first hunks as they are, then where the others are in the
+ * new file. A long document or config file is still reviewed (its changed lines are read in ./head/), instead of
+ * vanishing from the review without anyone noticing.
+ */
+function cutSection(s: string, header: string, path: string, maxBytes: number, bytes: number): string {
+  const hunks = s.slice(header.length).split(/^(?=@@ )/m).filter(Boolean);
+  const kept: string[] = [];
+  let size = new TextEncoder().encode(header).length;
+  let i = 0;
+  for (; i < hunks.length; i++) {
+    const n = new TextEncoder().encode(hunks[i]!).length;
+    if (size + n > maxBytes && kept.length > 0) break;
+    kept.push(hunks[i]!);
+    size += n;
+  }
+  const rest = hunks.slice(i).map((h) => {
+    const m = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(h);
+    if (!m) return undefined;
+    const start = Number(m[1]);
+    const count = m[2] === undefined ? 1 : Number(m[2]);
+    return count === 0 ? `${start} (deleted lines)` : `${start}-${start + count - 1}`;
+  }).filter((r): r is string => !!r);
+  const shown = rest.slice(0, 60).join(", ") + (rest.length > 60 ? `, and ${rest.length - 60} more` : "");
+  const note = rest.length
+    ? `# Crewreview: this file's diff is too large (${bytes} bytes) and was cut after ${kept.length} of ${hunks.length} hunks. Its other changes are at these lines of ./head/${path}: ${shown}. Read them there; list the file in "uncovered" only if you couldn't.\n`
+    : "";
+  return header + kept.join("") + note;
+}
+
+/**
+ * Leave minified and generated files out of the diff the agents read, and cut oversized ones. One bundle of a megabyte on a
  * single line can push every file after it past what an agent can open, so its section keeps only its header and a
  * note. Everything else stays byte for byte.
  */
@@ -183,12 +214,13 @@ export function slimDiff(text: string, limits: DiffLimits = DEFAULT_DIFF_LIMITS)
         }
       }
     }
-    if (!reason && bytes > limits.maxFileBytes) reason = "large";
+    if (!reason && bytes > limits.maxFileBytes) reason = "cut";
     if (!reason) return s;
     omitted.push({ path, reason, bytes });
     const hunk = s.search(/^@@ /m);
     const header = (hunk === -1 ? s : s.slice(0, hunk)).replace(/\n*$/, "\n");
-    return `${header}# Crewreview: diff left out (${reason === "minified" ? "minified or generated code" : "too large"}, ${bytes} bytes). Don't review this file.\n`;
+    if (reason === "minified") return `${header}# Crewreview: diff left out (minified or generated code, ${bytes} bytes). Don't review this file.\n`;
+    return cutSection(s, header, path, limits.maxFileBytes, bytes);
   });
   return { text: out.join(""), omitted };
 }

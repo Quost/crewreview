@@ -54,8 +54,12 @@ export interface Finding {
   title: string;
   body: string;
   evidence?: string;
+  /** For blocker and major: what has to be true, what someone does, and the wrong result. */
+  scenario?: string;
   suggestion?: string;
   confidence: Confidence;
+  /** Lowered by Crewreview itself, not the verifier: a blocker or major that came without a scenario. */
+  capped?: { from: Severity; reason: "no-scenario" };
   verification?: Verification;
 }
 

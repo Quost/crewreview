@@ -46,12 +46,12 @@ export function parseEvalCase(value: unknown): { ok: true; case: EvalCase } | { 
 
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
-type Scored = Pick<Finding, "path" | "title" | "body" | "severity">;
+type Scored = Pick<Finding, "path" | "title" | "body" | "severity"> & { scenario?: string };
 
 /** Does this finding say what the expectation describes: on its file, with one of its words? */
 export function matchesExpectation(f: Scored, e: EvalExpectation): boolean {
   if (e.file && !fold(f.path).endsWith(fold(e.file))) return false;
-  const text = fold(`${f.title}\n${f.body}`);
+  const text = fold(`${f.title}\n${f.body}\n${f.scenario ?? ""}`);
   const has = (words: readonly string[]) => words.some((w) => text.includes(fold(w)));
   return has(e.any) && (!e.also || has(e.also));
 }

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { BALANCES, DEFAULT_POLICY, DEFAULT_RULES, SEVERITIES } from "@crewreview/core";
+import { BALANCES, DEFAULT_POLICY, DEFAULT_RULES, REVIEW_PROFILES, SEVERITIES } from "@crewreview/core";
 import { z } from "zod";
 import { configFile } from "./paths.ts";
 
@@ -174,15 +174,23 @@ export const ConfigSchema = z
         verifier: z.boolean().default(true),
         /** The verifier may raise a severity, with a real place that shows the impact, up to major. */
         verifierRaise: z.boolean().default(true),
+        /** fast, standard or gate (see REVIEW_PROFILES). */
+        profile: z.enum(REVIEW_PROFILES).default("standard"),
+        /** How severities look in posts: crewreview (🔴 🟠 🟡 ⚪) or tupi (⛔ ⚠ 💅). */
+        severityStyle: z.enum(["crewreview", "tupi"]).default("crewreview"),
+        /** At most this many nits go inline; the rest are listed in one line of the summary. */
+        maxNits: z.number().int().min(0).default(5),
         /** Language the agents write findings in. Unset: the interface language. */
         commentLanguage: z.string().optional(),
         policy: z
           .object({
-            requestChangesAt: Severity.default(DEFAULT_POLICY.requestChangesAt),
+            requestChangesAt: z.union([Severity, z.literal("never")]).default(DEFAULT_POLICY.requestChangesAt),
             allowApprove: z.boolean().default(DEFAULT_POLICY.allowApprove),
             approveBlockedAt: Severity.default(DEFAULT_POLICY.approveBlockedAt),
             approveMaxChangedLines: z.number().int().min(0).default(DEFAULT_POLICY.approveMaxChangedLines),
             requireVerifier: z.boolean().default(DEFAULT_POLICY.requireVerifier),
+            /** Approve only a review Crewreview trusts: every lens finished, every file read, CI green. */
+            requireTrusted: z.boolean().default(false),
           })
           .strict()
           .prefault({}),

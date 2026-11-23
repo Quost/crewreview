@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { BUILTIN_LENS_IDS, loadLenses, localTarget, LocalTargetError, renderMarkdown, renderTerminal, ReviewError, runReview, type ReviewReport } from "@crewreview/engine";
+import { BUILTIN_LENS_IDS, loadLenses, localTarget, LocalTargetError, renderMarkdown, reviewKnobs, renderTerminal, ReviewError, runReview, type ReviewReport } from "@crewreview/engine";
 import { languageName } from "@crewreview/i18n";
 import { pickHarness, progress, type Ctx } from "../ctx.ts";
 
@@ -45,7 +45,8 @@ export async function localReview(c: Ctx, a: LocalOptions): Promise<{ report: Re
 
   const all = await loadLenses(target.root, target.rulesRef);
   const known = all.map((l) => l.id);
-  const wanted = a.lens ? a.lens.split(",").map((s) => s.trim()).filter(Boolean) : config.review.lenses;
+  const knobs = reviewKnobs(config);
+  const wanted = a.lens ? a.lens.split(",").map((s) => s.trim()).filter(Boolean) : knobs.lenses;
   for (const id of wanted) if (!known.includes(id)) return { error: t.t("error.unknownLens", { name: id, list: known.join(", ") }) };
   const extra = a.lens ? [] : all.filter((l) => l.source === "repo" && !BUILTIN_LENS_IDS.includes(l.id)).map((l) => l.id);
   const lenses = all.filter((l) => wanted.includes(l.id) || extra.includes(l.id));
@@ -61,9 +62,9 @@ export async function localReview(c: Ctx, a: LocalOptions): Promise<{ report: Re
         partial: a.lens !== undefined,
         harness,
         verifier,
-        config: { ...config, review: { ...config.review, verifier: a.verify && config.review.verifier } },
+        config: { ...config, review: { ...config.review, verifier: a.verify && config.review.verifier, verifierRaise: knobs.verifierRaise } },
         language: languageName(a.lang ?? config.review.commentLanguage ?? t.locale),
-        policy: config.review.policy,
+        policy: knobs.policy,
         onEvent: a.onEvent,
       },
       c.version,

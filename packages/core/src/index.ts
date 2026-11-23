@@ -15,6 +15,8 @@ export * from "./stack.ts";
 export * from "./version.ts";
 export * from "./evaluate.ts";
 export * from "./callers.ts";
+export * from "./trust.ts";
+export * from "./profiles.ts";
 export * from "./quota.ts";
 export * from "./seats.ts";
 export * from "./task.ts";

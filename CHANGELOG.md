@@ -4,6 +4,21 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- Every posted review opens with a trust seal, decided by code from what the review did: trusted (every lens finished, every changed file read, the verifier ran, CI green, nothing blocker or major open), partial (with the reasons, such as a file no lens read or a major finding still open), or don't rely on it alone (a blocker open, CI red, or a change too large for one review). It also says which commit it reviewed up to.
+- Review profiles, globally (`review.profile`) or per repository (`profile` in `[repo.review]`): `fast` (no contracts lens, a verifier that doesn't raise), `standard` (the default) and `gate` (approves only a trusted review).
+- More of the verdict can be set per repository: `requestChangesAt` (a severity, or `"never"` to only comment and approve), `requireTrusted`, and globally in `[review.policy]`.
+- `severityStyle = "tupi"` posts ⛔ / ⚠️ / 💅 instead of 🔴 / 🟠 / 🟡 / ⚪, globally or per repository.
+- At most `maxNits` nits (5 by default) get their own comment; the rest are listed once, folded, in the summary.
+- A blocker or major finding has to come with a scenario (what has to be true, what someone does, the wrong result), shown in its comment. Without one, Crewreview posts it as minor and says why.
+- Findings their own lens couldn't confirm go in a "Not confirmed" section of the summary, as questions, instead of being posted on a line as if they were facts.
+
+### Changed
+
+- A file whose diff is too large is no longer left out of the review silently: its diff is cut at a hunk, the agents get where the rest of its changes are, and they read those lines in the code. Only minified or generated code is still left out. A long document such as a status file used to go unreviewed on every round.
+- A lens that times out, stalls, crashes or answers something that isn't its JSON gets one more run on the same agent before it counts as failed.
+
 ## 0.19.0 — 2026-11-23
 
 Reviews that follow the callers of what changed, weigh severity with proof both ways, and can be measured.
