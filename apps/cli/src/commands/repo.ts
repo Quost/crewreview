@@ -17,6 +17,7 @@ export interface RepoArgs {
   ci?: string;
   account?: string;
   paused?: string;
+  approve?: string;
 }
 
 const onOff = (v: string | undefined, current: boolean) => (v === undefined ? current : v === "on");
@@ -67,7 +68,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     check(c, "--polish", a.polish, ["on", "off"]) ??
     check(c, "--conflicts", a.conflicts, ["on", "off"]) ??
     check(c, "--ci", a.ci, ["on", "off"]) ??
-    check(c, "--paused", a.paused, ["on", "off"]);
+    check(c, "--paused", a.paused, ["on", "off"]) ??
+    check(c, "--approve", a.approve, ["on", "off", "default"]);
   if (bad) return (c.err(bad), 2);
   const repos = await loadRepos(file);
   const entries = (): RepoEntry[] => repos.map(({ ref: _ref, ...e }) => e);
@@ -165,6 +167,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       authors: (a.authors as RepoEntry["review"]["authors"]) ?? e.review.authors,
       commentLanguage: a.lang ?? e.review.commentLanguage,
       account,
+      // default: follow review.policy.allowApprove, the setting for every repository.
+      allowApprove: a.approve === undefined ? e.review.allowApprove : a.approve === "default" ? undefined : a.approve === "on",
     },
     attend: {
       ...e.attend,
