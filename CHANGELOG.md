@@ -9,6 +9,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
 - The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
 
+### Fixed
+
+- A lens whose answer came after a sentence with a brace in it, such as quoted code like `:if={@x != []}`, no longer fails with "parse" and loses its findings: the answer is found after the sentence.
+
 ## 0.14.2 — 2026-11-22
 
 Answers that report what they couldn't do and retry safely, and a website that says who makes it.
