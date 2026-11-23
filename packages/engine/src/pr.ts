@@ -36,7 +36,10 @@ export interface PrDeps {
   quota?: QuotaBook;
   /** Hands out seats when [roles] names a job (docs/plans/crew-mode.md). */
   seats?: SeatBook;
-  /** The skip each pull request was last reported with, so the activity says it once (the daemon keeps one). */
+  /**
+   * The skip each pull request was last reported with, and the harness problem each repository's attendant hit, so
+   * the activity says each once (the daemon keeps one).
+   */
   skipsSaid?: Map<string, string>;
 }
 
