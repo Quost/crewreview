@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.17.0 — 2026-11-23
+
+One Crewreview for the app and the terminal, and harnesses you can test again from the app.
+
 ### Added
 
 - The desktop app keeps the terminal's `crewreview` on its own version. On macOS and Linux, if the first `crewreview` on your PATH is a separate copy (the install script's, in `~/.local/bin`) or a link to an app that moved, the app replaces it with a link to the `crewreview` inside the app, so each app update reaches the terminal too. The activity log says when it does. A link from a package manager (Homebrew) is left alone, and nothing is created where there was nothing.
