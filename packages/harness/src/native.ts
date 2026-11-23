@@ -36,6 +36,11 @@ export interface NativeSpec {
   parseSignIn?(stdout: string): { loggedIn?: boolean; expiresAt?: string };
   /** Flags first, then how the prompt goes in. The prompt is never checked against the flag deny-list. */
   build(req: RunRequest, ctx: { executable: string; outputFile: string }): { flags: string[]; promptArg?: string; stdin?: string };
+  /**
+   * What a run needs besides its flags, such as a settings file the harness reads by name: made before the run,
+   * undone after it. Its flags go through the same deny-list as the rest.
+   */
+  prepare?(req: RunRequest): Promise<{ flags: string[]; cleanup(): Promise<void> }>;
   parser(): StreamParser;
 }
 
@@ -75,8 +80,9 @@ export function nativeHarness(spec: NativeSpec, options: NativeOptions = {}): Co
 
     command(req, ctx) {
       const b = spec.build(req, ctx);
-      assertSafeFlags(b.flags, req.access);
-      return { argv: [ctx.executable, ...b.flags, ...(b.promptArg === undefined ? [] : [b.promptArg])], stdin: b.stdin };
+      const flags = [...b.flags, ...(ctx.extraFlags ?? [])];
+      assertSafeFlags(flags, req.access);
+      return { argv: [ctx.executable, ...flags, ...(b.promptArg === undefined ? [] : [b.promptArg])], stdin: b.stdin };
     },
 
     async run(req): Promise<RunResult> {
@@ -93,10 +99,16 @@ export function nativeHarness(spec: NativeSpec, options: NativeOptions = {}): Co
       }
       const scratch = await mkdtemp(join(tmpdir(), "crewreview-out-"));
       const outputFile = join(scratch, "last-message.txt");
+      let prepared: { flags: string[]; cleanup(): Promise<void> } | undefined;
       try {
+        try {
+          prepared = await spec.prepare?.(req);
+        } catch (e) {
+          return { ok: false, text: "", exitCode: null, durationMs: 0, failure: "crash", error: `${spec.id}: couldn't prepare the run: ${e instanceof Error ? e.message : String(e)}` };
+        }
         let cmd: { argv: string[]; stdin?: string };
         try {
-          cmd = harness.command(req, { executable: det.path, outputFile });
+          cmd = harness.command(req, { executable: det.path, outputFile, extraFlags: prepared?.flags });
         } catch (e) {
           if (e instanceof ForbiddenFlagError) return { ok: false, text: "", exitCode: null, durationMs: 0, failure: "unsupported", error: e.message };
           throw e;
@@ -127,6 +139,7 @@ export function nativeHarness(spec: NativeSpec, options: NativeOptions = {}): Co
           error: ok ? undefined : (r.spawnError ?? parsed.error ?? (lastLines(r.stderr) || lastLines(r.stdout) || "empty answer")),
         };
       } finally {
+        await prepared?.cleanup().catch(() => {});
         await rm(scratch, { recursive: true, force: true });
       }
     },

@@ -79,5 +79,5 @@ export interface Harness {
 
 /** Native adapters also expose their command line, so tests can check it for forbidden flags. */
 export interface CommandHarness extends Harness {
-  command(request: RunRequest, ctx: { executable: string; outputFile: string }): { argv: string[]; stdin?: string };
+  command(request: RunRequest, ctx: { executable: string; outputFile: string; extraFlags?: string[] }): { argv: string[]; stdin?: string };
 }
