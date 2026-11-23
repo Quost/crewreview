@@ -26,13 +26,15 @@ export function mostSevere(list: readonly Severity[]): Severity | undefined {
   return best;
 }
 
-export type VerifierAction = "confirm" | "downgrade" | "drop" | "duplicate";
+export type VerifierAction = "confirm" | "downgrade" | "upgrade" | "drop" | "duplicate";
 
 export interface Verification {
   action: VerifierAction;
   reason: string;
-  /** Severity before a downgrade. */
+  /** Severity before a downgrade or an upgrade. */
   from?: Severity;
+  /** For an upgrade: the place (path:line) that shows the impact. */
+  evidence?: string;
   /** For a duplicate: the id of the finding it repeats. */
   of?: string;
 }

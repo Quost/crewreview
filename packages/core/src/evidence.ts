@@ -68,3 +68,13 @@ export function checkEvidence(findings: readonly Finding[], oracle: FileOracle):
   const hallucinated = phantom.size >= 2 && phantomRatio >= 0.5;
   return { kept: hallucinated ? [] : kept, dropped, phantomRatio, hallucinated };
 }
+
+/**
+ * Findings on files the same lens said it couldn't review. Its own answer says it didn't read them, so it can't make
+ * claims about them: they're left out, whatever their confidence.
+ */
+export function unreadFindings(findings: readonly Finding[], uncovered: readonly string[]): { kept: Finding[]; dropped: number } {
+  const unread = new Set(uncovered.map((p) => normalizeRepoPath(p) ?? p));
+  const kept = findings.filter((f) => !unread.has(f.path));
+  return { kept, dropped: findings.length - kept.length };
+}

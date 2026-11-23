@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeRepoPath, type FileOracle } from "./evidence.ts";
 import { CONFIDENCES, lessSevere, SEVERITIES, type Confidence, type Finding, type Severity } from "./model.ts";
 
 const SEVERITY_ALIASES: Record<string, Severity> = {
@@ -58,10 +59,12 @@ export function parseLensOutput(value: unknown): LensOutput | undefined {
 
 const Decision = z.object({
   id: z.string().min(1),
-  action: z.enum(["confirm", "downgrade", "drop", "duplicate"]),
+  action: z.enum(["confirm", "downgrade", "upgrade", "drop", "duplicate"]),
   severity: z.unknown().transform(coerceSeverity).optional(),
   /** For "duplicate": the id of the finding this one repeats. */
   of: z.string().optional().catch(undefined),
+  /** For "upgrade": where (path:line) the code shows the impact. */
+  evidence: z.string().optional().catch(undefined),
   reason: z.string().default(""),
 });
 export type VerifierDecision = z.infer<typeof Decision>;
@@ -78,12 +81,36 @@ export function parseVerifierOutput(value: unknown): VerifierDecision[] | undefi
   return out;
 }
 
+export interface VerifierRules {
+  /** Accept upgrades at all. */
+  raise: boolean;
+  /** The highest severity an upgrade can reach: a blocker has to come from a lens. */
+  raiseTo: Severity;
+  /** Checks an upgrade's evidence points at a real line of the reviewed tree. */
+  oracle?: FileOracle;
+}
+
+const RAISE: VerifierRules = { raise: false, raiseTo: "major" };
+
+/** "lib/a.ex:120" (or "lib/a.ex:120-130") pointing at a real line, when an oracle can tell. */
+function placeExists(evidence: string | undefined, oracle: FileOracle | undefined): boolean {
+  const m = /^\s*`?([^\s`:]+):(\d+)(?:-\d+)?`?\s*$/.exec(evidence ?? "");
+  if (!m) return false;
+  if (!oracle) return true;
+  const path = normalizeRepoPath(m[1]!);
+  const lines = path ? oracle.lineCount(path) : null;
+  return lines !== null && Number(m[2]) >= 1 && Number(m[2]) <= lines;
+}
+
 /**
  * Apply the verifier's decisions. It may confirm, downgrade, drop, or mark a finding as a duplicate of another (its
- * lenses move to the one that stays); it can never raise a severity. A finding the verifier skipped stays as it was,
- * without a verification mark.
+ * lenses move to the one that stays). When the rules allow, it may also raise a severity, but only with a reason and
+ * a real place (path:line) that shows the impact, and never past `raiseTo`; an upgrade without them stays a confirm.
+ * With the same rules, a downgrade needs a real place too (what makes the impact smaller), or it stays a confirm: in
+ * calibration the verifier lowered the very risks the lenses had found right, with nothing to show for it.
+ * A finding the verifier skipped stays as it was, without a verification mark.
  */
-export function applyVerifier(findings: readonly Finding[], decisions: readonly VerifierDecision[]): {
+export function applyVerifier(findings: readonly Finding[], decisions: readonly VerifierDecision[], rules: VerifierRules = RAISE): {
   kept: Finding[];
   dropped: Finding[];
 } {
@@ -123,9 +150,17 @@ export function applyVerifier(findings: readonly Finding[], decisions: readonly 
       dropped.push({ ...f, verification: { action: "drop", reason: d.reason } });
       continue;
     }
-    if (d.action === "downgrade" && d.severity && lessSevere(d.severity, f.severity)) {
+    // Lowering needs proof as much as raising: a guard, a caller that handles it, a path that never runs.
+    if (d.action === "downgrade" && d.severity && lessSevere(d.severity, f.severity) && (!rules.raise || placeExists(d.evidence, rules.oracle))) {
       kept.push({ ...f, severity: d.severity, verification: { action: "downgrade", reason: d.reason, from: f.severity } });
       continue;
+    }
+    if (d.action === "upgrade" && rules.raise && d.severity && d.reason.trim() && placeExists(d.evidence, rules.oracle)) {
+      const to = lessSevere(rules.raiseTo, d.severity) ? rules.raiseTo : d.severity;
+      if (lessSevere(f.severity, to)) {
+        kept.push({ ...f, severity: to, verification: { action: "upgrade", reason: d.reason, from: f.severity, evidence: d.evidence!.trim() } });
+        continue;
+      }
     }
     kept.push({ ...f, verification: { action: "confirm", reason: d.reason } });
   }

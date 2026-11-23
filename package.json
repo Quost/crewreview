@@ -19,7 +19,8 @@
     "build:all": "bun scripts/build.ts --all",
     "site": "bun scripts/build-site.ts",
     "site:indexnow": "bun scripts/indexnow.ts",
-    "check:versions": "bun scripts/check-versions.ts"
+    "check:versions": "bun scripts/check-versions.ts",
+    "eval": "bun apps/cli/src/main.ts eval"
   },
   "devDependencies": {
     "@types/bun": "1.4.5",

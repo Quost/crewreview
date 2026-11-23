@@ -115,3 +115,19 @@ export async function exportTree(root: string, commit: string, dest: string): Pr
     await rm(tmp, { recursive: true, force: true });
   }
 }
+
+/** Where `name` appears as a whole word in the tree at `ref`: path, line and text, at most `max` (plus whether there were more). */
+export async function grepWord(root: string, ref: string, name: string, max: number): Promise<{ hits: { path: string; line: number; text: string }[]; more: boolean }> {
+  const r = await git(["grep", "-n", "-I", "-w", "-F", "-e", name, ref, "--"], root);
+  if (r.code !== 0) return { hits: [], more: false };
+  const hits: { path: string; line: number; text: string }[] = [];
+  const lines = r.stdout.split("\n").filter(Boolean);
+  for (const l of lines) {
+    // "<ref>:<path>:<line>:<text>"
+    const m = /^[^:]+:(.+?):(\d+):(.*)$/.exec(l);
+    if (!m) continue;
+    hits.push({ path: m[1]!, line: Number(m[2]), text: m[3]! });
+    if (hits.length >= max) break;
+  }
+  return { hits, more: lines.length > hits.length };
+}

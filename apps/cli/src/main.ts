@@ -6,6 +6,7 @@ import { createTranslator, detectLocale, type Translator } from "@crewreview/i18
 import pkg from "../../../package.json";
 import { attendOne } from "./commands/attend.ts";
 import { doctor } from "./commands/doctor.ts";
+import { evaluate } from "./commands/evaluate.ts";
 import { mcp, mcpSetup } from "./commands/mcp.ts";
 import { inbox } from "./commands/inbox.ts";
 import { local } from "./commands/local.ts";
@@ -46,6 +47,7 @@ function help(t: Translator): string {
     row("ui", t.t("cli.cmd.ui")),
     row("service [install|uninstall]", t.t("cli.cmd.service")),
     row("update [--check]", t.t("cli.cmd.update")),
+    row("eval [dir] [--case <ids>]", t.t("cli.cmd.eval")),
     row("mcp [setup]", t.t("cli.cmd.mcp")),
     row("doctor", t.t("cli.cmd.doctor")),
     row("version", t.t("cli.cmd.version")),
@@ -132,6 +134,7 @@ async function main(argv: string[]): Promise<number> {
       retry: { type: "boolean", default: false },
       check: { type: "boolean", default: false },
       channel: { type: "string" },
+      case: { type: "string" },
       open: { type: "boolean", default: false },
       port: { type: "string" },
       // Used by the desktop app, not listed in help.
@@ -190,6 +193,8 @@ async function main(argv: string[]): Promise<number> {
         return await attendOne(c, rest[0], rest[1], { post: v.post, dryRun: v["dry-run"], retry: v.retry });
       case "mcp":
         return rest[0] === "setup" ? mcpSetup(c) : await mcp(c);
+      case "eval":
+        return await evaluate(c, rest[0], v.case);
       case "service":
         return await service(c, rest[0]);
       case "update":

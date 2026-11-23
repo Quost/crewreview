@@ -170,8 +170,10 @@ export const ConfigSchema = z
         /** Wait for running CI up to this long. */
         ciMaxWait: Duration.default(DEFAULT_RULES.ciMaxWaitMs),
         maxFailures: z.number().int().min(1).default(DEFAULT_RULES.maxFailures),
-        lenses: z.array(z.string()).default(["correctness", "security", "architecture", "tests", "ui"]),
+        lenses: z.array(z.string()).default(["correctness", "contracts", "security", "architecture", "tests", "ui"]),
         verifier: z.boolean().default(true),
+        /** The verifier may raise a severity, with a real place that shows the impact, up to major. */
+        verifierRaise: z.boolean().default(true),
         /** Language the agents write findings in. Unset: the interface language. */
         commentLanguage: z.string().optional(),
         policy: z

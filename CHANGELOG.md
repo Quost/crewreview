@@ -4,6 +4,20 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- A contracts lens, on by default: for each function a change defines or modifies, Crewreview lists where else it's used (`ctx/callers.md`, found with git, not left to the model to remember), and the lens checks that each caller handles what the function now returns, raises, leaves behind or how long it blocks. Every lens now counts a caller the change didn't touch, but that breaks because of it, as a problem the change introduces. Before, a new error or state that an untouched caller mishandled was out of every lens's scope.
+- `crewreview eval` (and `bun run eval`) reviews calibration cases, real pull requests pinned to the commits that were reviewed, and scores what a good review must find, at what severity, and what it must not claim. It reports recall, findings said too softly, false positives and how many small findings each review posts. Cases describe your code, so they live in your config folder (`eval/`, files ending in `.case.json`), and so do the results; only the scoring is part of Crewreview.
+
+### Changed
+
+- The verifier can raise a severity, not only lower it, when the code shows the harm: data lost, a person or a request left waiting, a failure that looks like success. It has to name the place (path:line), Crewreview checks that line exists in the reviewed code, and it can raise up to major (a blocker still has to come from a lens). Lowering works the same way now: it needs the place that limits the harm (a guard, a caller that handles it), or the severity stays. In calibration the verifier had lowered the very risks the lenses got right. The post says when a finding was raised and where to look. Turn it off with `review.verifierRaise = false`. In calibration, most real risks the reviews saw went out as minor or nit.
+- The verifier checks a finding's conclusion, not only that the code is there: a finding whose mechanism or effect is wrong is dropped or corrected, and one that admits it didn't check something it depends on is checked or dropped.
+
+### Fixed
+
+- A lens no longer posts findings about a file it says it couldn't review: those are left out by Crewreview itself, not left to the model.
+
 ## 0.18.0 — 2026-11-23
 
 The attendant answers what reviewers pointed out in protected files, and tells you what it left for you.
