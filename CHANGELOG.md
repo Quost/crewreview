@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.19.0 — 2026-11-23
+
+Reviews that follow the callers of what changed, weigh severity with proof both ways, and can be measured.
+
 ### Added
 
 - A contracts lens, on by default: for each function a change defines or modifies, Crewreview lists where else it's used (`ctx/callers.md`, found with git, not left to the model to remember), and the lens checks that each caller handles what the function now returns, raises, leaves behind or how long it blocks. Every lens now counts a caller the change didn't touch, but that breaks because of it, as a problem the change introduces. Before, a new error or state that an untouched caller mishandled was out of every lens's scope.
