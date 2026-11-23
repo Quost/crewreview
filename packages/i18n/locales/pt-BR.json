@@ -753,5 +753,6 @@
   "eval.falsePositives": "afirmou o que não devia: {list}",
   "eval.summary": "{cases} casos · recall {recall} · subestimados {underrated} · falsos positivos {falsePositives} · {findings} achados por review, {small} menores ou detalhes · prompt v{prompt}",
   "eval.saved": "Resultados: {path}",
-  "eval.underrated": "dito com severidade baixa demais: {list}"
+  "eval.underrated": "dito com severidade baixa demais: {list}",
+  "post.upgraded": "elevado de {from} pelo verificador, veja {place}"
 }

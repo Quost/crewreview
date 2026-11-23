@@ -737,5 +737,6 @@
   "eval.falsePositives": "错误断言：{list}",
   "eval.summary": "{cases} 个用例 · 召回率 {recall} · 低估 {underrated} · 误报 {falsePositives} · 每次审查 {findings} 个发现，其中次要或细节 {small} 个 · 提示词 v{prompt}",
   "eval.saved": "结果：{path}",
-  "eval.underrated": "严重程度过低：{list}"
+  "eval.underrated": "严重程度过低：{list}",
+  "post.upgraded": "验证器从 {from} 上调，见 {place}"
 }

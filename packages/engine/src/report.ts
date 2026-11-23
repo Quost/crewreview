@@ -54,6 +54,9 @@ function findingBlock(f: Finding, t: Translator, st: Style): string[] {
   if (f.verification?.action === "downgrade" && f.verification.from) {
     out.push(st.dim(`      ↓ ${t.t(`severity.${f.verification.from}`)} → ${t.t(`severity.${f.severity}`)}: ${f.verification.reason}`));
   }
+  if (f.verification?.action === "upgrade" && f.verification.from) {
+    out.push(st.dim(`      ↑ ${t.t(`severity.${f.verification.from}`)} → ${t.t(`severity.${f.severity}`)} (${f.verification.evidence ?? ""}): ${f.verification.reason}`));
+  }
   return out;
 }
 

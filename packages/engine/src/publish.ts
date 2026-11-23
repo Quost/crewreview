@@ -13,6 +13,7 @@ function findingBody(f: Finding, t: Translator, version: string, headSha: string
   const meta = [t.t(`confidence.${f.confidence}`)];
   if (f.verification?.action === "confirm") meta.push(t.t("post.verified"));
   if (f.verification?.action === "downgrade" && f.verification.from) meta.push(t.t("post.downgraded", { from: t.t(`severity.${f.verification.from}`) }));
+  if (f.verification?.action === "upgrade" && f.verification.from) meta.push(t.t("post.upgraded", { from: t.t(`severity.${f.verification.from}`), place: f.verification.evidence ?? "" }));
   lines.push("", `<sub>Crewreview · ${meta.join(" · ")}</sub>`, makeMarker({ kind: "finding", ref: `${f.id}@${headSha.slice(0, 12)}`, version }));
   return lines.join("\n");
 }

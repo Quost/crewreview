@@ -753,5 +753,6 @@
   "eval.falsePositives": "behauptet, was es nicht sollte: {list}",
   "eval.summary": "{cases} Fälle · Recall {recall} · unterschätzt {underrated} · Fehlalarme {falsePositives} · {findings} Befunde pro Review, {small} klein oder Detail · Prompt v{prompt}",
   "eval.saved": "Ergebnisse: {path}",
-  "eval.underrated": "zu schwach eingestuft: {list}"
+  "eval.underrated": "zu schwach eingestuft: {list}",
+  "post.upgraded": "vom Prüfer von {from} hochgestuft, siehe {place}"
 }

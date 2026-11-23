@@ -3,6 +3,7 @@ import { cpus } from "node:os";
 import { join } from "node:path";
 import {
   applyVerifier,
+  unreadFindings,
   checkEvidence,
   decideVerdict,
   dedupeAgainstThreads,
@@ -95,6 +96,8 @@ export interface VerifierSummary {
   ok?: boolean;
   dropped: Finding[];
   downgraded: number;
+  /** Raised with a place that shows the impact. */
+  upgraded?: number;
   error?: string;
   durationMs?: number;
   usage?: Usage;
@@ -123,6 +126,8 @@ export interface ReviewReport {
   lenses: LensResult[];
   findings: Finding[];
   droppedByEvidence: number;
+  /** Findings on files their own lens said it couldn't review. */
+  droppedUnread?: number;
   /** Findings left out because the existing discussion already covers them (they still count in the verdict). */
   coveredByThreads: number;
   repeated: Finding[];
@@ -183,6 +188,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   const routed = (c: SeatChoice, routedHere: boolean) => (routedHere ? { seat: c.seat, ...(c.model ? { model: c.model } : {}) } : {});
 
   let droppedByEvidence = 0;
+  let droppedUnread = 0;
   // What each agent answered, kept beside the report so a bad review can be looked into afterwards.
   const transcripts = new Map<string, string>();
   const settled = await mapLimit(lenses, concurrency, async (lens): Promise<LensResult> => {
@@ -219,12 +225,15 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     droppedByEvidence += ev.dropped.length;
     // A file the lens never got the diff of isn't a gap in its review.
     const uncovered = parsed.uncovered.filter((p) => !leftOut.has(normalizeRepoPath(p) ?? p));
+    // A lens can't speak for a file it says it didn't review: decided here, not left to the model.
+    const unread = unreadFindings(ev.kept, parsed.uncovered);
+    droppedUnread += unread.dropped;
     const coverage = parsed.coverage === "partial" && parsed.uncovered.length > 0 && uncovered.length === 0 ? "full" : parsed.coverage;
     return {
       lens: lens.id,
       harness: c.harness.id,
       status: ev.hallucinated ? "hallucinated" : "ok",
-      findings: ev.kept,
+      findings: unread.kept,
       coverage,
       uncovered,
       durationMs: r.durationMs,
@@ -278,11 +287,13 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     verifier.durationMs = r.durationMs;
     const decisions = r.ok ? parseVerifierOutput(extractJson(r.text)) : undefined;
     if (decisions) {
-      const applied = applyVerifier(findings, decisions);
+      // It may raise a severity only with a real place that shows the impact, and never to a blocker.
+      const applied = applyVerifier(findings, decisions, { raise: o.config.review.verifierRaise, raiseTo: "major", oracle });
       verifier.ran = true;
       verifier.ok = true;
       verifier.dropped = applied.dropped;
       verifier.downgraded = applied.kept.filter((f) => f.verification?.action === "downgrade").length;
+      verifier.upgraded = applied.kept.filter((f) => f.verification?.action === "upgrade").length;
       findings = applied.kept;
     } else {
       verifier.ok = false;
@@ -333,6 +344,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     lenses: results,
     findings,
     droppedByEvidence,
+    droppedUnread,
     coveredByThreads: repeated.length,
     repeated,
     delta: o.deltaFrom,

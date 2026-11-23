@@ -753,5 +753,6 @@
   "eval.falsePositives": "claimed what it must not: {list}",
   "eval.summary": "{cases} cases · recall {recall} · underrated {underrated} · false positives {falsePositives} · {findings} findings per review, {small} minor or nit · prompt v{prompt}",
   "eval.saved": "Results: {path}",
-  "eval.underrated": "said too softly: {list}"
+  "eval.underrated": "said too softly: {list}",
+  "post.upgraded": "raised from {from} by the verifier, see {place}"
 }
