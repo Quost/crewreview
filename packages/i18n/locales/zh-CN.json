@@ -717,5 +717,14 @@
   "doctor.conformanceBehind": "未测试 harness：此终端运行的是 Crewreview {version}，而服务运行的是 {service}，并会使用这些结果。请更新此副本（crewreview update）或在应用中测试（Harness 与限制，测试写入）。",
   "cli.linked": "终端的 crewreview（{path}）现在跟随应用：它替换了一个独立副本，版本 {version}。一次更新即可覆盖两者。",
   "cli.relinked": "终端的 crewreview（{path}）重新指向应用。",
-  "web.setup.proveWrite": "测试写入"
+  "web.setup.proveWrite": "测试写入",
+  "attend.left": "留给你：{items}。",
+  "attend.leftKind.thread": "一个讨论",
+  "attend.leftKind.review": "一个审查",
+  "attend.leftKind.comment": "一条评论",
+  "attend.leftKind.conflict": "与基础分支的冲突",
+  "attend.leftKind.ci": "失败的 CI",
+  "web.repos.protected": "评审者评论过的受保护文件，无需等待",
+  "web.repos.protectedHint": "当评审者评论了受保护文件（CI、部署、AGENTS.md、CLAUDE.md）时，助手可以修改它们以完成评论的要求。关闭：该修改需等待你批准，即使在自动模式下。开启：像其他修复一样直接发出。机密文件永不修改。",
+  "cli.opt.protected": "approve：对评审者评论过的受保护文件（CI、AGENTS.md…）的修改需等你批准；auto：像其他修复一样发出"
 }

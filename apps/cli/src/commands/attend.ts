@@ -1,4 +1,5 @@
 import { attendPullRequest, connect, type AttendOutcome, type AttendPayload } from "@crewreview/engine";
+import type { LeftItem } from "@crewreview/core";
 import { HostError } from "@crewreview/hosts";
 import { pickErrorText, type Ctx } from "../ctx.ts";
 import { findRepo, noTokenText } from "./repo.ts";
@@ -20,7 +21,7 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
               : t.t("attend.notYours", { repo, number }),
       );
     case "pending": {
-      const line = t.t("attend.pending", { repo, number, id: `f${o.attendId}`, fixed: o.fixed, replies: o.replies });
+      const line = t.t("attend.pending", { repo, number, id: `f${o.attendId}`, fixed: o.fixed, replies: o.replies }) + leftText(t, o.left);
       return o.forced ? `${line}\n${st.yellow(t.t(`attend.forced.${o.forced}`))}` : line;
     }
     case "done": {
@@ -33,7 +34,7 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
       ];
       if (o.commit) parts.push(t.t("attend.pushed", { sha: o.commit.slice(0, 7) }));
       if (o.reReview) parts.push(t.t("attend.reReview"));
-      if (o.needsHuman) parts.push(st.yellow(t.tp("attend.needsHuman", o.needsHuman)));
+      if (o.needsHuman) parts.push(st.yellow(t.tp("attend.needsHuman", o.needsHuman) + leftText(t, o.left)));
       if (o.unresolved) parts.push(st.yellow(t.tp("attend.unresolved", o.unresolved, { error: o.resolveError ?? "" })));
       return parts.join(" ");
     }
@@ -46,6 +47,21 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
     case "dry-run":
       return "";
   }
+}
+
+const LEFT_KIND = {
+  thread: "attend.leftKind.thread",
+  review: "attend.leftKind.review",
+  comment: "attend.leftKind.comment",
+  conflict: "attend.leftKind.conflict",
+  ci: "attend.leftKind.ci",
+} as const;
+
+/** " Left for you: AGENTS.md:44, @bia." Which items the attendant left for you. */
+function leftText(t: Ctx["t"], left: LeftItem[] | undefined): string {
+  if (!left?.length) return "";
+  const where = left.map((x) => (x.path ? `${x.path}${x.line ? `:${x.line}` : ""}` : x.author ? `@${x.author}` : t.t(LEFT_KIND[x.kind as keyof typeof LEFT_KIND] ?? "attend.leftKind.thread")));
+  return ` ${t.t("attend.left", { items: where.join(", ") })}`;
 }
 
 export function renderPayload(c: Ctx, p: AttendPayload): string {

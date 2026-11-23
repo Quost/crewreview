@@ -733,5 +733,14 @@
   "doctor.conformanceBehind": "Os harnesses não foram testados: este terminal roda o Crewreview {version}, mas o serviço roda o {service} e usaria estes resultados. Atualize esta cópia (crewreview update) ou teste pelo app (Harnesses e limites, Provar a escrita).",
   "cli.linked": "O crewreview do terminal ({path}) agora segue o app: substituiu uma cópia separada, versão {version}. Uma atualização cobre os dois.",
   "cli.relinked": "O crewreview do terminal ({path}) voltou a apontar para o app.",
-  "web.setup.proveWrite": "Provar a escrita"
+  "web.setup.proveWrite": "Provar a escrita",
+  "attend.left": "Ficou com você: {items}.",
+  "attend.leftKind.thread": "uma thread",
+  "attend.leftKind.review": "uma revisão",
+  "attend.leftKind.comment": "um comentário",
+  "attend.leftKind.conflict": "o conflito com a base",
+  "attend.leftKind.ci": "o CI vermelho",
+  "web.repos.protected": "Arquivos protegidos comentados, sem esperar",
+  "web.repos.protectedHint": "O atendente pode mudar arquivos protegidos (CI, deploy, AGENTS.md, CLAUDE.md) quando um revisor comentou neles, para fazer o que o comentário pede. Desligado: essa mudança espera sua aprovação, mesmo no modo automático. Ligado: sai como qualquer correção. Segredos nunca mudam.",
+  "cli.opt.protected": "approve: mudanças em arquivos protegidos comentados por um revisor (CI, AGENTS.md…) esperam por você; auto: saem como qualquer correção"
 }

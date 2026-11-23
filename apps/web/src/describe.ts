@@ -43,10 +43,11 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
         const text = o.synced
           ? t.t(o.synced.why === "restack" ? "attend.restacked" : "attend.synced", { ...ref(e), base: o.synced.base, parent: o.synced.parent })
           : t.t("attend.done", { ...ref(e), replies: o.replies, resolved: o.resolved });
-        if (!o.unresolved) return { text, tone: "ok" };
-        return { text: `${text} ${t.tp("attend.unresolved", o.unresolved, { error: String(o.resolveError ?? "").slice(0, 200) })}`, tone: "warn" };
+        const left = leftText(t, o.left);
+        if (!o.unresolved) return { text: `${text}${left}`, tone: left ? "warn" : "ok" };
+        return { text: `${text} ${t.tp("attend.unresolved", o.unresolved, { error: String(o.resolveError ?? "").slice(0, 200) })}${left}`, tone: "warn" };
       }
-      if (o.kind === "pending") return { text: t.t("web.log.answerWaiting", { ...ref(e), fixed: o.fixed, replies: o.replies }), tone: "warn" };
+      if (o.kind === "pending") return { text: `${t.t("web.log.answerWaiting", { ...ref(e), fixed: o.fixed, replies: o.replies })}${leftText(t, o.left)}`, tone: "warn" };
       if (o.kind === "waiting") return { text: o.reason === "fork" ? t.t("attend.fork", ref(e)) : o.reason === "busy" ? t.t("attend.busy", ref(e)) : t.t("attend.settling", ref(e)), tone: "neutral" };
       if (o.kind === "stale") return { text: t.t("attend.stale", { id: `f${o.attendId}` }), tone: "warn" };
       if (o.kind === "harness") return harnessLine(t, e, o.error);
@@ -61,6 +62,21 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
     default:
       return { text: JSON.stringify(e), tone: "neutral" };
   }
+}
+
+const LEFT_KIND = {
+  thread: "attend.leftKind.thread",
+  review: "attend.leftKind.review",
+  comment: "attend.leftKind.comment",
+  conflict: "attend.leftKind.conflict",
+  ci: "attend.leftKind.ci",
+} as const;
+
+/** " Left for you: AGENTS.md:44, @bia." The items the attendant left for you, so you know which threads to open. */
+export function leftText(t: Translator, left: { kind: string; path?: string; line?: number; author?: string }[] | undefined): string {
+  if (!left?.length) return "";
+  const where = left.map((x) => (x.path ? `${x.path}${x.line ? `:${x.line}` : ""}` : x.author ? `@${x.author}` : t.t(LEFT_KIND[x.kind as keyof typeof LEFT_KIND] ?? "attend.leftKind.thread")));
+  return ` ${t.t("attend.left", { items: where.join(", ") })}`;
 }
 
 /** Why no harness could take the job, and what to do about it: each problem has its own way out. */

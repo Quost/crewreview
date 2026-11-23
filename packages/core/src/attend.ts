@@ -173,6 +173,27 @@ export function sensitivePaths(paths: readonly string[]): string[] {
   return paths.filter((p) => SENSITIVE.some((re) => re.test(p)));
 }
 
+/** Secrets and the crew's own folder: never changed by the attendant, whatever a comment asks. */
+const NEVER = [/(^|\/)\.env(\..*)?$/, /(^|\/)(id_rsa|id_ed25519)/, /\.(pem|key|p12|pfx)$/, /^\.crewreview\//];
+
+/**
+ * Protected files (CI, deployment, the agents' rules) a reviewer commented on. The attendant may change those to do
+ * what that comment asks: a point raised in review deserves an answer in code. Secrets never.
+ */
+export function protectedFilesToEdit(items: readonly AttendItem[]): string[] {
+  const paths = items.filter((i) => i.kind === "thread" && i.path).map((i) => i.path!);
+  return [...new Set(sensitivePaths(paths).filter((p) => !NEVER.some((re) => re.test(p))))];
+}
+
+/**
+ * The protected files among those changed that make an automatic answer wait for you. With `auto`, the ones a
+ * reviewer commented on go out like any other fix; anything else protected still waits.
+ */
+export function heldPaths(changed: readonly string[], commented: readonly string[], mode: "approve" | "auto"): string[] {
+  const sensitive = sensitivePaths(changed);
+  return mode === "auto" ? sensitive.filter((p) => !commented.includes(p)) : sensitive;
+}
+
 export const ATTEND_ACTIONS = ["fixed", "replied", "declined", "needs-human"] as const;
 export type AttendAction = (typeof ATTEND_ACTIONS)[number];
 
@@ -196,4 +217,20 @@ export function parseAttendOutput(value: unknown, items: readonly AttendItem[]):
   const decisions = items.map((it) => byKey.get(it.key) ?? { key: it.key, action: "needs-human" as const, reply: "" });
   const summary = typeof (value as Record<string, unknown>).summary === "string" ? String((value as Record<string, unknown>).summary).slice(0, 300) : "";
   return { decisions, summary };
+}
+
+/** Where an item left for you is, enough to find it on the pull request. */
+export interface LeftItem {
+  kind: ItemKind;
+  path?: string;
+  line?: number;
+  author?: string;
+}
+
+/** The items the attendant left for you, in the order they came, so the activity can say which ones. */
+export function leftForOwner(items: readonly AttendItem[], decisions: readonly AttendDecision[]): LeftItem[] {
+  const human = new Set(decisions.filter((d) => d.action === "needs-human").map((d) => d.key));
+  return items
+    .filter((i) => human.has(i.key))
+    .map((i) => ({ kind: i.kind, ...(i.path ? { path: i.path } : {}), ...(i.line ? { line: i.line } : {}), ...(i.author ? { author: i.author } : {}) }));
 }

@@ -733,5 +733,14 @@
   "doctor.conformanceBehind": "Harnesses nicht getestet: Dieses Terminal nutzt Crewreview {version}, der Dienst aber {service}, und er würde diese Ergebnisse verwenden. Aktualisiere diese Kopie (crewreview update) oder teste in der App (Harnesses & Limits, Schreiben testen).",
   "cli.linked": "Das crewreview des Terminals ({path}) folgt jetzt der App: Es ersetzt eine eigene Kopie, Version {version}. Ein Update deckt beide ab.",
   "cli.relinked": "Das crewreview des Terminals ({path}) zeigt wieder auf die App.",
-  "web.setup.proveWrite": "Schreiben testen"
+  "web.setup.proveWrite": "Schreiben testen",
+  "attend.left": "Bleibt bei dir: {items}.",
+  "attend.leftKind.thread": "ein Thread",
+  "attend.leftKind.review": "ein Review",
+  "attend.leftKind.comment": "ein Kommentar",
+  "attend.leftKind.conflict": "der Konflikt mit der Basis",
+  "attend.leftKind.ci": "das rote CI",
+  "web.repos.protected": "Kommentierte geschützte Dateien, ohne Warten",
+  "web.repos.protectedHint": "Der Assistent darf geschützte Dateien (CI, Deployment, AGENTS.md, CLAUDE.md) ändern, wenn ein Reviewer sie kommentiert hat, um zu tun, was der Kommentar verlangt. Aus: Diese Änderung wartet auf deine Freigabe, auch im Auto-Modus. An: Sie geht raus wie jede Korrektur. Geheimnisse ändern sich nie.",
+  "cli.opt.protected": "approve: Änderungen an kommentierten geschützten Dateien (CI, AGENTS.md…) warten auf dich; auto: sie gehen raus wie jede Korrektur"
 }

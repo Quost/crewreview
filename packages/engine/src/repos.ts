@@ -49,6 +49,11 @@ const AttendSettings = z
     conflicts: z.boolean().default(false),
     /** Also fix what turned CI red on your pull request, from the failing jobs' logs. */
     ci: z.boolean().default(false),
+    /**
+     * Protected files (CI, deployment, AGENTS.md…) a reviewer commented on may be changed to answer that comment.
+     * approve: that change waits for you, even in auto mode. auto: it goes out like any fix. Secrets never change.
+     */
+    protectedFiles: z.enum(["approve", "auto"]).default("approve"),
     /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
     validate: z.array(z.string()).default([]),
     harness: z.string().optional(),

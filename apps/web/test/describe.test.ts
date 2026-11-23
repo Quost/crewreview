@@ -1,6 +1,6 @@
 import { describe as group, expect, test } from "bun:test";
 import { createTranslator } from "@crewreview/i18n";
-import { describe, describeEntry, foldQuiet } from "../src/describe.ts";
+import { describe, describeEntry, foldQuiet, leftText } from "../src/describe.ts";
 
 const t = createTranslator("en");
 const cycle = (at: number, extra: Record<string, unknown> = {}) => ({ at, event: { type: "cycle", repos: 8, reviewed: 0, waiting: 0, ...extra } });
@@ -34,5 +34,14 @@ group("activity log", () => {
     expect(line({ error: "write-escapes", name: "kiro" })).toBe(`acme-shop#616: ${t.t("error.writeEscapes", { name: "kiro" })}`);
     expect(line({ error: "no-harness" })).toBe(`acme-shop#616: ${t.t("error.noHarness")}`);
     expect(line({ error: "not-read-only", name: "x" })).toBe(`acme-shop#616: ${t.t("error.harnessNotReadOnly", { name: "x" })}`);
+  });
+});
+
+group("items left for you", () => {
+  test("an answer says which threads it left for you, with file and line", () => {
+    const done = describe(t, { type: "attend-outcome", repo: "health", number: 630, outcome: { kind: "done", attendId: 1, replies: 2, resolved: 2, unresolved: 0, reReview: true, needsHuman: 2, left: [{ kind: "thread", path: "AGENTS.md", line: 44 }, { kind: "conflict" }] } });
+    expect(done.text).toContain("Left for you: AGENTS.md:44, the conflict with the base.");
+    expect(done.tone).toBe("warn");
+    expect(leftText(t, undefined)).toBe("");
   });
 });

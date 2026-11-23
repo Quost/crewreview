@@ -733,5 +733,14 @@
   "doctor.conformanceBehind": "No se probaron los harnesses: esta terminal ejecuta Crewreview {version}, pero el servicio ejecuta {service} y usaría estos resultados. Actualiza esta copia (crewreview update) o prueba desde la app (Harnesses y límites, Probar la escritura).",
   "cli.linked": "El crewreview de la terminal ({path}) ahora sigue a la app: reemplazó una copia aparte, versión {version}. Una actualización cubre las dos.",
   "cli.relinked": "El crewreview de la terminal ({path}) vuelve a apuntar a la app.",
-  "web.setup.proveWrite": "Probar la escritura"
+  "web.setup.proveWrite": "Probar la escritura",
+  "attend.left": "Quedó para ti: {items}.",
+  "attend.leftKind.thread": "un hilo",
+  "attend.leftKind.review": "una revisión",
+  "attend.leftKind.comment": "un comentario",
+  "attend.leftKind.conflict": "el conflicto con la base",
+  "attend.leftKind.ci": "el CI en rojo",
+  "web.repos.protected": "Archivos protegidos comentados, sin esperar",
+  "web.repos.protectedHint": "El asistente puede cambiar archivos protegidos (CI, despliegue, AGENTS.md, CLAUDE.md) cuando un revisor los comentó, para hacer lo que pide el comentario. Apagado: ese cambio espera tu aprobación, incluso en modo automático. Encendido: sale como cualquier corrección. Los secretos nunca cambian.",
+  "cli.opt.protected": "approve: los cambios en archivos protegidos comentados por un revisor (CI, AGENTS.md…) te esperan; auto: salen como cualquier corrección"
 }
