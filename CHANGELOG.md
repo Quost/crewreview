@@ -9,6 +9,11 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
 - The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
 
+### Security
+
+- Kiro no longer gets `--trust-tools=fs_write` when it edits files: that trusted writes on every path, outside its folder too, and Kiro failed the write test. Each write run now gets a Kiro agent, made for that run and removed after it, that writes without asking only inside its folder; anything else needs an approval nobody can give, so it's denied. Kiro passes the write test again (`crewreview doctor --conformance`).
+- In read mode, `--agent` is refused like the other flags that could widen what a harness may do.
+
 ## 0.14.2 — 2026-11-22
 
 Answers that report what they couldn't do and retry safely, and a website that says who makes it.

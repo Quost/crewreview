@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { chmod, mkdir, mkdtemp, readdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ACP_PRESETS, buildRegistry as registryOf } from "../src/index.ts";
 import {
   assertSafeFlags,
@@ -47,7 +50,10 @@ describe("command lines", () => {
   test("write mode opens edits but never the dangerous switches", () => {
     expect(claudeHarness().command(req("write"), ctx).argv).toContain("acceptEdits");
     expect(codexHarness().command(req("write"), ctx).argv.join(" ")).toContain("-s workspace-write");
-    expect(kiroHarness().command(req("write"), ctx).argv).toContain("--trust-tools=fs_read,fs_write,grep,glob");
+    // Kiro's writes are never trusted by flag: that would trust them on every path. Its write agent allows the folder.
+    const kiro = kiroHarness().command(req("write"), ctx).argv.join(" ");
+    expect(kiro).toContain("--trust-tools=fs_read,grep,glob");
+    expect(kiro).not.toContain("fs_write");
   });
 
   test("deny-list", () => {
@@ -58,6 +64,7 @@ describe("command lines", () => {
     expect(() => assertSafeFlags(["-s", "workspace-write"], "read")).toThrow(ForbiddenFlagError);
     expect(() => assertSafeFlags(["--add-dir", "/"], "read")).toThrow(ForbiddenFlagError);
     expect(() => assertSafeFlags(["--trust-tools=fs_read,fs_write"], "read")).toThrow(ForbiddenFlagError);
+    expect(() => assertSafeFlags(["--agent", "anything"], "read")).toThrow(ForbiddenFlagError);
     expect(() => assertSafeFlags(["-s", "workspace-write"], "write")).not.toThrow();
   });
 
@@ -174,4 +181,32 @@ test("known ACP agents are built in, and a config entry with the same id replace
   const custom = registryOf({ acp: [{ id: "agy", name: "My agy", command: ["/opt/agy", "acp"] }] });
   expect(custom.get("agy")?.name).toBe("My agy");
   expect([...custom.keys()].filter((k) => k === "agy")).toHaveLength(1);
+});
+
+describe("kiro writes", () => {
+  test("a write run gets an agent that writes only inside its folder, removed after the run", async () => {
+    const root = await mkdtemp(join(tmpdir(), "crewreview-kiro-"));
+    const agents = join(root, "agents");
+    const work = join(root, "work");
+    // A stand-in for kiro-cli that prints the agent it was given.
+    const fake = join(root, "kiro-cli");
+    // Like Kiro, it rewrites the agent and keeps a backup.
+    await writeFile(fake, `#!/bin/sh\nwhile [ "$1" != "--agent" ] && [ $# -gt 0 ]; do shift; done\ncp "${agents}/$2.json" "${agents}/$2.json.bak"\ncat "${agents}/$2.json"\n`);
+    await chmod(fake, 0o755);
+    await mkdir(work);
+    const kiro = kiroHarness({ executable: fake, agentsDir: agents });
+    const r = await kiro.run({ prompt: "fix it", cwd: work, access: "write", timeoutMs: 10_000 });
+    expect(r.ok).toBe(true);
+    const agent = JSON.parse(r.text);
+    expect(agent.allowedTools).not.toContain("write");
+    expect(agent.tools).not.toContain("shell");
+    expect(agent.includeMcpJson).toBe(false);
+    const allowed: string[] = agent.toolsSettings.write.allowedPaths;
+    expect(allowed).toContain(join(work, "**"));
+    expect(allowed.every((p) => p.endsWith("/work") || p.endsWith("/work/**"))).toBe(true);
+    expect(await readdir(agents)).toEqual([]);
+    // Reading needs no agent at all.
+    const read = await kiro.run({ prompt: "review", cwd: work, access: "read", timeoutMs: 10_000 });
+    expect(read.ok).toBe(false);
+  });
 });

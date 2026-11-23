@@ -15,7 +15,7 @@ const ALWAYS_FORBIDDEN = [
 ];
 
 /** Also forbidden in read mode: these grant write access or widen what the agent can reach. */
-const READ_FORBIDDEN = [/workspace-write/, /acceptEdits/, /^--add-dir$/, /fs_write/, /execute_bash/, /^--permission-mode$/];
+const READ_FORBIDDEN = [/workspace-write/, /acceptEdits/, /^--add-dir$/, /fs_write/, /execute_bash/, /^--permission-mode$/, /^--agent$/];
 
 export class ForbiddenFlagError extends Error {
   constructor(readonly flag: string) {
