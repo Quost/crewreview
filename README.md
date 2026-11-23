@@ -61,6 +61,16 @@ brew install Quost/crewreview/crewreview
 irm https://crewreview.pururucos.com.br/install.ps1 | iex          # Windows (or Scoop: see below)
 ```
 
+Behind a company proxy that blocks the website (filters often block new domains until they're categorized), take the same scripts from GitHub. They download from GitHub Releases either way, and so do updates:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Quost/crewreview/main/site/static/install.sh | sh
+```
+
+```powershell
+irm https://raw.githubusercontent.com/Quost/crewreview/main/site/static/install.ps1 | iex
+```
+
 <details>
 <summary><b>Let your AI assistant set it up</b>: a prompt for Claude Code, Codex or any agent</summary>
 
