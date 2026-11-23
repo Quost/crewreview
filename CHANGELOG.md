@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.16.0 — 2026-11-23
+
+Stacked pull requests that stay in line, bottom up, without fighting their own squash.
+
 ### Added
 
 - Stacked pull requests stay in line (with conflicts on, `--conflicts on`). A pull request whose base is another open pull request's branch takes that branch in as soon as it moves, bottom first, so a change at the bottom reaches the top in one check. When the one below is merged, squashed included, the new base comes in compared from that pull request's last head: the commits both shared no longer conflict with their own squash. Always a merge, never a rebase or force push.
@@ -12,6 +16,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Changed
 
 - When no harness can answer on a repository, the check still goes through its other pull requests: one that only needs its base merged in doesn't need a harness.
+- The binaries and the desktop app are built with Bun 1.4.5 (was 1.3.10), and the dashboard runs on React 19.3.
 
 ## 0.15.0 — 2026-11-23
 
