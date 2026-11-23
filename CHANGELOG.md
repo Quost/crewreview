@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.20.0 — 2026-11-23
+
+A trust seal on every review, profiles and verdict settings per repository, honest coverage of large files, and severe findings that say how they go wrong.
+
 ### Added
 
 - Every posted review opens with a trust seal, decided by code from what the review did: trusted (every lens finished, every changed file read, the verifier ran, CI green, nothing blocker or major open), partial (with the reasons, such as a file no lens read or a major finding still open), or don't rely on it alone (a blocker open, CI red, or a change too large for one review). It also says which commit it reviewed up to.
