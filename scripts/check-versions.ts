@@ -14,6 +14,13 @@ for (const p of new Glob("{packages,apps}/*/package.json").scanSync(root)) found
 found.push(["plugins/crewreview/.claude-plugin/plugin.json", JSON.parse(read("plugins/crewreview/.claude-plugin/plugin.json")).version]);
 for (const pl of JSON.parse(read(".claude-plugin/marketplace.json")).plugins as { name: string; version: string }[]) found.push([`.claude-plugin/marketplace.json (${pl.name})`, pl.version]);
 const wrong = found.filter(([, v]) => v !== want);
+// The Bun types describe the Bun that runs the project: .bun-version, which CI and the release build install.
+const bun = read(".bun-version").trim();
+const types = JSON.parse(read("package.json")).devDependencies?.["@types/bun"] as string | undefined;
+if (types !== bun) {
+  console.error(`@types/bun is ${types ?? "missing"} but .bun-version is ${bun}: move them together`);
+  process.exit(1);
+}
 if (wrong.length) {
   console.error(`every version should be ${want} (package.json):\n${wrong.map(([p, v]) => `  ${p}: ${v ?? "missing"}`).join("\n")}`);
   process.exit(1);
