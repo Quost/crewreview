@@ -35,8 +35,10 @@ jobs:
           if ! git rev-parse --verify --quiet "$FROM" >/dev/null; then FROM="$(git rev-list --max-parents=0 "$TO")"; fi
           lint --from "$FROM" --to "$TO" --verbose
 
+  # Dependabot writes its own titles ("fix(deps): Bump …", capitalised), which subject-case would reject. Its commits are
+  # exempt from commitlint too (see commitlint.config.mjs). A skipped job still satisfies the required check.
   pr-title:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
