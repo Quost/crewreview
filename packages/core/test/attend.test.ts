@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { makeMarker, parseAttendOutput, pendingItems, sensitivePaths, settled, situationItems, type AttendRules, type AttendThread } from "../src/index.ts";
+import { heldPaths, leftForOwner, makeMarker, parseAttendOutput, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, type AttendRules, type AttendThread } from "../src/index.ts";
 
 const rules: AttendRules = { me: "quost", trustedBots: ["copilot"], fromCrew: false };
 const c = (id: string, author: string, body: string, createdAt = "2026-11-19T10:00:00Z", authorIsBot = false) => ({ id, author, authorIsBot, body, createdAt });
@@ -100,3 +100,29 @@ describe("the pull request's own state", () => {
   });
 });
 
+
+describe("what the attendant may change, and what it leaves you", () => {
+  const item = (key: string, path?: string, line?: number, kind: "thread" | "conflict" | "review" = "thread", author = "bia") => ({ key, kind, path, line, author, text: "", createdAt: "", fromCrew: false });
+
+  test("protected files a reviewer commented on may be changed; secrets and the crew's folder never", () => {
+    const items = [item("a", "AGENTS.md", 44), item("b", ".github/workflows/ci.yml", 3), item("c", ".env", 1), item("d", ".crewreview/x.md", 1), item("e", "src/a.ts", 1), item("f", "AGENTS.md", 50)];
+    expect(protectedFilesToEdit(items)).toEqual(["AGENTS.md", ".github/workflows/ci.yml"]);
+  });
+
+  test("approve holds every protected change; auto lets the commented ones go out, never the others", () => {
+    expect(heldPaths(["AGENTS.md", "src/a.ts"], ["AGENTS.md"], "approve")).toEqual(["AGENTS.md"]);
+    expect(heldPaths(["AGENTS.md", "src/a.ts"], ["AGENTS.md"], "auto")).toEqual([]);
+    expect(heldPaths(["AGENTS.md", "CLAUDE.md"], ["AGENTS.md"], "auto")).toEqual(["CLAUDE.md"]);
+  });
+
+  test("the items left for you, with where they are", () => {
+    const items = [item("a", "AGENTS.md", 44), item("b", "src/a.ts", 3), item("c", undefined, undefined, "review", "lewalmeida"), item("d", undefined, undefined, "conflict", "")];
+    const left = leftForOwner(items, [
+      { key: "a", action: "needs-human", reply: "" },
+      { key: "b", action: "fixed", reply: "done" },
+      { key: "c", action: "needs-human", reply: "" },
+      { key: "d", action: "needs-human", reply: "" },
+    ]);
+    expect(left).toEqual([{ kind: "thread", path: "AGENTS.md", line: 44, author: "bia" }, { kind: "review", author: "lewalmeida" }, { kind: "conflict" }]);
+  });
+});

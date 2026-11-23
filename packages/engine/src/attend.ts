@@ -2,12 +2,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   extractJson,
+  leftForOwner,
   linkSpent,
   makeMarker,
   parseMarker,
   parseAttendOutput,
   pendingItems,
   redactSecrets,
+  heldPaths,
+  protectedFilesToEdit,
   sensitivePaths,
   settled,
   situationItems,
@@ -15,6 +18,7 @@ import {
   syncPlan,
   type AttendDecision,
   type AttendItem,
+  type LeftItem,
   type SyncPlan,
 } from "@crewreview/core";
 import { lastLines, runProcess, scrubEnv, type Harness } from "@crewreview/harness";
@@ -66,8 +70,8 @@ export interface AttendSync {
 export type AttendOutcome =
   | { kind: "nothing" }
   | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" | "busy" }
-  | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"] }
-  | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number; synced?: AttendSync }
+  | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"]; left?: LeftItem[] }
+  | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number; synced?: AttendSync; left?: LeftItem[] }
   | { kind: "stale"; attendId: number; error?: string }
   | { kind: "failed"; attendId?: number; error: string }
   | { kind: "harness"; error: PickError }
@@ -290,7 +294,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
 
     const { language } = languageFor(repo, d);
     const access = s.fix ? "write" : "read";
-    const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR };
+    const commented = protectedFilesToEdit(items);
+    const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR, protectedFiles: commented, protectedMode: s.protectedFiles };
     let parsed: { decisions: AttendDecision[]; summary: string } | undefined;
     if (seat) {
       const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base));
@@ -350,7 +355,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       changed = [];
     }
     const sensitive = sensitivePaths(touched ?? changed);
-    if (sensitive.length) forcedInbox ??= "sensitive";
+    // Protected files wait for you, unless the repository lets the ones a reviewer commented on go out.
+    if (heldPaths(touched ?? changed, commented, s.protectedFiles).length) forcedInbox ??= "sensitive";
 
     let commitSha: string | undefined;
     if (changed.length || merging) {
@@ -375,7 +381,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (mode === "inbox" || forcedInbox) {
       d.store.updateAttend(attendId!, { status: "pending" });
       const replies = decisions.filter((x) => x.action !== "needs-human" && x.reply).length;
-      return { kind: "pending", attendId: attendId!, fixed: decisions.filter((x) => x.action === "fixed").length, replies, forced: forcedInbox };
+      const left = leftForOwner(items, decisions);
+      return { kind: "pending", attendId: attendId!, fixed: decisions.filter((x) => x.action === "fixed").length, replies, forced: forcedInbox, ...(left.length ? { left } : {}) };
     }
     return await publishAttend(d, x, attendId!);
   } catch (e) {
@@ -526,7 +533,9 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
     if (payload.sync?.why === "restack" && row.commitSha) d.store.dropStackLink(repo.id, row.number);
     await finish();
     const synced = payload.sync && row.commitSha ? { synced: payload.sync } : {};
-    return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, unresolved: unresolved.length, resolveError: unresolved[0], reReview, needsHuman: human.length, ...synced };
+    // Which items are yours now, so you don't have to work out which threads were skipped.
+    const left = leftForOwner(payload.items, payload.decisions);
+    return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, unresolved: unresolved.length, resolveError: unresolved[0], reReview, needsHuman: human.length, ...synced, ...(left.length ? { left } : {}) };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     d.store.updateAttend(attendId, { error: error.slice(0, 2000), status: row.status === "pending" ? "pending" : "failed" });

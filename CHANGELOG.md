@@ -4,6 +4,11 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- The attendant may change protected files (CI, deployment, `AGENTS.md`, `CLAUDE.md`) when a reviewer commented on them, to do what that comment asks. Before, it left those comments to you, even when the pull request was about that very file. Such a change waits for your approval, even in auto mode, unless you turn on "Protected files a reviewer commented on, without waiting" for the repository (`crewreview repo set <id> --protected auto`). Secrets never change.
+- The activity says which items the attendant left for you, with file and line ("Left for you: AGENTS.md:44"), instead of only how many, or nothing in the dashboard.
+
 ## 0.17.0 — 2026-11-23
 
 One Crewreview for the app and the terminal, and harnesses you can test again from the app.

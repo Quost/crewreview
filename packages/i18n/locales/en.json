@@ -733,5 +733,14 @@
   "doctor.conformanceBehind": "Not testing the harnesses: this terminal runs Crewreview {version}, but the service runs {service}, and it would use these results. Update this copy (crewreview update) or test from the app (Harnesses & limits, Test the writes).",
   "cli.linked": "The terminal's crewreview ({path}) now follows the app: it replaced a separate copy, version {version}. One update covers both.",
   "cli.relinked": "The terminal's crewreview ({path}) points at the app again.",
-  "web.setup.proveWrite": "Test the writes"
+  "web.setup.proveWrite": "Test the writes",
+  "attend.left": "Left for you: {items}.",
+  "attend.leftKind.thread": "a thread",
+  "attend.leftKind.review": "a review",
+  "attend.leftKind.comment": "a comment",
+  "attend.leftKind.conflict": "the conflict with the base",
+  "attend.leftKind.ci": "the red CI",
+  "web.repos.protected": "Protected files a reviewer commented on, without waiting",
+  "web.repos.protectedHint": "The attendant may change protected files (CI, deployment, AGENTS.md, CLAUDE.md) when a reviewer commented on them, to do what that comment asks. Off: that change waits for your approval, even in auto mode. On: it goes out like any fix. Secrets never change.",
+  "cli.opt.protected": "approve: changes to protected files a reviewer commented on (CI, AGENTS.md…) wait for you; auto: they go out like any fix"
 }

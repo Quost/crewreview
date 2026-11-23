@@ -427,6 +427,49 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
   });
 });
 
+describe("protected files a reviewer commented on", () => {
+  async function rulesBranch(name: string, n: number): Promise<string> {
+    await sh(["checkout", "-q", "-B", name, "main"], work);
+    await writeFile(join(work, "AGENTS.md"), "# Rules\n\n- Every issue gets System = Health.\n");
+    await sh(["add", "-A"], work);
+    await sh(["commit", "-qm", `rules ${name}`], work);
+    await sh(["push", "-q", "-f", "origin", `${name}:refs/heads/${name}`], work);
+    const sha = await sh(["rev-parse", name], work);
+    await sh(["update-ref", `refs/pull/${n}/head`, sha], remote);
+    return sha;
+  }
+  const answer = writer(async (req, items) => {
+    await writeFile(join(req.cwd, "AGENTS.md"), "# Rules\n\n- Every issue gets System = Health; an issue of another system gets its own.\n");
+    return JSON.stringify({ items: items.map((it) => (it.path === "AGENTS.md" ? { key: it.key, action: "fixed", reply: "Added the caveat to AGENTS.md." } : { key: it.key, action: "needs-human", reply: "" })), summary: "Scope the System rule" });
+  });
+  const threads = () => [
+    { ...thread("R1", "bia", "This drops the caveat: an issue of another system gets its own System.", "AGENTS.md"), line: 3 },
+    { ...thread("R2", "bia", "NIT: was this tested with twg?", "src/cart.ts"), line: 1 },
+  ];
+
+  test("the attendant may answer it in the file; by default the change waits for you, and says what's left", async () => {
+    const sha = await rulesBranch("rules-a", 80);
+    const { d, repo, ref } = await setup(answer, { mode: "auto" });
+    const host = new FakeHost(ref, mkPr(80, sha, "rules-a"), threads());
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 80, "auto");
+    expect(o).toMatchObject({ kind: "pending", fixed: 1, forced: "sensitive", left: [{ kind: "thread", path: "src/cart.ts", line: 1 }] });
+    expect(answer.prompts.at(-1)).toContain("a reviewer commented on ./AGENTS.md");
+    expect(answer.prompts.at(-1)).toContain("approves such a change before it goes out");
+    expect(await sh(["rev-parse", "refs/heads/rules-a"], remote)).toBe(sha);
+  });
+
+  test("with protected files on auto, it goes out like any fix", async () => {
+    const sha = await rulesBranch("rules-b", 81);
+    const { d, repo, ref } = await setup(answer, { mode: "auto", protectedFiles: "auto" });
+    const host = new FakeHost(ref, mkPr(81, sha, "rules-b"), threads());
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 81, "auto");
+    expect(o).toMatchObject({ kind: "done", replies: 1, resolved: 1, left: [{ kind: "thread", path: "src/cart.ts", line: 1 }] });
+    expect(answer.prompts.at(-1)).not.toContain("approves such a change");
+    const pushed = await sh(["rev-parse", "refs/heads/rules-b"], remote);
+    expect(await sh(["show", `${pushed}:AGENTS.md`], remote)).toContain("gets its own");
+  });
+});
+
 describe("stacks (fake host, real git, no agent needed)", () => {
   /** A host with several open pull requests, each answered by number. */
   class StackHost extends FakeHost {

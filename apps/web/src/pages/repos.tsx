@@ -189,6 +189,17 @@ export function ReposPage({ version }: { version: number }) {
               </div>
               <Toggle label={r.attend.ci ? t.t("web.on") : t.t("web.off")} checked={r.attend.ci} onChange={(ci) => patch(r.id, { attend: { ci } })} />
             </div>
+            <div className="setting">
+              <div>
+                <strong>{t.t("web.repos.protected")}</strong>
+                <p className="muted small">{t.t("web.repos.protectedHint")}</p>
+              </div>
+              <Toggle
+                label={r.attend.protectedFiles === "auto" ? t.t("web.on") : t.t("web.off")}
+                checked={r.attend.protectedFiles === "auto"}
+                onChange={(on) => patch(r.id, { attend: { protectedFiles: on ? "auto" : "approve" } })}
+              />
+            </div>
           </div>
         </Card>
       ))}
