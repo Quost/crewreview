@@ -18,7 +18,8 @@ export type DaemonEvent =
   | { type: "outcome"; repo: string; number: number; outcome: PrOutcome }
   | { type: "attend-start"; repo: string; number: number; title: string }
   | { type: "attend-outcome"; repo: string; number: number; outcome: AttendOutcome }
-  | { type: "cycle"; repos: number; reviewed: number; waiting: number }
+  /** `offline`: links the host couldn't be reached for (no network), said once here instead of an error each. */
+  | { type: "cycle"; repos: number; reviewed: number; waiting: number; offline?: string[] }
   | { type: "update"; version: string; installed: boolean; error?: string }
   /** A crew mode task reached a milestone: planned, a step committed, reviewed, opened, waiting, asking, failed. */
   | { type: "task"; repo: string; task: string; title: string; event: TaskEvent };
@@ -71,13 +72,19 @@ export async function runCycle(
   /** Which repositories of an organization link have open pull requests (tests swap this too). */
   listOrg: (org: LinkedRepo) => Promise<string[]> = (o) => openInOrg(o, d.version),
 ): Promise<{ reviewed: number; waiting: number }> {
+  // A host out of reach (no network, the computer just woke up) isn't an error of that repository: it's said once,
+  // in the cycle's summary, and tried again on the next cycle.
+  const offline = new Set<string>();
+  const failed = (repo: string, e: unknown) => {
+    if (e instanceof HostError && e.kind === "network") offline.add(repo);
+    else log({ type: "repo-error", repo, error: e instanceof Error ? e.message : String(e) });
+  };
   // Organizations become their repositories with open pull requests, found with one search each. A paused
   // organization isn't searched; a paused repository stays paused even inside an active organization.
   const expanded = await expandOrgs(
     links.filter((l) => !(isOrg(l) && l.paused)),
     listOrg,
-    (org, e) =>
-      log(e instanceof NoToken ? { type: "repo-error", repo: org.id, error: "no-token", code: "no-token" } : { type: "repo-error", repo: org.id, error: e instanceof HostError ? e.message : String(e) }),
+    (org, e) => (e instanceof NoToken ? log({ type: "repo-error", repo: org.id, error: "no-token", code: "no-token" }) : failed(org.id, e)),
   );
   const repos = expanded.filter((r) => !r.paused);
   const due: Due[] = [];
@@ -103,12 +110,20 @@ export async function runCycle(
         const job = { repo: repo.id, number: pr.number, title: pr.title, kind: "attend" as const };
         const outcome = await attendPullRequest({ ...(d as AttendDeps), onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox");
         if (outcome.kind === "nothing" || (outcome.kind === "waiting" && outcome.reason === "not-yours")) continue;
+        if (outcome.kind === "harness") {
+          // No harness can answer here: that's about the repository, not this pull request. Said once until it changes.
+          const key = `attend-harness:${repo.id}`;
+          const said = `${outcome.error.error}:${"name" in outcome.error ? outcome.error.name : ""}`;
+          if (d.skipsSaid?.get(key) !== said) log({ type: "attend-outcome", repo: repo.id, number: pr.number, outcome });
+          d.skipsSaid?.set(key, said);
+          break;
+        }
+        if (outcome.kind !== "waiting") d.skipsSaid?.delete(`attend-harness:${repo.id}`);
         log({ type: "attend-outcome", repo: repo.id, number: pr.number, outcome });
         if (outcome.kind !== "waiting") attended++;
-        if (outcome.kind === "harness") break;
       }
     } catch (err) {
-      log({ type: "repo-error", repo: repo.id, error: err instanceof Error ? err.message : String(err) });
+      failed(repo.id, err);
     }
   }
 
@@ -150,7 +165,7 @@ export async function runCycle(
         due.push({ target, pr, firstSeen });
       }
     } catch (err) {
-      log({ type: "repo-error", repo: repo.id, error: err instanceof Error ? err.message : String(err) });
+      failed(repo.id, err);
     }
   }
   due.sort((a, b) => a.firstSeen - b.firstSeen);
@@ -166,7 +181,9 @@ export async function runCycle(
     reviewed++;
   }
   const waiting = Math.max(0, due.length - reviewed);
-  log({ type: "cycle", repos: new Set([...active, ...repos.filter((r) => r.attend.mode !== "off")].map((r) => r.id)).size, reviewed, waiting });
+  const checked = new Set([...active, ...repos.filter((r) => r.attend.mode !== "off")].map((r) => r.id));
+  for (const id of offline) checked.delete(id);
+  log({ type: "cycle", repos: checked.size, reviewed, waiting, ...(offline.size ? { offline: [...offline] } : {}) });
   return { reviewed, waiting };
 }
 
