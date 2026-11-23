@@ -10,6 +10,9 @@ updates:
     directory: /
     schedule: { interval: weekly }
     commit-message: { prefix: "fix(deps)", prefix-development: "chore(deps)" }
+    # @types/bun follows the Bun the project runs (.bun-version), so both move together by hand.
+    ignore:
+      - dependency-name: "@types/bun"
     groups:
       minor-and-patch: { update-types: [minor, patch] }
   - package-ecosystem: docker
