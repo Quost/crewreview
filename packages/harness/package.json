@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "2.4.0",
+    "@agentclientprotocol/sdk": "2.8.0",
     "@crewreview/core": "workspace:*"
   }
 }
