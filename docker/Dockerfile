@@ -5,7 +5,7 @@
 # It installs the release binary for VERSION (the latest published release unless you pin one, e.g.
 # --build-arg VERSION=0.10.0) after checking it against the release's signed checksums, with the same key
 # `crewreview update` uses. The guide: docs/team-machine.md.
-FROM node:22-bookworm-slim
+FROM node:26-bookworm-slim
 
 ARG VERSION=latest
 ARG CLAUDE_CODE_VERSION=latest
