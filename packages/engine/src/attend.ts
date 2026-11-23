@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   extractJson,
+  linkSpent,
   makeMarker,
   parseMarker,
   parseAttendOutput,
@@ -10,8 +11,11 @@ import {
   sensitivePaths,
   settled,
   situationItems,
+  syncItem,
+  syncPlan,
   type AttendDecision,
   type AttendItem,
+  type SyncPlan,
 } from "@crewreview/core";
 import { lastLines, runProcess, scrubEnv, type Harness } from "@crewreview/harness";
 import { gitAuthEnv, type Permission } from "@crewreview/hosts";
@@ -20,7 +24,7 @@ import { diffText, git, gitOk, mergeBase } from "./git.ts";
 import { isPickError, pickReviewer, pickWriter, type PickError } from "./harnesses.ts";
 import { pickLimits, watchQuota } from "./quota.ts";
 import { fixedSeatChoice, type SeatChoice } from "./seats.ts";
-import { fetchPull } from "./mirror.ts";
+import { fetchPull, isAncestor, type FetchedPull } from "./mirror.ts";
 import type { HostAdapter } from "@crewreview/hosts";
 import type { PrDeps, PrTarget } from "./pr.ts";
 import { attendPrompt } from "./prompts.ts";
@@ -48,13 +52,22 @@ export interface AttendPayload {
   harness: string;
   /** Why an automatic run waits for you anyway. */
   forcedInbox?: "sensitive" | "validation-failed";
+  /** The base was merged in to keep a stack in line, not because someone asked. */
+  sync?: AttendSync;
+}
+
+/** Why a stacked branch took its base in: the pull request below moved (`stacked`) or was merged (`restack`). */
+export interface AttendSync {
+  why: "stacked" | "restack";
+  parent: number;
+  base: string;
 }
 
 export type AttendOutcome =
   | { kind: "nothing" }
   | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" | "busy" }
   | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"] }
-  | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number }
+  | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number; synced?: AttendSync }
   | { kind: "stale"; attendId: number; error?: string }
   | { kind: "failed"; attendId?: number; error: string }
   | { kind: "harness"; error: PickError }
@@ -137,7 +150,12 @@ async function runAgent(c: SeatChoice, routed: boolean, d: AttendDeps, cwd: stri
  * Answer the reviews on one of your pull requests: find what's pending, let the agent fix or reply in a worktree,
  * check its work, then publish (auto) or park it in the inbox. The agent never pushes or posts.
  */
-export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: number, mode: AttendMode): Promise<AttendOutcome> {
+export interface AttendOptions {
+  /** The open pull request this one sits on (its branch is this one's base), from the daemon's listing. */
+  parent?: { number: number; headRef: string; headSha: string };
+}
+
+export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: number, mode: AttendMode, opts: AttendOptions = {}): Promise<AttendOutcome> {
   d = { ...d, onEvent: watchQuota(d.quota, d.onEvent) };
   const { repo, host } = x;
   const s = repo.attend;
@@ -154,11 +172,46 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   const polish = s.fromCrew && d.store.polishRounds(repo.id, number) < s.maxPolishRounds;
   const rules = { me, trustedBots: s.trustedBots, fromCrew: polish };
   const done = d.store.attendDone(repo.id, number);
-  const candidates = pendingItems({ threads, reviews, rules, done });
+  let candidates = pendingItems({ threads, reviews, rules, done });
   // The pull request's own state, when the repository asks for it: a conflict with its base, a red CI.
   if (s.fix && (s.conflicts || s.ci)) {
     const failing = s.ci ? await failingJobs(host, pr) : undefined;
     candidates.push(...situationItems({ headSha: pr.headSha, baseRef: pr.baseRef, conflicts: pr.conflicts, failing }, { conflicts: s.conflicts, ci: s.ci }, done));
+  }
+
+  // A stack moves bottom up: each branch takes in the one below as soon as it moves, and the base once it's merged.
+  const fetch = () =>
+    fetchPull({
+      dataDir: d.dirs.data,
+      repo: repo.ref,
+      authEnv: gitAuthEnv(repo.ref, x.token),
+      reference: repo.clone,
+      number,
+      baseRef: pr.baseRef,
+      headRefspec: (local) => host.headRefspec(number, local),
+    });
+  let early: FetchedPull | undefined;
+  let plan: Extract<SyncPlan, { kind: "merge" }> | undefined;
+  let sync: AttendSync | undefined;
+  if (s.fix && s.conflicts) {
+    const link = d.store.stackLink(repo.id, number);
+    if (opts.parent || (link && link.parentRef !== pr.baseRef)) {
+      early = await fetch();
+      const behind = !(await isAncestor(early.mirror, early.baseSha, early.headSha));
+      const linkInHead = link ? await isAncestor(early.mirror, link.parentSha, early.headSha) : false;
+      const input = { baseRef: pr.baseRef, parent: opts.parent, link, behind, linkInHead };
+      if (mode !== "dry-run" && linkSpent(input)) d.store.dropStackLink(repo.id, number);
+      const p = syncPlan(input);
+      if (p.kind === "merge") {
+        plan = p;
+        const item = syncItem(p, { headSha: early.headSha, baseSha: early.baseSha, baseRef: pr.baseRef }, done);
+        // The sync merges the base anyway: a conflict the host reports is part of it.
+        if (item) {
+          candidates = [...candidates.filter((i) => i.kind !== "conflict"), item];
+          sync = { why: p.why, parent: p.parent, base: pr.baseRef };
+        }
+      }
+    }
   }
 
   // Only people who can push to the repository may steer the agent; listed bots and our own reviewer aside.
@@ -184,16 +237,22 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   if (items.length === 0) return { kind: "nothing" };
   if (mode !== "dry-run" && !settled(items, now, d.config.attend.quiet)) return { kind: "waiting", reason: "settling" };
 
-  const limits = pickLimits(d.config, d.quota);
-  // [roles] routes the attendant through seats, unless this repository names its own harness.
-  const seats = s.harness ? undefined : d.seats?.picker("attend", { write: s.fix });
-  const taken = seats ? await seats([]) : undefined;
-  if (taken && isPickError(taken)) return { kind: "harness", error: taken };
-  const pick = taken ? taken.harness : s.fix ? await pickWriter(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits) : await pickReviewer(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits);
-  if (isPickError(pick)) return { kind: "harness", error: pick };
-  const harness = pick;
-  const routed = !!taken;
-  const seat = taken ?? fixedSeatChoice(harness, d.config);
+  // Taking the base in with nothing to resolve is git's job: no agent, so no harness needed either.
+  const mechanical = !!early && items.every((i) => i.kind === "conflict") && (await mergesClean(early.mirror, early.headSha, early.baseSha, plan?.mergeBase));
+  let seat: SeatChoice | undefined;
+  let routed = false;
+  if (!mechanical) {
+    const limits = pickLimits(d.config, d.quota);
+    // [roles] routes the attendant through seats, unless this repository names its own harness.
+    const seats = s.harness ? undefined : d.seats?.picker("attend", { write: s.fix });
+    const taken = seats ? await seats([]) : undefined;
+    if (taken && isPickError(taken)) return { kind: "harness", error: taken };
+    const pick = taken ? taken.harness : s.fix ? await pickWriter(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits) : await pickReviewer(d.registry, s.harness ?? d.config.harness.default, d.conformance, limits);
+    if (isPickError(pick)) return { kind: "harness", error: pick };
+    routed = !!taken;
+    seat = taken ?? fixedSeatChoice(pick, d.config);
+  }
+  const harnessId = seat?.harness.id ?? "git";
 
   const attendId = mode === "dry-run" ? undefined : d.store.startAttend({ repo: repo.id, number, title: pr.title, url: pr.url, headSha: pr.headSha });
   let worktree: string | undefined;
@@ -202,15 +261,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (attendId !== undefined) {
       for (const old of d.store.staleAttends(repo.id, number, attendId)) if (old.worktree) await removeStale(old.worktree);
     }
-    const fetched = await fetchPull({
-      dataDir: d.dirs.data,
-      repo: repo.ref,
-      authEnv: gitAuthEnv(repo.ref, x.token),
-      reference: repo.clone,
-      number,
-      baseRef: pr.baseRef,
-      headRefspec: (local) => host.headRefspec(number, local),
-    });
+    const fetched = early ?? (await fetch());
     mirror = fetched.mirror;
     const stamp = new Date(now).toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const jobDir = join(d.dirs.state, "runs", `attend-${repo.id}-${number}-${stamp}`);
@@ -222,9 +273,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (items.some((i) => i.kind === "conflict")) {
       // Some git versions want an identity even for a merge that doesn't commit yet: the same one the commit gets.
       const who = d.identity ? ["-c", `user.name=${d.identity.name}`, "-c", `user.email=${d.identity.email}`] : [];
-      await git([...who, "merge", "--no-ff", "--no-commit", fetched.baseSha], worktree);
-      if ((await git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], worktree)).code === 0) {
-        const conflicted = (await git(["diff", "--name-only", "--diff-filter=U"], worktree)).stdout.split("\n").filter(Boolean);
+      const conflicted = await startMerge(worktree, fetched.baseSha, plan?.mergeBase, who);
+      if (conflicted) {
         merging = { conflicted };
         const list = conflicted.length ? conflicted.map((f) => `- ${f}`).join("\n") : "(none: the merge went through on its own)";
         items = items.map((i) => (i.kind === "conflict" ? { ...i, text: `${i.text}\n\nFiles with conflicts:\n${list}` } : i));
@@ -241,10 +291,16 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     const { language } = languageFor(repo, d);
     const access = s.fix ? "write" : "read";
     const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR };
-    const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base));
-    if (!first.ok) throw new Error(first.error);
-    let parsed = parseAttendOutput(extractJson(first.text), items);
-    if (!parsed) throw new Error("parse: the answer wasn't valid JSON");
+    let parsed: { decisions: AttendDecision[]; summary: string } | undefined;
+    if (seat) {
+      const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base));
+      if (!first.ok) throw new Error(first.error);
+      parsed = parseAttendOutput(extractJson(first.text), items);
+      if (!parsed) throw new Error("parse: the answer wasn't valid JSON");
+    } else {
+      // A clean merge of the base is the whole answer; the checks below still have to pass.
+      parsed = { decisions: items.map((i) => ({ key: i.key, action: "fixed" as const, reply: "" })), summary: "" };
+    }
 
     let changed = s.fix ? await changedPaths(worktree) : [];
     let validation: ValidationRun[] = [];
@@ -252,14 +308,14 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (changed.length && s.validate.length) {
       validation = await runChecks(s.validate, worktree, d.config.attend.validateTimeout);
       const failed = validation.find((v) => !v.ok);
-      if (failed) {
+      if (failed && seat) {
         // One more try with the failure in hand; then it's yours to look at.
         const second = await runAgent(seat, routed, d, worktree, access, attendPrompt({ ...base, failedCheck: `$ ${failed.command}\n${failed.output}` }));
         if (second.ok) parsed = parseAttendOutput(extractJson(second.text), items) ?? parsed;
         changed = await changedPaths(worktree);
         validation = await runChecks(s.validate, worktree, d.config.attend.validateTimeout);
-        if (validation.some((v) => !v.ok)) forcedInbox = "validation-failed";
       }
+      if (validation.some((v) => !v.ok)) forcedInbox = "validation-failed";
     }
 
     let decisions = parsed.decisions;
@@ -298,14 +354,15 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
 
     let commitSha: string | undefined;
     if (changed.length || merging) {
-      const fixed = decisions.filter((x) => x.action === "fixed");
+      // A sync says what it is in the title; its item's text isn't a change worth a line.
+      const fixed = decisions.filter((x) => x.action === "fixed" && !x.key.startsWith("sync:"));
       const lines = [...new Set(fixed.map((f) => commitLine(items.find((i) => i.key === f.key), f.reply)))];
       const title = merging ? `Merge ${pr.baseRef} into ${pr.headRef}` : shorten(parsed.summary || "Address review feedback", 100);
-      const message = [title, "", ...lines, "", `Assisted-by: Crewreview ${d.version} (${harness.id})`].join("\n");
+      const message = [title, "", ...(lines.length ? [...lines, ""] : []), `Assisted-by: Crewreview ${d.version}${seat ? ` (${harnessId})` : ""}`].join("\n");
       commitSha = await commitAll(worktree, message, { signing: d.signing, identity: d.identity });
     }
 
-    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: touched ?? changed, sensitive, validation, harness: harness.id, forcedInbox };
+    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: touched ?? changed, sensitive, validation, harness: harnessId, forcedInbox, ...(sync ? { sync } : {}) };
     await writeFile(join(jobDir, "attend.json"), JSON.stringify(payload, null, 2));
     const diff = commitSha ? (await git(["show", "--no-color", "--stat", "--patch", commitSha], worktree)).stdout : "";
     await writeFile(join(jobDir, "diff.patch"), diff);
@@ -331,8 +388,38 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (worktree && mirror) await removeWorktree(mirror, worktree).catch(() => {});
     return { kind: "failed", attendId, error };
   } finally {
-    seat.done();
+    seat?.done();
   }
+}
+
+/** Whether merging `base` into `head` needs nobody: git finds no conflict. `from` replaces the usual merge base. */
+async function mergesClean(mirror: string, head: string, base: string, from?: string): Promise<boolean> {
+  const r = await git(["merge-tree", "--write-tree", ...(from ? [`--merge-base=${from}`] : []), head, base], mirror);
+  return r.code === 0;
+}
+
+/**
+ * Start merging `base` into the worktree's HEAD without committing: the next commit is the merge. `from` replaces the
+ * usual merge base (git 2.40+). Returns the files left with conflict markers, or undefined when there was nothing to
+ * merge.
+ */
+async function startMerge(dir: string, base: string, from: string | undefined, who: string[]): Promise<string[] | undefined> {
+  if (from) {
+    const r = await git([...who, "merge-tree", "--write-tree", "--name-only", "--no-messages", `--merge-base=${from}`, "HEAD", base], dir);
+    // 0: clean, 1: conflicts. Anything else (an old git without --merge-base) falls back to a plain merge.
+    if (r.code === 0 || r.code === 1) {
+      const [tree, ...files] = r.stdout.split("\n");
+      // The merged tree, conflict markers included, becomes the index and the working copy; MERGE_HEAD makes the
+      // next commit a merge with the base as its second parent, like `git merge --no-commit` would.
+      await gitOk(["read-tree", "--reset", "-u", tree!.trim()], dir);
+      const mergeHead = (await gitOk(["rev-parse", "--git-path", "MERGE_HEAD"], dir)).trim();
+      await writeFile(resolve(dir, mergeHead), `${base}\n`);
+      return r.code === 1 ? [...new Set(files.map((f) => f.trim()).filter(Boolean))] : [];
+    }
+  }
+  await git([...who, "merge", "--no-ff", "--no-commit", base], dir);
+  if ((await git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], dir)).code !== 0) return undefined;
+  return (await git(["diff", "--name-only", "--diff-filter=U"], dir)).stdout.split("\n").filter(Boolean);
 }
 
 /** The jobs that turned CI red, with the end of their logs (secrets taken out), at most three. */
@@ -435,8 +522,11 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       reReview = await host.requestReReview(pr, [...reviewers, ...askers]).catch(() => false);
     }
     d.store.updateAttend(attendId, { status: "done", error: unresolved[0]?.slice(0, 2000) ?? null });
+    // Once the base is in after a merge below, later merges compare from the usual place again.
+    if (payload.sync?.why === "restack" && row.commitSha) d.store.dropStackLink(repo.id, row.number);
     await finish();
-    return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, unresolved: unresolved.length, resolveError: unresolved[0], reReview, needsHuman: human.length };
+    const synced = payload.sync && row.commitSha ? { synced: payload.sync } : {};
+    return { kind: "done", attendId, commit: row.commitSha ?? undefined, replies, resolved, unresolved: unresolved.length, resolveError: unresolved[0], reReview, needsHuman: human.length, ...synced };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     d.store.updateAttend(attendId, { error: error.slice(0, 2000), status: row.status === "pending" ? "pending" : "failed" });

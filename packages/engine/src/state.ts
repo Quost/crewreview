@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import type { StackLink } from "@crewreview/core";
 
 export type ReviewStatus = "running" | "pending" | "posted" | "discarded" | "failed" | "skipped" | "stale";
 
@@ -49,6 +50,10 @@ CREATE INDEX IF NOT EXISTS attends_pr ON attends (repo, number);
 CREATE TABLE IF NOT EXISTS attend_items (
   repo TEXT NOT NULL, number INTEGER NOT NULL, key TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL, PRIMARY KEY (repo, number, key)
+);
+CREATE TABLE IF NOT EXISTS stack_links (
+  repo TEXT NOT NULL, number INTEGER NOT NULL, parent INTEGER NOT NULL, parent_ref TEXT NOT NULL, parent_sha TEXT NOT NULL,
+  updated_at INTEGER NOT NULL, PRIMARY KEY (repo, number)
 );
 `;
 
@@ -168,6 +173,25 @@ export class Store {
     const a = this.db.query("UPDATE reviews SET status = 'failed', error = 'interrupted', updated_at = ? WHERE status = 'running'").run(now).changes;
     const b = this.db.query("UPDATE attends SET status = 'failed', error = 'interrupted', updated_at = ? WHERE status = 'running'").run(now).changes;
     return a + b;
+  }
+
+  // ---- stacks ----
+
+  /** Remember which open pull request this one sits on, and that one's newest head. */
+  setStackLink(repo: string, number: number, link: StackLink, now = Date.now()): void {
+    this.db
+      .query(
+        "INSERT INTO stack_links (repo, number, parent, parent_ref, parent_sha, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (repo, number) DO UPDATE SET parent = excluded.parent, parent_ref = excluded.parent_ref, parent_sha = excluded.parent_sha, updated_at = excluded.updated_at",
+      )
+      .run(repo, number, link.parent, link.parentRef, link.parentSha, now);
+  }
+
+  stackLink(repo: string, number: number): StackLink | undefined {
+    return (this.db.query("SELECT parent, parent_ref AS parentRef, parent_sha AS parentSha FROM stack_links WHERE repo = ? AND number = ?").get(repo, number) ?? undefined) as StackLink | undefined;
+  }
+
+  dropStackLink(repo: string, number: number): void {
+    this.db.query("DELETE FROM stack_links WHERE repo = ? AND number = ?").run(repo, number);
   }
 
   // ---- attendant ----

@@ -426,3 +426,120 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(h.prompts).toEqual([]);
   });
 });
+
+describe("stacks (fake host, real git, no agent needed)", () => {
+  /** A host with several open pull requests, each answered by number. */
+  class StackHost extends FakeHost {
+    constructor(
+      repo: RepoRef,
+      public prs: PullRequest[],
+    ) {
+      super(repo, prs[0]!, []);
+    }
+    override async listOpenPullRequests() {
+      return this.prs;
+    }
+    override async getPullRequest(n?: number) {
+      return this.prs.find((p) => p.number === n)!;
+    }
+  }
+  const nobody = () =>
+    writer(async () => {
+      throw new Error("a clean merge of the base needs no agent");
+    });
+  async function commitFile(branch: string, from: string, file: string, text: string, n?: number): Promise<string> {
+    await sh(["checkout", "-q", "-B", branch, from], work);
+    await writeFile(join(work, "src", file), text);
+    await sh(["add", "-A"], work);
+    await sh(["commit", "-qm", `${branch}: ${file}`], work);
+    await sh(["push", "-q", "-f", "origin", `${branch}:refs/heads/${branch}`], work);
+    const sha = await sh(["rev-parse", branch], work);
+    if (n) await sh(["update-ref", `refs/pull/${n}/head`, sha], remote);
+    return sha;
+  }
+
+  test("a branch takes in the one below as soon as it moves, bottom first, in one check", async () => {
+    const a1 = await commitFile("stk-a", "main", "a.ts", "export const a = 1;\n", 50);
+    const b1 = await commitFile("stk-b", "stk-a", "b.ts", "export const b = 1;\n", 51);
+    // The one below moves after the one above was made.
+    const a2 = await commitFile("stk-a", "stk-a", "a.ts", "export const a = 2;\n", 50);
+    expect(a2).not.toBe(a1);
+    const h = nobody();
+    const { d, repo, ref, store } = await setup(h, { mode: "auto", conflicts: true });
+    // Listed top first: the check still goes bottom up.
+    const host = new StackHost(ref, [mkPr(51, b1, "stk-b", { baseRef: "stk-a" }), mkPr(50, a2, "stk-a")]);
+    const events: DaemonEvent[] = [];
+    await runCycle({ ...d, skipsSaid: new Map() } as unknown as PrDeps, [{ ...repo, review: { ...repo.review, mode: "off" } }], (e) => events.push(e), Date.now, async () => ({ repo, host, token: "t" }));
+    const outcomes = events.filter((e) => e.type === "attend-outcome");
+    expect(outcomes).toMatchObject([{ number: 51, outcome: { kind: "done", replies: 0, synced: { why: "stacked", parent: 50, base: "stk-a" } } }]);
+    const pushed = await sh(["rev-parse", "refs/heads/stk-b"], remote);
+    expect((await sh(["rev-list", "--parents", "-n", "1", pushed], remote)).split(" ")).toEqual([pushed, b1, a2]);
+    expect(await sh(["log", "-1", "--format=%B", pushed], remote)).toBe("Merge stk-a into stk-b\n\nAssisted-by: Crewreview test");
+    expect(h.prompts).toEqual([]);
+    expect(store.stackLink(repo.id, 51)).toEqual({ parent: 50, parentRef: "stk-a", parentSha: a2 });
+    expect(host.comments).toEqual([]);
+  });
+
+  test("after the one below is squashed into the base, the base comes in without the conflicts squashing makes", async () => {
+    await commitFile("main", "main", "sq.ts", "export const x = 0;\n");
+    const a = await commitFile("sq-a", "main", "sq.ts", "export const x = 1;\n", 60);
+    const b = await commitFile("sq-b", "sq-a", "sq.ts", "export const x = 2;\n", 61);
+    const h = nobody();
+    const { d, repo, ref, store } = await setup(h, { mode: "auto", conflicts: true });
+    store.setStackLink(repo.id, 61, { parent: 60, parentRef: "sq-a", parentSha: a });
+    // #60 is squash-merged, the base moves on, and #61 now targets main.
+    await sh(["checkout", "-q", "main"], work);
+    await sh(["merge", "-q", "--squash", "sq-a"], work);
+    await sh(["commit", "-qm", "sq-a (#60)"], work);
+    await writeFile(join(work, "src", "other.ts"), "export const other = true;\n");
+    await sh(["add", "-A"], work);
+    await sh(["commit", "-qm", "other"], work);
+    await sh(["push", "-q", "origin", "main"], work);
+    const main = await sh(["rev-parse", "main"], work);
+    // A plain merge would conflict: both sides changed x since they parted.
+    expect((await git(["merge-tree", "--write-tree", b, main], remote)).code).toBe(1);
+
+    const host = new FakeHost(ref, mkPr(61, b, "sq-b", { baseRef: "main", conflicts: true }), []);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 61, "auto");
+    expect(o).toMatchObject({ kind: "done", synced: { why: "restack", parent: 60, base: "main" } });
+    const pushed = await sh(["rev-parse", "refs/heads/sq-b"], remote);
+    expect((await sh(["rev-list", "--parents", "-n", "1", pushed], remote)).split(" ")).toEqual([pushed, b, main]);
+    expect(await sh(["show", `${pushed}:src/sq.ts`], remote)).toBe("export const x = 2;");
+    expect(await sh(["show", `${pushed}:src/other.ts`], remote)).toBe("export const other = true;");
+    expect(h.prompts).toEqual([]);
+    // Spent: the next merge of main compares from the usual place.
+    expect(store.stackLink(repo.id, 61)).toBeUndefined();
+  });
+
+  test("a sync with a real conflict goes to the agent, compared from the last head below", async () => {
+    await commitFile("main", "main", "rc.ts", "export const y = 0;\n");
+    const a = await commitFile("rc-a", "main", "rc.ts", "export const y = 1;\n", 70);
+    const b = await commitFile("rc-b", "rc-a", "rc.ts", "export const y = 2;\n", 71);
+    // The base changes the same line after the squash: a conflict that's real.
+    await sh(["checkout", "-q", "main"], work);
+    await sh(["merge", "-q", "--squash", "rc-a"], work);
+    await sh(["commit", "-qm", "rc-a (#70)"], work);
+    await writeFile(join(work, "src", "rc.ts"), "export const y = 3;\n");
+    await sh(["commit", "-qam", "y = 3"], work);
+    await sh(["push", "-q", "origin", "main"], work);
+    let seen = "";
+    const h = writer(async (req, items) => {
+      seen = await readFile(join(req.cwd, "src", "rc.ts"), "utf8");
+      await writeFile(join(req.cwd, "src", "rc.ts"), "export const y = 5;\n");
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "" })), summary: "" });
+    });
+    const { d, repo, ref, store } = await setup(h, { mode: "inbox", conflicts: true });
+    store.setStackLink(repo.id, 71, { parent: 70, parentRef: "rc-a", parentSha: a });
+    const host = new FakeHost(ref, mkPr(71, b, "rc-b", { baseRef: "main", conflicts: true }), []);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 71, "inbox");
+    expect(o).toMatchObject({ kind: "pending", fixed: 1 });
+    // Only the line both really changed conflicts: this branch's 2 against the base's 3, not the squash's 1.
+    expect(seen).toContain("export const y = 2;");
+    expect(seen).toContain("export const y = 3;");
+    expect(seen).not.toContain("export const y = 1;");
+    expect(h.prompts[0]).toBeDefined();
+    const row = store.getAttend((o as { attendId: number }).attendId)!;
+    expect(JSON.parse(row.payload!).items[0].text).toContain("#70");
+    expect((await sh(["rev-list", "--parents", "-n", "1", row.commitSha!], row.worktree!)).split(" ").length).toBe(3);
+  });
+});
