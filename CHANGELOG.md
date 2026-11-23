@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.15.0 — 2026-11-23
+
+Reviews that read the project's rules whole, automatic approvals per repository, and Kiro editing files only inside its folder.
+
 ### Added
 
 - Automatic approvals can be turned on or off per repository, in the dashboard (Repositories) and with `crewreview repo set <id> --approve on|off|default`. `default` follows the setting for all repositories (`review.policy.allowApprove`, in Settings).
