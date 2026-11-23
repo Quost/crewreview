@@ -1,4 +1,4 @@
-import { acquireLock, compareVersions, ConformanceStore, CrewDaemon, dashboardUrl, fetchVerified, isCompiledBinary, latestRelease, LockedError, loadRepos, loginShellEnv, managedByDesktop, readApiInfo, registryFor, replaceBinary, reposFile, startApi, type ApiInfo } from "@crewreview/engine";
+import { acquireLock, compareVersions, ConformanceStore, CrewDaemon, dashboardUrl, fetchVerified, isCompiledBinary, latestRelease, linkTerminalCommand, LockedError, loadRepos, loginShellEnv, managedByDesktop, readApiInfo, registryFor, replaceBinary, reposFile, startApi, type ApiInfo } from "@crewreview/engine";
 import { repoRef, resolveToken } from "@crewreview/hosts";
 import { templates } from "@crewreview/i18n";
 import dashboard from "../../../web/index.html";
@@ -87,6 +87,12 @@ export async function daemon(c: Ctx, a: DaemonArgs): Promise<number> {
   const off = crew.subscribe((e) => {
     if (e.type === "log") logEvent(c, e.entry.event);
   });
+  // The app keeps the terminal's `crewreview` on its own, so one update covers both. Not on Windows (links need
+  // admin rights there) nor from an AppImage, whose path changes on every start.
+  if (a.desktop && managedByDesktop() && process.platform !== "win32" && !process.env.APPIMAGE) {
+    const linked = await linkTerminalCommand(process.execPath, process.env.PATH).catch(() => undefined);
+    if (linked) crew.note({ type: "cli-linked", path: linked.at, was: linked.was });
+  }
   const stop = new AbortController();
   const onSignal = () => {
     if (stop.signal.aborted) process.exit(130);

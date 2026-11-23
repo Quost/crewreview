@@ -1,5 +1,6 @@
 import { arch, platform } from "node:os";
-import { registryFor, reviewable, seatSpec, serviceEnvironment, serviceSpec } from "@crewreview/engine";
+import { behindService } from "@crewreview/core";
+import { readApiInfo, registryFor, reviewable, seatSpec, serviceEnvironment, serviceSpec } from "@crewreview/engine";
 import { signedInHosts } from "@crewreview/hosts";
 import { runConformance, runProcess, which, type SignIn } from "@crewreview/harness";
 import { conformanceStore, table, type Ctx } from "../ctx.ts";
@@ -21,7 +22,12 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
   c.out(`  ${t.t("doctor.data").padEnd(8)} ${c.dirs.data}`);
   c.out();
 
-  if (conformance) {
+  // Harness tests are recorded for the service to use: from an older copy, they'd test what no longer runs.
+  const service = conformance ? (await readApiInfo(c.dirs.state))?.version : undefined;
+  if (conformance && behindService(c.version, service)) {
+    c.err(c.errStyle.yellow(t.t("doctor.conformanceBehind", { version: c.version, service: service! })));
+    c.err();
+  } else if (conformance) {
     for (const h of registry.values()) {
       if (!(await h.detect()).installed || h.capabilities.readOnly !== "enforced") continue;
       c.err(c.errStyle.dim(t.t("doctor.conformanceRunning", { name: h.id })));

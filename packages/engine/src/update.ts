@@ -26,20 +26,8 @@ export interface Release {
   notes: string;
 }
 
-/** Compare "1.2.3", "1.2.3-beta.1": negative when a < b. Pre-releases sort before their release. */
-export function compareVersions(a: string, b: string): number {
-  const split = (v: string) => {
-    const [core, pre] = v.replace(/^v/, "").split("-", 2) as [string, string | undefined];
-    return { nums: core.split(".").map((n) => Number(n) || 0), pre };
-  };
-  const x = split(a);
-  const y = split(b);
-  for (let i = 0; i < 3; i++) if ((x.nums[i] ?? 0) !== (y.nums[i] ?? 0)) return (x.nums[i] ?? 0) - (y.nums[i] ?? 0);
-  if (x.pre === y.pre) return 0;
-  if (x.pre === undefined) return 1;
-  if (y.pre === undefined) return -1;
-  return x.pre.localeCompare(y.pre, undefined, { numeric: true });
-}
+import { compareVersions } from "@crewreview/core";
+export { compareVersions };
 
 /** The asset this machine runs. */
 export function assetName(platform = process.platform, arch = process.arch): string | undefined {

@@ -728,5 +728,10 @@
   "web.log.taskWaiting": "Tarea \"{task}\": esperando a que un puesto vuelva de su límite de uso.",
   "web.log.taskAsks": "La tarea \"{task}\" te necesita en {step}.",
   "web.log.taskFailed": "La tarea \"{task}\" falló: {error}",
-  "task.noCrewAccount": "{id} no tiene cuenta del equipo con la que actuar: configura una en Repositorios → Publicar revisiones como, o usa --as you."
+  "task.noCrewAccount": "{id} no tiene cuenta del equipo con la que actuar: configura una en Repositorios → Publicar revisiones como, o usa --as you.",
+  "cli.behindService": "Esta terminal ejecuta Crewreview {version}, pero el servicio ejecuta {service}. Actualiza esta copia (crewreview update) o apúntala a la de la app.",
+  "doctor.conformanceBehind": "No se probaron los harnesses: esta terminal ejecuta Crewreview {version}, pero el servicio ejecuta {service} y usaría estos resultados. Actualiza esta copia (crewreview update) o prueba desde la app (Harnesses y límites, Probar la escritura).",
+  "cli.linked": "El crewreview de la terminal ({path}) ahora sigue a la app: reemplazó una copia aparte, versión {version}. Una actualización cubre las dos.",
+  "cli.relinked": "El crewreview de la terminal ({path}) vuelve a apuntar a la app.",
+  "web.setup.proveWrite": "Probar la escritura"
 }

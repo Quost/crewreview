@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
-import { ConfigError, configFile, loadConfig } from "@crewreview/engine";
+import { behindService } from "@crewreview/core";
+import { ConfigError, configFile, loadConfig, readApiInfo } from "@crewreview/engine";
 import { createTranslator, detectLocale, type Translator } from "@crewreview/i18n";
 import pkg from "../../../package.json";
 import { attendOne } from "./commands/attend.ts";
@@ -150,6 +151,11 @@ async function main(argv: string[]): Promise<number> {
   const t = createTranslator(detectLocale(loaded.config.language));
   const c = makeCtx(t, loaded.config, loaded.path, loaded.exists, VERSION);
   if (v.help) return (c.out(help(t)), 0);
+  // A terminal copy older than the running service answers for a version that no longer runs: say so, once.
+  if (!["run", "version", "help", "mcp"].includes(command)) {
+    const service = (await readApiInfo(c.dirs.state))?.version;
+    if (behindService(VERSION, service)) c.err(c.errStyle.yellow(t.t("cli.behindService", { version: VERSION, service: service! })));
+  }
 
   try {
     switch (command) {

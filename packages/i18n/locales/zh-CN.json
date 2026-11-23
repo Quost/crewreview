@@ -712,5 +712,10 @@
   "web.log.taskWaiting": "任务“{task}”：等待席位从用量上限恢复。",
   "web.log.taskAsks": "任务“{task}”在 {step} 上需要你。",
   "web.log.taskFailed": "任务“{task}”失败：{error}",
-  "task.noCrewAccount": "{id} 没有可用的团队账号：请在“仓库 → 发布审查的账号”中设置，或使用 --as you。"
+  "task.noCrewAccount": "{id} 没有可用的团队账号：请在“仓库 → 发布审查的账号”中设置，或使用 --as you。",
+  "cli.behindService": "此终端运行的是 Crewreview {version}，而服务运行的是 {service}。请更新此副本（crewreview update）或让它指向应用中的版本。",
+  "doctor.conformanceBehind": "未测试 harness：此终端运行的是 Crewreview {version}，而服务运行的是 {service}，并会使用这些结果。请更新此副本（crewreview update）或在应用中测试（Harness 与限制，测试写入）。",
+  "cli.linked": "终端的 crewreview（{path}）现在跟随应用：它替换了一个独立副本，版本 {version}。一次更新即可覆盖两者。",
+  "cli.relinked": "终端的 crewreview（{path}）重新指向应用。",
+  "web.setup.proveWrite": "测试写入"
 }
