@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { chmod, mkdir, mkdtemp, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { writeAgent } from "../src/adapters/kiro.ts";
 import { ACP_PRESETS, buildRegistry as registryOf } from "../src/index.ts";
 import {
   assertSafeFlags,
@@ -184,7 +185,25 @@ test("known ACP agents are built in, and a config entry with the same id replace
 });
 
 describe("kiro writes", () => {
-  test("a write run gets an agent that writes only inside its folder, removed after the run", async () => {
+  test("the write agent trusts reads, allows writes only inside the folder, and has no shell or MCP", () => {
+    const agent = writeAgent("crewreview-write-x", ["/w/job", "/private/w/job"]) as {
+      name: string;
+      tools: string[];
+      allowedTools: string[];
+      includeMcpJson: boolean;
+      mcpServers: object;
+      toolsSettings: { write: { allowedPaths: string[] } };
+    };
+    expect(agent.name).toBe("crewreview-write-x");
+    expect(agent.tools.sort()).toEqual(["glob", "grep", "read", "write"]);
+    expect(agent.allowedTools).not.toContain("write");
+    expect(agent.includeMcpJson).toBe(false);
+    expect(agent.mcpServers).toEqual({});
+    expect(agent.toolsSettings.write.allowedPaths).toEqual(["/w/job", join("/w/job", "**"), "/private/w/job", join("/private/w/job", "**")]);
+  });
+
+  // A shell script stands in for kiro-cli, so this one needs a shell.
+  test.skipIf(process.platform === "win32")("a write run gets that agent, removed after the run with the backup Kiro leaves", async () => {
     const root = await mkdtemp(join(tmpdir(), "crewreview-kiro-"));
     const agents = join(root, "agents");
     const work = join(root, "work");

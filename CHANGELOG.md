@@ -9,6 +9,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
 - The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
 
+### Fixed
+
+- A lens whose answer came after a sentence with a brace in it, such as quoted code like `:if={@x != []}`, no longer fails with "parse" and loses its findings: the answer is found after the sentence.
+
 ### Security
 
 - Kiro no longer gets `--trust-tools=fs_write` when it edits files: that trusted writes on every path, outside its folder too, and Kiro failed the write test. Each write run now gets a Kiro agent, made for that run and removed after it, that writes without asking only inside its folder; anything else needs an approval nobody can give, so it's denied. Kiro passes the write test again (`crewreview doctor --conformance`).
