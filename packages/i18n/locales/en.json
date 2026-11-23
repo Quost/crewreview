@@ -728,5 +728,10 @@
   "web.log.taskWaiting": "Task \"{task}\": waiting for a seat to come back from its usage limit.",
   "web.log.taskAsks": "Task \"{task}\" needs you on {step}.",
   "web.log.taskFailed": "Task \"{task}\" failed: {error}",
-  "task.noCrewAccount": "{id} has no crew account to act as: set one up in Repositories → Post reviews as, or use --as you."
+  "task.noCrewAccount": "{id} has no crew account to act as: set one up in Repositories → Post reviews as, or use --as you.",
+  "cli.behindService": "This terminal runs Crewreview {version}, but the service runs {service}. Update this copy (crewreview update) or point it at the app's.",
+  "doctor.conformanceBehind": "Not testing the harnesses: this terminal runs Crewreview {version}, but the service runs {service}, and it would use these results. Update this copy (crewreview update) or test from the app (Harnesses & limits, Test the writes).",
+  "cli.linked": "The terminal's crewreview ({path}) now follows the app: it replaced a separate copy, version {version}. One update covers both.",
+  "cli.relinked": "The terminal's crewreview ({path}) points at the app again.",
+  "web.setup.proveWrite": "Test the writes"
 }

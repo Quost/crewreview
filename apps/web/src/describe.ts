@@ -52,6 +52,8 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       if (o.kind === "harness") return harnessLine(t, e, o.error);
       return { text: t.t("attend.failed", { ...ref(e), error: String(o.error ?? "").split("\n")[0]!.slice(0, 200) }), tone: "bad" };
     }
+    case "cli-linked":
+      return { text: t.t(e.was ? "cli.linked" : "cli.relinked", { path: e.path, version: e.was ?? "" }), tone: "ok" };
     case "update":
       return e.error
         ? { text: t.t("update.failed", { error: e.error }), tone: "bad" }

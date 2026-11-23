@@ -171,6 +171,11 @@ export class CrewDaemon {
     return [...this.log];
   }
 
+  /** Put something that happened outside the checks (the app linking the terminal's command) in the activity log. */
+  note(event: DaemonEvent): void {
+    this.record(event);
+  }
+
   private record(event: DaemonEvent): void {
     const entry = { at: Date.now(), event };
     this.log.push(entry);

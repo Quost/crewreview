@@ -31,5 +31,6 @@ export * from "./crew.ts";
 export * from "./api.ts";
 export * from "./minisign.ts";
 export * from "./update.ts";
+export * from "./terminal.ts";
 export * from "./service.ts";
 export * from "./shell-env.ts";

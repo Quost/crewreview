@@ -13,6 +13,8 @@ import type { TaskEvent } from "./tasks.ts";
 
 export type DaemonEvent =
   | { type: "repo-error"; repo: string; error: string; code?: "no-token" }
+  /** The terminal's `crewreview` now points at the app's, so one update covers both. `was`: the copy it replaced. */
+  | { type: "cli-linked"; path: string; was?: string }
   | { type: "skip"; repo: string; number: number; reason: SkipReason }
   | { type: "start"; repo: string; number: number; title: string; sha: string }
   | { type: "outcome"; repo: string; number: number; outcome: PrOutcome }

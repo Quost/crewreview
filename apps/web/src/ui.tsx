@@ -78,7 +78,7 @@ export function Inline({ text }: { text: string }) {
  * Prove an agent's locks with a real run. Where reviews need the proof it's offered until it passes; with `any`, any
  * agent not proven yet can be (the Harnesses table), since a built-in one is trusted but not yet shown to hold.
  */
-export function ProveButton({ h, any }: { h: { id: string; review?: string; proving?: boolean; conformance?: { readOnly?: string; at?: string } }; any?: boolean }) {
+export function ProveButton({ h, any, write }: { h: { id: string; review?: string; proving?: boolean; capabilities?: { write: boolean }; conformance?: { readOnly?: string; writeScope?: string; at?: string } }; any?: boolean; write?: boolean }) {
   const t = useT();
   const [asked, setAsked] = useState(false);
   // The click shows "proving" at once; the list takes over from there, and says when it's done.
@@ -86,9 +86,15 @@ export function ProveButton({ h, any }: { h: { id: string; review?: string; prov
     if (h.proving) setAsked(false);
   }, [h.proving]);
   useEffect(() => setAsked(false), [h.conformance?.at]);
-  if (h.proving || asked) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
-  if (h.review === "failed-conformance") return <Pill tone="bad">{t.t("web.setup.proofFailed")}</Pill>;
-  if (h.review !== "needs-conformance" && !(any && !h.conformance?.readOnly)) return null;
+  if (write) {
+    // The write test, once the read-only one is on record: a harness that failed it (or never took it) can try again.
+    if (!h.capabilities?.write || !h.conformance?.readOnly || h.conformance.writeScope === "pass") return null;
+    if (h.proving || asked) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
+  } else {
+    if (h.proving || asked) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
+    if (h.review === "failed-conformance") return <Pill tone="bad">{t.t("web.setup.proofFailed")}</Pill>;
+    if (h.review !== "needs-conformance" && !(any && !h.conformance?.readOnly)) return null;
+  }
   return (
     <button
       className="btn ghost sm"
@@ -98,7 +104,7 @@ export function ProveButton({ h, any }: { h: { id: string; review?: string; prov
         api.post(`/api/harnesses/${h.id}/prove`).catch(() => setAsked(false));
       }}
     >
-      {t.t("web.setup.prove")}
+      {t.t(write ? "web.setup.proveWrite" : "web.setup.prove")}
     </button>
   );
 }

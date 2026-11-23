@@ -12,6 +12,7 @@ export * from "./concurrency.ts";
 export * from "./eligibility.ts";
 export * from "./attend.ts";
 export * from "./stack.ts";
+export * from "./version.ts";
 export * from "./quota.ts";
 export * from "./seats.ts";
 export * from "./task.ts";

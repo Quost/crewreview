@@ -728,5 +728,10 @@
   "web.log.taskWaiting": "Aufgabe \"{task}\": wartet, bis ein Platz von seinem Nutzungslimit zurück ist.",
   "web.log.taskAsks": "Aufgabe \"{task}\" braucht dich bei {step}.",
   "web.log.taskFailed": "Aufgabe \"{task}\" fehlgeschlagen: {error}",
-  "task.noCrewAccount": "{id} hat kein Konto der Crew, als das gehandelt werden kann: richte eins unter Repositories → Reviews posten als ein, oder nutze --as you."
+  "task.noCrewAccount": "{id} hat kein Konto der Crew, als das gehandelt werden kann: richte eins unter Repositories → Reviews posten als ein, oder nutze --as you.",
+  "cli.behindService": "Dieses Terminal nutzt Crewreview {version}, der Dienst aber {service}. Aktualisiere diese Kopie (crewreview update) oder lass sie auf die der App zeigen.",
+  "doctor.conformanceBehind": "Harnesses nicht getestet: Dieses Terminal nutzt Crewreview {version}, der Dienst aber {service}, und er würde diese Ergebnisse verwenden. Aktualisiere diese Kopie (crewreview update) oder teste in der App (Harnesses & Limits, Schreiben testen).",
+  "cli.linked": "Das crewreview des Terminals ({path}) folgt jetzt der App: Es ersetzt eine eigene Kopie, Version {version}. Ein Update deckt beide ab.",
+  "cli.relinked": "Das crewreview des Terminals ({path}) zeigt wieder auf die App.",
+  "web.setup.proveWrite": "Schreiben testen"
 }

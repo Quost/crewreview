@@ -76,7 +76,7 @@ export function LimitsPage({ version, agentsVersion }: { version: number; agents
                     <td>
                       {h.installed && (h.capabilities.readOnly === "enforced" ? <Check value={h.conformance?.readOnly} /> : <Pill tone="bad">{t.t("doctor.no")}</Pill>)} {h.installed && <ProveButton h={h} any />}
                     </td>
-                    <td>{h.installed && (h.capabilities.write ? <Check value={h.conformance?.writeScope} /> : <Pill>{t.t("doctor.no")}</Pill>)}</td>
+                    <td>{h.installed && (h.capabilities.write ? <><Check value={h.conformance?.writeScope} /> <ProveButton h={h} write /></> : <Pill>{t.t("doctor.no")}</Pill>)}</td>
                     <td>{h.capabilities.costReport ? t.t("doctor.yes") : t.t("doctor.no")}</td>
                     <td>
                       {h.pausedUntil && (

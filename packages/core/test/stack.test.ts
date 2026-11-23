@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { linkSpent, stackOrder, stackParents, syncItem, syncPlan, type StackPr } from "../src/index.ts";
+import { behindService, linkSpent, shouldLinkCommand, stackOrder, stackParents, syncItem, syncPlan, type StackPr } from "../src/index.ts";
 
 const pr = (number: number, headRef: string, baseRef: string, fromFork = false): StackPr => ({ number, headRef, baseRef, headSha: `h${number}`, fromFork });
 
@@ -75,5 +75,26 @@ describe("syncItem", () => {
     const it = syncItem({ kind: "merge", why: "restack", parent: 605, mergeBase: "p605" }, { ...s, baseRef: "develop" }, new Set());
     expect(it?.text).toContain("has been merged");
     expect(it?.text).toContain("develop");
+  });
+});
+
+describe("one crewreview for app and terminal", () => {
+  const app = "/Applications/Crewreview.app/Contents/MacOS/crewreview";
+
+  test("a terminal copy older than the running service is behind; no service, nothing to compare", () => {
+    expect(behindService("0.14.1", "0.15.0")).toBe(true);
+    expect(behindService("0.15.0", "0.15.0")).toBe(false);
+    expect(behindService("0.16.0", "0.15.0")).toBe(false);
+    expect(behindService("0.15.0", undefined)).toBe(false);
+  });
+
+  test("the app takes over a copy of its own or a link to an app that moved, nothing else", () => {
+    expect(shouldLinkCommand({ kind: "file", version: "0.14.1" }, app)).toBe(true);
+    expect(shouldLinkCommand({ kind: "file" }, app)).toBe(false); // not Crewreview, or it didn't answer
+    expect(shouldLinkCommand({ kind: "missing" }, app)).toBe(false);
+    expect(shouldLinkCommand({ kind: "link", target: app, exists: true }, app)).toBe(false);
+    expect(shouldLinkCommand({ kind: "link", target: "/Users/me/Downloads/Crewreview.app/Contents/MacOS/crewreview", exists: true }, app)).toBe(true);
+    expect(shouldLinkCommand({ kind: "link", target: "/gone/crewreview", exists: false }, app)).toBe(true);
+    expect(shouldLinkCommand({ kind: "link", target: "/opt/homebrew/Cellar/crewreview/0.15.0/bin/crewreview", exists: true }, app)).toBe(false);
   });
 });

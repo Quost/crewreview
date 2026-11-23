@@ -4,6 +4,15 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- The desktop app keeps the terminal's `crewreview` on its own version. On macOS and Linux, if the first `crewreview` on your PATH is a separate copy (the install script's, in `~/.local/bin`) or a link to an app that moved, the app replaces it with a link to the `crewreview` inside the app, so each app update reaches the terminal too. The activity log says when it does. A link from a package manager (Homebrew) is left alone, and nothing is created where there was nothing.
+- Harnesses & limits has a "Test the writes" button for a harness whose write test failed or never ran. Before, the button only appeared while the read-only test was missing, so a harness that passed that one and failed the write test couldn't be tested again from the app.
+
+### Fixed
+
+- A `crewreview` in the terminal older than the service that runs the crew says so on every command. `crewreview doctor --conformance` from such a copy no longer records harness tests: they'd test a version that no longer runs, and the service would use them. A 0.14 copy in the terminal had kept Kiro's failed write test on record after the app moved to 0.15.
+
 ## 0.16.0 — 2026-11-23
 
 Stacked pull requests that stay in line, bottom up, without fighting their own squash.
