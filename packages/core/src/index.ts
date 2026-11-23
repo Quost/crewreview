@@ -3,6 +3,7 @@ export * from "./diff.ts";
 export * from "./evidence.ts";
 export * from "./dedupe.ts";
 export * from "./verdict.ts";
+export * from "./guidelines.ts";
 export * from "./json.ts";
 export * from "./schema.ts";
 export * from "./untrusted.ts";

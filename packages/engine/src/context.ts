@@ -1,12 +1,13 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type OmittedFile } from "@crewreview/core";
-import { commitSubjects, diffText, exportTree, fileHistory, mergeBase, showFile } from "./git.ts";
+import { fitGuidelines, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
+import { commitSubjects, diffText, exportTree, fileHistory, listDir, mergeBase, showFile } from "./git.ts";
 
 /** Project docs that hold rules a reviewer should apply, read from the rules ref. */
 const GUIDELINE_FILES = ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", ".github/copilot-instructions.md", ".cursorrules", "docs/CONTRIBUTING.md"];
-const GUIDELINE_MAX = 20_000;
+/** Folders of rules agents follow in that project (Kiro steering, Copilot instructions): their .md files. */
+const GUIDELINE_DIRS = [".kiro/steering", ".github/instructions"];
 
 export interface ChangeContext {
   jobDir: string;
@@ -23,6 +24,8 @@ export interface ChangeContext {
   changedLines: number;
   commits: string[];
   guidelines: string[];
+  /** Rules read only in part. */
+  guidelinesCut: string[];
 }
 
 export interface BuildContextOptions {
@@ -36,6 +39,32 @@ export interface BuildContextOptions {
   rulesRef: string;
   /** More files for ./ctx/ (pull request text, discussion, CI, delta since the last review). */
   extraContext?: Record<string, string>;
+  /** More rules the repository's settings name: paths in it; a folder gives its .md files. */
+  guidelines?: readonly string[];
+}
+
+/** The project's rules from the rules ref: the usual files, then the ones the settings name, then rule folders. */
+async function readGuidelines(root: string, ref: string, extra: readonly string[]): Promise<GuidelineDoc[]> {
+  const docs: GuidelineDoc[] = [];
+  const seen = new Set<string>();
+  const add = async (path: string) => {
+    if (seen.has(path)) return;
+    seen.add(path);
+    const text = await showFile(root, ref, path);
+    if (text?.trim()) docs.push({ path, text });
+  };
+  const folder = async (dir: string) => {
+    for (const name of (await listDir(root, ref, dir)).filter((n) => n.toLowerCase().endsWith(".md")).sort()) await add(`${dir}/${name}`);
+  };
+  for (const path of GUIDELINE_FILES) await add(path);
+  for (const raw of extra) {
+    const path = normalizeRepoPath(raw);
+    if (!path) continue;
+    if ((await listDir(root, ref, path)).length) await folder(path);
+    else await add(path);
+  }
+  for (const dir of GUIDELINE_DIRS) await folder(dir);
+  return docs;
 }
 
 /** Lay out the job folder the agents work in: `head/` (the tree) and `ctx/` (everything else). */
@@ -79,15 +108,10 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     ].join("\n"),
   );
 
-  const guidelines: string[] = [];
-  const parts: string[] = [];
-  for (const path of GUIDELINE_FILES) {
-    const text = await showFile(o.root, o.rulesRef, path);
-    if (!text?.trim()) continue;
-    guidelines.push(path);
-    const clipped = text.length > GUIDELINE_MAX ? `${text.slice(0, GUIDELINE_MAX)}\n\n[… cut at ${GUIDELINE_MAX} characters]` : text;
-    parts.push(`<!-- ${path} -->\n${clipped.trim()}\n`);
-  }
+  const fit = fitGuidelines(await readGuidelines(o.root, o.rulesRef, o.guidelines ?? []));
+  const guidelines = fit.included.map((d) => d.path);
+  const parts = fit.included.map((d) => `<!-- ${d.path} -->\n${d.text}\n`);
+  if (fit.cut.length) parts.unshift(`(Read only in part, too long for the room: ${fit.cut.join(", ")}.)\n`);
   await writeFile(join(ctxDir, "guidelines.md"), parts.length ? parts.join("\n") : "(The project has no written guidelines.)\n");
 
   const history: string[] = ["# Recent history of the changed files", ""];
@@ -116,6 +140,7 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     changedLines: totalChangedLines(files),
     commits,
     guidelines,
+    guidelinesCut: fit.cut,
   };
 }
 

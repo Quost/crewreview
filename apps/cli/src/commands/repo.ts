@@ -17,6 +17,7 @@ export interface RepoArgs {
   ci?: string;
   account?: string;
   paused?: string;
+  guidelines?: string;
 }
 
 const onOff = (v: string | undefined, current: boolean) => (v === undefined ? current : v === "on");
@@ -165,6 +166,8 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       authors: (a.authors as RepoEntry["review"]["authors"]) ?? e.review.authors,
       commentLanguage: a.lang ?? e.review.commentLanguage,
       account,
+      // "none" empties the list: back to the usual files only.
+      guidelines: a.guidelines === undefined ? e.review.guidelines : a.guidelines.trim() === "none" ? undefined : patterns(a.guidelines),
     },
     attend: {
       ...e.attend,

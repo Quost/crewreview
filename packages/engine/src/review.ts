@@ -78,6 +78,8 @@ export interface ReviewOptions {
   existingComments?: ExistingComment[];
   /** More files for ./ctx/. */
   extraContext?: Record<string, string>;
+  /** More project rules to read, besides the usual files: paths in the repository, a folder gives its .md files. */
+  guidelines?: readonly string[];
   /** Head of the previous review, when this one looks at what changed since. */
   deltaFrom?: string;
   signal?: AbortSignal;
@@ -116,6 +118,8 @@ export interface ReviewReport {
   omitted?: OmittedFile[];
   commits: string[];
   guidelines: string[];
+  /** Project rules read only in part: too long, or past the room for all of them. */
+  guidelinesCut?: string[];
   lenses: LensResult[];
   findings: Finding[];
   droppedByEvidence: number;
@@ -158,7 +162,7 @@ function failedLens(lens: string, harness: string, durationMs: number, failure: 
 export async function runReview(o: ReviewOptions, version: string): Promise<ReviewReport> {
   const startedAt = new Date().toISOString();
   await mkdir(o.jobDir, { recursive: true });
-  const ctx = await buildContext({ ...o.target, jobDir: o.jobDir, extraContext: o.extraContext });
+  const ctx = await buildContext({ ...o.target, jobDir: o.jobDir, extraContext: o.extraContext, guidelines: o.guidelines });
   o.onEvent?.({ type: "context", context: ctx });
   if (ctx.files.length === 0) throw new ReviewError("no-changes", { base: o.target.base, head: o.target.branch });
   // Lines of files left out of the diff (a bundle, a generated file) aren't read, so they don't count.
@@ -325,6 +329,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     ...(ctx.omitted.length ? { omitted: ctx.omitted } : {}),
     commits: ctx.commits,
     guidelines: ctx.guidelines,
+    ...(ctx.guidelinesCut.length ? { guidelinesCut: ctx.guidelinesCut } : {}),
     lenses: results,
     findings,
     droppedByEvidence,

@@ -23,6 +23,8 @@ const ReviewSettings = z
     harness: z.string().optional(),
     verifier: z.string().optional(),
     allowApprove: z.boolean().optional(),
+    /** More project rules for the reviewers, besides AGENTS.md and the like: paths in the repository; a folder gives its .md files. */
+    guidelines: z.array(z.string()).optional(),
     /** Post reviews as this account instead of yours: a login signed in to gh, or env:VARIABLE with its token. */
     account: z.string().optional(),
   })

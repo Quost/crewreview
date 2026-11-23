@@ -9,6 +9,15 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - The website moved to https://crewreview.pururucos.com.br. The old crewreview.web.app addresses, the install scripts included, redirect there.
 - The website tells search engines about changes through IndexNow (`bun run site:indexnow` after a deploy), and its llms.txt describes the dashboard again instead of printing "undefined".
 
+### Added
+
+- Reviewers read the project's rule folders too, `.kiro/steering/` and `.github/instructions/` (their .md files), and any more files or folders a repository names with `crewreview repo set <id> --guidelines <a,b>` (`[repo.review] guidelines`).
+
+### Fixed
+
+- Project rules are no longer cut at 20,000 characters per file: each file gets up to 60,000 and all of them 120,000. A long AGENTS.md lost most of its rules before. When rules are still cut, the review says which ones.
+- "Not reviewed" lists only the changed files no lens read. A file one lens skipped as outside its concern but another lens read is no longer listed, and no longer keeps the review from approving.
+
 ## 0.14.2 — 2026-11-22
 
 Answers that report what they couldn't do and retry safely, and a website that says who makes it.

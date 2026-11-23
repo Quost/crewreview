@@ -1,4 +1,4 @@
-import type { Finding, LensResult, Severity } from "@crewreview/core";
+import { unreviewedFiles, type Finding, type LensResult, type Severity } from "@crewreview/core";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
 
@@ -73,8 +73,9 @@ export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN
     const detail = v.ok ? t.t("local.verifierSummary", { dropped: v.dropped.length, downgraded: v.downgraded }) : failureText(v.error, t);
     lines.push(`  ${mark} ${t.t("local.verifier").padEnd(14)} ${st.dim(v.harness.padEnd(8))} ${st.dim(seconds(v.durationMs ?? 0).padStart(6))}  ${detail}`);
   }
-  const uncovered = [...new Set(r.lenses.flatMap((l) => l.uncovered))];
+  const uncovered = unreviewedFiles(r.lenses);
   if (uncovered.length) lines.push(st.dim(`  ${t.t("local.uncovered", { files: uncovered.join(", ") })}`));
+  if (r.guidelinesCut?.length) lines.push(st.dim(`  ${t.t("local.guidelinesCut", { files: r.guidelinesCut.join(", ") })}`));
   if (r.omitted?.length) lines.push(st.dim(`  ${t.t("local.leftOut", { files: r.omitted.map((f) => f.path).join(", ") })}`));
   lines.push("", st.bold(`${t.t("local.findings")} (${r.findings.length})`));
   if (r.findings.length === 0) lines.push(`  ${t.t("local.noFindings")}`);
