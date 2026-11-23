@@ -279,6 +279,12 @@ describe("agent output", () => {
     expect(extractJson('{"findings":[]}')).toEqual({ findings: [] });
     expect(extractJson('\x1b[32mDone.\x1b[0m Here: {"x": {"y": 1}} thanks')).toEqual({ x: { y: 1 } });
     expect(extractJson("no json here")).toBeUndefined();
+    // A brace in the sentence before the answer: code the agent quoted.
+    const answer = { findings: [{ path: "a.ex", line: 184, title: "pagination shows with no alerts" }], coverage: "full", uncovered: [] };
+    expect(extractJson(`The pager sits outside \`:if={@meter["alerts"] != []}\`.\n${JSON.stringify(answer)}`)).toEqual(answer);
+    // And one in a sentence after it.
+    expect(extractJson(`${JSON.stringify(answer)}\nSee {the docs} for more.`)).toEqual(answer);
+    expect(extractJson("{ not json } and { neither }")).toBeUndefined();
   });
 
   test("lens output keeps valid findings and maps severity aliases", () => {
