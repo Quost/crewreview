@@ -49,6 +49,23 @@ export interface Verdict {
   counts: Record<Severity, number>;
 }
 
+/**
+ * Changed files no lens read: some lens listed them as not reviewed, and none that ran to the end read them. A lens
+ * keeps to its own concern (architecture may skip a stylesheet), so a file another lens read was reviewed.
+ */
+export function unreviewedFiles(lenses: readonly LensResult[]): string[] {
+  const listed = [...new Set(lenses.flatMap((l) => l.uncovered))];
+  return listed.filter((f) => !lenses.some((l) => l.status === "ok" && !l.uncovered.includes(f)));
+}
+
+/** A lens that didn't finish, or a changed file no lens read: the review isn't whole. */
+function incomplete(lenses: readonly LensResult[]): boolean {
+  if (lenses.some((l) => l.status === "failed" || l.status === "hallucinated")) return true;
+  // Partial without saying which files: nobody knows what it skipped.
+  if (lenses.some((l) => l.coverage === "partial" && l.uncovered.length === 0)) return true;
+  return unreviewedFiles(lenses).length > 0;
+}
+
 /** The model proposes; this decides. Same inputs, same verdict, every time. */
 export function decideVerdict(input: VerdictInput, policy: VerdictPolicy = DEFAULT_POLICY): Verdict {
   const counts: Record<Severity, number> = { blocker: 0, major: 0, minor: 0, nit: 0 };
@@ -63,9 +80,7 @@ export function decideVerdict(input: VerdictInput, policy: VerdictPolicy = DEFAU
   const reasons: VerdictReason[] = [];
   if (!policy.allowApprove) reasons.push("approve-disabled");
   if (input.findings.some((f) => atLeast(f.severity, policy.approveBlockedAt))) reasons.push("findings-block-approval");
-  if (input.lenses.some((l) => l.status === "failed" || l.status === "hallucinated" || l.coverage === "partial")) {
-    reasons.push("lens-failed");
-  }
+  if (incomplete(input.lenses)) reasons.push("lens-failed");
   if (input.partial) reasons.push("partial-review");
   if (!(input.ci === "green" || input.ci === "none")) reasons.push("ci-not-green");
   if (input.changedLines > policy.approveMaxChangedLines) reasons.push("diff-too-large");

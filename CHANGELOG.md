@@ -7,6 +7,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Added
 
 - Automatic approvals can be turned on or off per repository, in the dashboard (Repositories) and with `crewreview repo set <id> --approve on|off|default`. `default` follows the setting for all repositories (`review.policy.allowApprove`, in Settings).
+- Reviewers read the project's rule folders too, `.kiro/steering/` and `.github/instructions/` (their .md files), and any more files or folders a repository names with `crewreview repo set <id> --guidelines <a,b>` (`[repo.review] guidelines`).
 
 ### Changed
 
@@ -20,6 +21,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - That problem is said once per repository and reason, not on every check and with a different pull request each time.
 - Without a network connection, the check says "no connection" once, in its summary, instead of the host's raw error for each repository, and no longer counts the repositories it couldn't reach as checked.
 - A lens whose answer came after a sentence with a brace in it, such as quoted code like `:if={@x != []}`, no longer fails with "parse" and loses its findings: the answer is found after the sentence.
+- Project rules are no longer cut at 20,000 characters per file: each file gets up to 60,000 and all of them 120,000. A long AGENTS.md lost most of its rules before. When rules are still cut, the review says which ones.
+- "Not reviewed" lists only the changed files no lens read. A file one lens skipped as outside its concern but another lens read is no longer listed, and no longer keeps the review from approving.
 
 ### Security
 

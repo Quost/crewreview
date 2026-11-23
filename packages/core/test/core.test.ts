@@ -7,6 +7,7 @@ import {
   dedupeAgainstThreads,
   dedupeFindings,
   extractJson,
+  fitGuidelines,
   fence,
   identifiers,
   makeMarker,
@@ -19,6 +20,7 @@ import {
   patchFingerprint,
   redactSecrets,
   sameSignature,
+  unreviewedFiles,
   slimDiff,
   totalChangedLines,
   unquoteGitPath,
@@ -270,6 +272,36 @@ describe("verdict", () => {
     expect(decideVerdict({ ...base, findings: [finding()] }, policy).reasons).toEqual(["findings-block-approval"]);
     expect(decideVerdict({ ...base, lenses: [{ ...okLens(), status: "failed" }] }, policy).reasons).toEqual(["lens-failed"]);
     expect(decideVerdict({ ...base, partial: true }, policy).reasons).toEqual(["partial-review"]);
+  });
+
+  test("a file one lens skipped but another read was reviewed; one no lens read was not", () => {
+    const policy = { requestChangesAt: "blocker" as const, allowApprove: true, approveBlockedAt: "major" as const, approveMaxChangedLines: 1500, requireVerifier: true };
+    const base = { findings: [], ci: "green" as const, changedLines: 10, verifierRan: true, partial: false };
+    const skipped = (lens: string, uncovered: string[]): LensResult => ({ ...okLens(lens), coverage: "partial", uncovered });
+    const lenses = [skipped("architecture", ["ui.css", "page.tsx"]), okLens("security"), skipped("ui", ["page.tsx"])];
+    expect(unreviewedFiles(lenses)).toEqual([]);
+    expect(decideVerdict({ ...base, lenses }, policy).event).toBe("approve");
+    // Only lenses that finished count as having read a file.
+    const nobody = [skipped("architecture", ["page.tsx"]), { ...okLens("security"), status: "failed" as const }];
+    expect(unreviewedFiles(nobody)).toEqual(["page.tsx"]);
+    expect(decideVerdict({ ...base, lenses: [skipped("architecture", ["page.tsx"]), skipped("ui", ["page.tsx"])] }, policy).reasons).toEqual(["lens-failed"]);
+    // Partial without saying what it skipped: nobody knows.
+    expect(decideVerdict({ ...base, lenses: [skipped("architecture", []), okLens("security")] }, policy).reasons).toEqual(["lens-failed"]);
+  });
+});
+
+describe("project rules", () => {
+  test("they fit in order: a long one is cut and named, past the total the rest is left out and named", () => {
+    const room = { perFile: 10, total: 25 };
+    const r = fitGuidelines([{ path: "AGENTS.md", text: "a".repeat(30) }, { path: "empty.md", text: "  " }, { path: "b.md", text: "bbbbb" }, { path: "c.md", text: "c".repeat(20) }, { path: "d.md", text: "d" }], room);
+    expect(r.included.map((d) => [d.path, d.text.slice(0, 12)])).toEqual([
+      ["AGENTS.md", "aaaaaaaaaa\n\n"],
+      ["b.md", "bbbbb"],
+      ["c.md", "cccccccccc\n\n"],
+    ]);
+    expect(r.included[0]!.text).toContain("cut at 10 of 30");
+    expect(r.cut).toEqual(["AGENTS.md", "c.md", "d.md"]);
+    expect(fitGuidelines([{ path: "AGENTS.md", text: "x".repeat(50_816) }]).cut).toEqual([]);
   });
 });
 

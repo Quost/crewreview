@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { makeMarker, parseMarker, parseUnifiedDiff, splitInline, type Finding, type Severity } from "@crewreview/core";
+import { makeMarker, parseMarker, parseUnifiedDiff, splitInline, unreviewedFiles, type Finding, type Severity } from "@crewreview/core";
 import type { InlineComment, PostReviewInput, Thread } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
@@ -46,8 +46,9 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   ];
   if (report.delta) body.push("", t.t("post.delta", { sha: report.delta.slice(0, 7) }));
   const notes: string[] = [];
-  const uncovered = [...new Set(report.lenses.flatMap((l) => l.uncovered))];
+  const uncovered = unreviewedFiles(report.lenses);
   if (uncovered.length) notes.push(t.t("post.notCovered", { files: uncovered.map((f) => `\`${f}\``).join(", ") }));
+  if (report.guidelinesCut?.length) notes.push(t.t("post.guidelinesCut", { files: report.guidelinesCut.map((f) => `\`${f}\``).join(", ") }));
   if (report.omitted?.length) notes.push(t.t("post.leftOut", { files: report.omitted.map((f) => `\`${f.path}\``).join(", ") }));
   if (report.verifier.dropped.length) notes.push(t.tp("post.droppedByVerifier", report.verifier.dropped.length));
   if (report.coveredByThreads) notes.push(t.tp("post.alreadyDiscussed", report.coveredByThreads));
