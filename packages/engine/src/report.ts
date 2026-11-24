@@ -1,4 +1,4 @@
-import { unreviewedFiles, type Finding, type LensResult, type Severity } from "@crewreview/core";
+import { countChecks, unreviewedFiles, type Finding, type LensResult, type Severity } from "@crewreview/core";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
 
@@ -60,6 +60,16 @@ function findingBlock(f: Finding, t: Translator, st: Style): string[] {
   return out;
 }
 
+/** The claims and rules a review checked, failures first, one line each. */
+function checkLines(r: ReviewReport, t: Translator): string[] {
+  if (!r.checks?.length) return [];
+  const order = { fails: 0, unverified: 1, holds: 2 } as const;
+  const mark = { holds: "✓", fails: "✗", unverified: "?" } as const;
+  return [...r.checks]
+    .sort((a, b) => order[a.status] - order[b.status])
+    .map((c) => `${mark[c.status]} ${c.text} (${t.t(`post.check.${c.kind}`)}${c.source ? `, ${c.source}` : ""})${c.evidence && !c.unproven ? ` · ${c.evidence}` : ""}`);
+}
+
 export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN_STYLE, heading = t.t("local.title")): string {
   const additions = r.files.reduce((n, f) => n + f.additions, 0);
   const deletions = r.files.reduce((n, f) => n + f.deletions, 0);
@@ -84,6 +94,8 @@ export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN
   if (r.findings.length === 0) lines.push(`  ${t.t("local.noFindings")}`);
   for (const f of r.findings) lines.push(...findingBlock(f, t, st), "");
   if (r.droppedByEvidence > 0) lines.push(st.dim(`  ${t.tp("local.droppedEvidence", r.droppedByEvidence)}`));
+  const checks = checkLines(r, t);
+  if (checks.length) lines.push("", st.bold(t.t("post.checks", countChecks(r.checks!))), ...checks.map((l) => `  ${l}`));
 
   const event = t.t(`verdict.${r.verdict.event}`);
   const color = r.verdict.event === "request_changes" ? st.red : r.verdict.event === "approve" ? st.green : st.yellow;
@@ -115,6 +127,8 @@ export function renderMarkdown(r: ReviewReport, t: Translator): string {
     if (f.suggestion) out.push("```", f.suggestion.trim(), "```", "");
     out.push(`<sub>${f.lenses.join(", ")} · ${f.confidence}${f.verification ? ` · ${f.verification.action}` : ""}</sub>`, "");
   }
+  const checks = checkLines(r, t);
+  if (checks.length) out.push(`## ${t.t("post.checks", countChecks(r.checks!))}`, "", ...checks.map((l) => `- ${l}`), "");
   out.push(`## ${t.t("local.lenses")}`, "", "| lens | harness | status | findings | time |", "|---|---|---|---|---|");
   for (const l of r.lenses) out.push(`| ${l.lens} | ${l.harness} | ${l.status} | ${l.findings.length} | ${seconds(l.durationMs)} |`);
   out.push("", `<sub>Crewreview ${r.version} · prompt v${r.promptVersion} · ${r.target.headSha.slice(0, 12)}</sub>`, "");

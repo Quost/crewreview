@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { makeMarker, parseMarker, parseUnifiedDiff, splitInline, unreviewedFiles, type Finding, type Severity, type SeverityStyle } from "@crewreview/core";
+import { countChecks, makeMarker, parseMarker, parseUnifiedDiff, splitInline, unreviewedFiles, type Finding, type Severity, type SeverityStyle } from "@crewreview/core";
 import type { InlineComment, PostReviewInput, Thread } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
@@ -93,6 +93,19 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   if (unconfirmed.length) {
     body.push("", `#### ${t.t("post.unconfirmed")}`, "");
     for (const f of unconfirmed) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` **${f.title}**`, "", f.body.trim().replace(/^/gm, "  "), "");
+  }
+  if (report.checks?.length) {
+    // Counted by code, failures first: the model only says what it checked and where.
+    const n = countChecks(report.checks);
+    const order = { fails: 0, unverified: 1, holds: 2 } as const;
+    const mark = { holds: "✅", fails: "❌", unverified: "❔" } as const;
+    body.push("", `<details><summary>${t.t("post.checks", n)}</summary>`, "");
+    for (const c of [...report.checks].sort((a, b) => order[a.status] - order[b.status])) {
+      const where = c.evidence && !c.unproven ? ` · \`${c.evidence.replace(/`/g, "").trim()}\`` : c.unproven ? ` · ${t.t("post.check.unproven")}` : "";
+      const from = c.source ? ` (${t.t(`post.check.${c.kind}`)}, ${c.source.replace(/[`<>]/g, "")})` : ` (${t.t(`post.check.${c.kind}`)})`;
+      body.push(`- ${mark[c.status]} ${c.text.replace(/[<>]/g, "")}${from}${where}`);
+    }
+    body.push("", "</details>");
   }
   if (extraNits.length) {
     body.push("", `<details><summary>${t.tp("post.moreNits", extraNits.length)}</summary>`, "");

@@ -104,6 +104,12 @@ export async function fileHistory(root: string, ref: string, path: string, max =
  * Write the tree of `commit` into `dest` using a throwaway index, so the user's index, HEAD and worktree list
  * stay untouched. Submodules are skipped and LFS files stay as pointers.
  */
+/** Every file path at a commit. */
+export async function listFiles(root: string, ref: string): Promise<string[]> {
+  const r = await git(["ls-tree", "-r", "--name-only", "-z", ref], root);
+  return r.code === 0 ? r.stdout.split("\0").filter(Boolean) : [];
+}
+
 export async function exportTree(root: string, commit: string, dest: string): Promise<void> {
   await mkdir(dest, { recursive: true });
   const tmp = await mkdtemp(join(tmpdir(), "crewreview-index-"));
@@ -117,8 +123,15 @@ export async function exportTree(root: string, commit: string, dest: string): Pr
 }
 
 /** Where `name` appears as a whole word in the tree at `ref`: path, line and text, at most `max` (plus whether there were more). */
-export async function grepWord(root: string, ref: string, name: string, max: number): Promise<{ hits: { path: string; line: number; text: string }[]; more: boolean }> {
-  const r = await git(["grep", "-n", "-I", "-w", "-F", "-e", name, ref, "--"], root);
+export async function grepWord(
+  root: string,
+  ref: string,
+  name: string,
+  max: number,
+  /** Only in these paths (git pathspecs); everywhere when empty. */
+  paths: readonly string[] = [],
+): Promise<{ hits: { path: string; line: number; text: string }[]; more: boolean }> {
+  const r = await git(["grep", "-n", "-I", "-w", "-F", "-e", name, ref, "--", ...paths], root);
   if (r.code !== 0) return { hits: [], more: false };
   const hits: { path: string; line: number; text: string }[] = [];
   const lines = r.stdout.split("\n").filter(Boolean);

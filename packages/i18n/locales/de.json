@@ -775,5 +775,9 @@
   "post.cut": "Zu groß für die ganze Ansicht: die ersten Abschnitte wurden gezeigt, der Rest aus dem Code gelesen: {files}.",
   "post.scenario": "Szenario:",
   "post.noScenario": "von {from} herabgestuft: kein Szenario",
-  "post.unconfirmed": "Nicht bestätigt: Fragen, keine Befunde"
+  "post.unconfirmed": "Nicht bestätigt: Fragen, keine Befunde",
+  "post.checks": "Aussagen und Regeln am Code geprüft: ✅ {holds} · ❌ {fails} · ❔ {unverified}",
+  "post.check.claim": "Aussage",
+  "post.check.rule": "Regel",
+  "post.check.unproven": "keine Stelle im Code angegeben"
 }

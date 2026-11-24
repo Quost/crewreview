@@ -133,7 +133,7 @@ The app and the command line are the same crew and share their settings: the app
   </picture>
 </p>
 
-Several read-only lenses look at the change in parallel: correctness, contracts (the callers of what changed, which the diff doesn't show), security, architecture, tests and UI, plus any your repository adds. A verifier, from another vendor if you like, tries to prove each finding wrong. Findings that don't point at a real file and line are dropped, and a fixed rule (not a model) decides the verdict: request changes, comment or approve. It reads the description, the discussion so far, CI and what changed since its last review, and never repeats a point already made. One review, with inline comments, from your account.
+Several read-only lenses look at the change in parallel: correctness, contracts (the callers of what changed, which the diff doesn't show), security, architecture, tests, UI, and docs and claims (what the description, commits and docs say, checked against the code, and settings missing from the deploy notes), plus any your repository adds. A verifier, from another vendor if you like, tries to prove each finding wrong. Findings that don't point at a real file and line are dropped, and a fixed rule (not a model) decides the verdict: request changes, comment or approve. It reads the description, the discussion so far, CI and what changed since its last review, and never repeats a point already made. One review, with inline comments, from your account.
 
 ### 🛠️ Answers the reviews on yours
 
@@ -341,7 +341,7 @@ dailyRuns = 200               # most agent runs a day (each lens, verifier or at
 [review]
 settle = "3m"                 # wait after a new push
 ciMaxWait = "45m"             # wait for running CI up to this long
-lenses = ["correctness", "contracts", "security", "architecture", "tests", "ui"]
+lenses = ["correctness", "contracts", "security", "architecture", "tests", "ui", "docs"]
 commentLanguage = "en"        # language the agents write findings in
 
 [review.policy]

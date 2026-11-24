@@ -24,6 +24,11 @@ test("the post opens with the trust seal and what it rests on, in the chosen sty
       verifier: { ran: true, ok: true, dropped: [], downgraded: 0 },
       verdict: { event: "comment", reasons: ["approve-disabled"], counts: { blocker: 0, major: 1, minor: 0, nit: 3 } },
       trust: { level: "partial", reasons: ["major-open"] },
+      checks: [
+        { kind: "claim", text: "Idempotent by deal_id", source: "docs/integration.md", status: "holds", evidence: "scripts/b.mjs:10" },
+        { kind: "rule", text: "New settings go to DEPLOY.md", status: "fails", evidence: "docs/DEPLOY.md:3" },
+        { kind: "claim", text: "Only the worker writes <ids>", source: "pr", status: "unverified", unproven: true },
+      ],
       jobDir,
     } as unknown as ReviewReport;
     const t = createTranslator("en");
@@ -42,6 +47,14 @@ test("the post opens with the trust seal and what it rests on, in the chosen sty
     expect(r.comments.some((c) => c.line === 5)).toBe(false);
     expect(r.body).toContain("#### Not confirmed: questions, not findings");
     expect(r.body).toContain("`src/a.ts:5` **title F5**");
+    // What was checked, counted by code, failures first.
+    expect(r.body).toContain("<summary>Claims and rules checked against the code: ✅ 1 · ❌ 1 · ❔ 1</summary>");
+    const checks = lines.filter((l) => /^- (✅|❌|❔)/.test(l));
+    expect(checks).toEqual([
+      "- ❌ New settings go to DEPLOY.md (rule) · `docs/DEPLOY.md:3`",
+      "- ❔ Only the worker writes ids (claim, pr) · no place in the code was given",
+      "- ✅ Idempotent by deal_id (claim, docs/integration.md) · `scripts/b.mjs:10`",
+    ]);
     expect(DEFAULT_POLICY.requestChangesAt).toBe("blocker");
   } finally {
     await rm(jobDir, { recursive: true, force: true });

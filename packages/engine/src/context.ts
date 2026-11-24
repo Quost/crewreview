@@ -1,8 +1,8 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
-import { changedSymbols, fitGuidelines, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
-import { commitSubjects, diffText, exportTree, fileHistory, grepWord, listDir, mergeBase, showFile } from "./git.ts";
+import { changedSymbols, DECISION_RECORD, DEPLOY_DOC, ENV_EXAMPLE, envChanges, fileMentions, fitGuidelines, isDocOrSetting, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
+import { commitSubjects, diffText, exportTree, fileHistory, grepWord, listDir, listFiles, mergeBase, showFile } from "./git.ts";
 
 /** Project docs that hold rules a reviewer should apply, read from the rules ref. */
 const GUIDELINE_FILES = ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", ".github/copilot-instructions.md", ".cursorrules", "docs/CONTRIBUTING.md"];
@@ -122,6 +122,7 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
   }
   await writeFile(join(ctxDir, "history.md"), history.join("\n"));
   await writeFile(join(ctxDir, "callers.md"), await callersMarkdown(o.root, o.headSha, diff));
+  await writeFile(join(ctxDir, "docs.md"), await docsMarkdown(o.root, o.headSha, diff, files));
   for (const [name, content] of Object.entries(o.extraContext ?? {})) {
     if (!/^[a-z0-9-]+\.(md|patch|txt|json)$/.test(name)) throw new Error(`bad context file name: ${name}`);
     await writeFile(join(ctxDir, name), content);
@@ -166,6 +167,89 @@ async function callersMarkdown(root: string, headSha: string, diff: string): Pro
     if (more || uses.length > CALLERS_PER_NAME) out.push(`- … more uses not listed: search ./head/ for "${s.name}"`);
     out.push("");
   }
+  return out.join("\n");
+}
+
+const MENTIONS_PER_NAME = 10;
+const MAX_DOC_NAMES = 40;
+/** Pathspecs passed to one git grep: past this many doc files, the search runs over the whole tree and is filtered. */
+const MAX_DOC_PATHS = 3000;
+
+/**
+ * What the docs lens checks, found by git: the environment variables the change starts or stops reading and where
+ * they're written down (or not), the docs that name the changed files and functions, and the docs, examples and
+ * decision records in the change and in the repository. The lens judges the list; it doesn't have to find it.
+ */
+async function docsMarkdown(root: string, headSha: string, diff: string, files: readonly DiffFile[]): Promise<string> {
+  const tree = await listFiles(root, headSha);
+  const docs = tree.filter(isDocOrSetting);
+  const examples = tree.filter((p) => ENV_EXAMPLE.test(p));
+  const deployDocs = tree.filter((p) => DEPLOY_DOC.test(p));
+  const decisions = tree.filter((p) => DECISION_RECORD.test(p));
+  const inDocs = async (name: string, skip?: string) => {
+    const { hits, more } = await grepWord(root, headSha, name, MENTIONS_PER_NAME * 4, docs.length <= MAX_DOC_PATHS ? docs : []);
+    const kept = hits.filter((h) => isDocOrSetting(h.path) && h.path !== skip);
+    return { hits: kept.slice(0, MENTIONS_PER_NAME), more: more || kept.length > MENTIONS_PER_NAME };
+  };
+  const line = (h: { path: string; line: number; text: string }) => `  - ${h.path}:${h.line}: ${redactSecrets(h.text.trim()).slice(0, 200)}`;
+
+  const out = [
+    "# Docs and settings around this change",
+    "",
+    "Found by searching ./head/ for exact words, so a mention can be unrelated and a doc that describes the change in other words isn't listed. Open each before you judge it.",
+    "",
+  ];
+  const env = envChanges(diff);
+  out.push("## Environment variables this change starts reading", "");
+  if (env.added.length === 0) out.push("(none found)", "");
+  for (const v of env.added) {
+    const { hits, more } = await inDocs(v.name);
+    out.push(`- ${v.name}, read at ${v.path}:${v.line}`);
+    const missing = [...examples, ...deployDocs].filter((p) => !hits.some((h) => h.path === p));
+    if (missing.length && !more) out.push(`  - not mentioned in: ${missing.join(", ")}`);
+    out.push(...(hits.length ? hits.map(line) : ["  - not mentioned in any doc, example or settings file"]));
+    if (more) out.push(`  - … more mentions: search ./head/ for "${v.name}"`);
+  }
+  if (env.added.length) out.push("");
+  out.push("## Environment variables this change stops reading", "");
+  if (env.removed.length === 0) out.push("(none found)", "");
+  for (const v of env.removed) {
+    const { hits } = await inDocs(v.name);
+    out.push(`- ${v.name}, was read in ${v.path}`, ...(hits.length ? ["  - still mentioned in:", ...hits.map(line)] : ["  - no doc mentions it"]));
+  }
+  if (env.removed.length) out.push("");
+
+  out.push("## Docs that name the changed files or functions", "");
+  const names = new Map<string, string>();
+  for (const f of files) if (!isDocOrSetting(f.path)) for (const n of fileMentions(f.path)) names.set(n, f.path);
+  for (const s of changedSymbols(diff)) if (s.name.length >= 5 && !names.has(s.name)) names.set(s.name, s.path);
+  let found = 0;
+  const changed = new Set(files.map((f) => f.path));
+  const listed = new Set<string>();
+  for (const [name, path] of [...names].slice(0, MAX_DOC_NAMES)) {
+    const { hits, more } = await inDocs(name);
+    // A doc the change itself edits is in the diff already; the stale ones are those it didn't touch. A line found
+    // by a file's full name isn't listed again under its stem.
+    const stale = hits.filter((h) => !changed.has(h.path) && !listed.has(`${h.path}:${h.line}`));
+    for (const h of stale) listed.add(`${h.path}:${h.line}`);
+    if (stale.length === 0) continue;
+    found++;
+    out.push(`- "${name}" (${path})`, ...stale.map(line));
+    if (more) out.push(`  - … more: search ./head/ for "${name}"`);
+  }
+  if (found === 0) out.push("(no doc outside the change names them)");
+  out.push("");
+
+  const touched = files.filter((f) => isDocOrSetting(f.path));
+  out.push("## Docs, examples and settings this change edits", "", ...(touched.length ? touched.map((f) => `- ${f.status} ${f.path}`) : ["(none)"]), "");
+  out.push(
+    "## In the repository",
+    "",
+    `- Environment examples: ${examples.length ? examples.join(", ") : "none"}`,
+    `- Deploy and operations docs: ${deployDocs.length ? deployDocs.slice(0, 20).join(", ") : "none"}`,
+    `- Decision records: ${decisions.length ? `${decisions.length}, in ${[...new Set(decisions.map((p) => p.slice(0, p.lastIndexOf("/"))))].join(", ")}` : "none"}`,
+    "",
+  );
   return out.join("\n");
 }
 

@@ -63,6 +63,24 @@ export interface Finding {
   verification?: Verification;
 }
 
+/**
+ * A statement the review checked against the code: a claim the author made (in the description, a commit, a doc or a
+ * decision record), or one of the project's written rules. "holds" and "fails" need the place that shows it.
+ */
+export type CheckStatus = "holds" | "fails" | "unverified";
+export interface Check {
+  kind: "claim" | "rule";
+  /** The statement, short. */
+  text: string;
+  /** Where it was made: "pr", a commit, or a path. */
+  source?: string;
+  status: CheckStatus;
+  /** path:line in the reviewed tree that shows it holds or fails. */
+  evidence?: string;
+  /** Lowered to "unverified" by Crewreview: the place it gave isn't a real line. */
+  unproven?: boolean;
+}
+
 export type LensStatus = "ok" | "failed" | "hallucinated" | "skipped";
 
 export interface Usage {
@@ -81,6 +99,8 @@ export interface LensResult {
   findings: Finding[];
   coverage: "full" | "partial";
   uncovered: string[];
+  /** Claims and project rules the lens checked (the docs lens fills this). */
+  checks?: Check[];
   durationMs: number;
   error?: string;
   usage?: Usage;
