@@ -335,7 +335,7 @@ channel = "stable"            # or "beta"
 [limits]
 maxConcurrentAgents = 3
 agentTimeout = "20m"
-maxDiffLines = 4000
+maxDiffLines = 50000
 dailyRuns = 200               # most agent runs a day (each lens, verifier or attendant run counts one)
 
 [review]
@@ -347,6 +347,7 @@ commentLanguage = "en"        # language the agents write findings in
 [review.policy]
 requestChangesAt = "blocker"
 allowApprove = false
+approveMaxChangedLines = 50000  # bigger changes are never approved automatically; a repository can set its own
 ```
 
 A repository can tune its own review in `.crewreview/lenses/<lens>.md`: a file named like a built-in lens replaces its rubric, and any other file adds a lens.

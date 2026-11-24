@@ -57,6 +57,12 @@ describe("a repository's review settings", () => {
     expect(resolveReview(global, { profile: "fast", lenses: ["contracts"] }).lenses).toEqual(["contracts"]);
   });
 
+  test("its own size limit for an approval over the global one", () => {
+    expect(DEFAULT_POLICY.approveMaxChangedLines).toBe(50_000);
+    expect(resolveReview(global, { approveMaxChangedLines: 200_000 }).policy.approveMaxChangedLines).toBe(200_000);
+    expect(resolveReview(global, {}).policy.approveMaxChangedLines).toBe(50_000);
+  });
+
   test("gate approves only a trusted review, unless the repository says otherwise", () => {
     expect(resolveReview(global, { profile: "gate" }).policy.requireTrusted).toBe(true);
     expect(resolveReview(global, { profile: "gate", requireTrusted: false }).policy.requireTrusted).toBe(false);

@@ -20,7 +20,7 @@ export const DEFAULT_POLICY: VerdictPolicy = {
   requestChangesAt: "blocker",
   allowApprove: false,
   approveBlockedAt: "major",
-  approveMaxChangedLines: 1500,
+  approveMaxChangedLines: 50_000,
   requireVerifier: true,
 };
 

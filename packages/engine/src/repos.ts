@@ -29,6 +29,8 @@ const ReviewSettings = z
     requestChangesAt: z.union([z.enum(SEVERITIES), z.literal("never")]).optional(),
     /** Approve only a trusted review: over review.policy.requireTrusted (the gate profile turns it on). */
     requireTrusted: z.boolean().optional(),
+    /** Above this many changed lines, no automatic approval: over review.policy.approveMaxChangedLines. */
+    approveMaxChangedLines: z.number().int().min(0).optional(),
     /** crewreview (🔴 🟠 🟡 ⚪) or tupi (⛔ ⚠ 💅). */
     severityStyle: z.enum(["crewreview", "tupi"]).optional(),
     /** At most this many nits inline; the rest listed in the summary. */
