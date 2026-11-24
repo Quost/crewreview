@@ -784,5 +784,18 @@
   "post.check.rule": "Regel",
   "post.check.unproven": "keine Stelle im Code angegeben",
   "harness.reproved": "{harness} wurde auf {version} aktualisiert und hat den Test von selbst erneut bestanden.",
-  "harness.reproveFailed": "{harness} wurde auf {version} aktualisiert und hat den Test nicht bestanden; prüfe es unter Harnesses & Limits."
+  "harness.reproveFailed": "{harness} wurde auf {version} aktualisiert und hat den Test nicht bestanden; prüfe es unter Harnesses & Limits.",
+  "post.whyFlagged": "Warum das angemerkt wurde",
+  "post.evidence": "Beleg:",
+  "post.verifier.confirm": "Der Prüfer hat den Code geprüft und es bestätigt: {reason}",
+  "post.verifier.downgrade": "Der Prüfer hat es von {from} herabgestuft: {reason}",
+  "post.verifier.upgrade": "Der Prüfer hat es von {from} hochgestuft, siehe {place}: {reason}",
+  "post.notRepeated.one": "{count} schon früher genannter Befund wird nicht wiederholt ({severities}).",
+  "post.notRepeated.other": "{count} schon früher genannte Befunde werden nicht wiederholt ({severities}).",
+  "post.overNitCap.one": "{count} Kleinigkeit über dem Limit von {cap} pro Review steht unten statt an ihrer Zeile.",
+  "post.overNitCap.other": "{count} Kleinigkeiten über dem Limit von {cap} pro Review stehen unten statt an ihren Zeilen.",
+  "post.droppedNoEvidence.one": "{count} Befund wurde verworfen, weil er eine Datei oder Zeile nennt, die es nicht gibt.",
+  "post.droppedNoEvidence.other": "{count} Befunde wurden verworfen, weil sie eine Datei oder Zeile nennen, die es nicht gibt.",
+  "post.droppedUnread.one": "{count} Befund wurde verworfen, weil seine Linse die Datei nicht lesen konnte.",
+  "post.droppedUnread.other": "{count} Befunde wurden verworfen, weil ihre Linse die Dateien nicht lesen konnte."
 }

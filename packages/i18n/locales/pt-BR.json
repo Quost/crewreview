@@ -784,5 +784,18 @@
   "post.check.rule": "regra",
   "post.check.unproven": "sem um lugar no código que mostre",
   "harness.reproved": "{harness} atualizou para {version} e passou na prova de novo sozinho.",
-  "harness.reproveFailed": "{harness} atualizou para {version} e não passou na prova; confira em Harnesses e limites."
+  "harness.reproveFailed": "{harness} atualizou para {version} e não passou na prova; confira em Harnesses e limites.",
+  "post.whyFlagged": "Por que isto foi apontado",
+  "post.evidence": "Evidência:",
+  "post.verifier.confirm": "O verificador conferiu o código e confirmou: {reason}",
+  "post.verifier.downgrade": "O verificador rebaixou de {from}: {reason}",
+  "post.verifier.upgrade": "O verificador elevou de {from}, veja {place}: {reason}",
+  "post.notRepeated.one": "{count} achado já apontado antes não é repetido ({severities}).",
+  "post.notRepeated.other": "{count} achados já apontados antes não são repetidos ({severities}).",
+  "post.overNitCap.one": "{count} detalhe além do limite de {cap} por revisão está listado abaixo em vez de na linha.",
+  "post.overNitCap.other": "{count} detalhes além do limite de {cap} por revisão estão listados abaixo em vez de nas linhas.",
+  "post.droppedNoEvidence.one": "{count} achado foi descartado por citar um arquivo ou linha que não existe.",
+  "post.droppedNoEvidence.other": "{count} achados foram descartados por citar um arquivo ou linha que não existe.",
+  "post.droppedUnread.one": "{count} achado foi descartado porque a lente disse que não conseguiu ler o arquivo.",
+  "post.droppedUnread.other": "{count} achados foram descartados porque a lente disse que não conseguiu ler os arquivos."
 }

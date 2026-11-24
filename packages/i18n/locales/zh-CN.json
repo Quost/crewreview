@@ -768,5 +768,14 @@
   "post.check.rule": "规则",
   "post.check.unproven": "未给出代码中的位置",
   "harness.reproved": "{harness} 已更新到 {version}，并自动重新通过了验证。",
-  "harness.reproveFailed": "{harness} 已更新到 {version}，但未通过验证；请在“Harness 与限制”中检查。"
+  "harness.reproveFailed": "{harness} 已更新到 {version}，但未通过验证；请在“Harness 与限制”中检查。",
+  "post.whyFlagged": "为什么提出这条意见",
+  "post.evidence": "证据：",
+  "post.verifier.confirm": "验证者检查代码后确认了这一点：{reason}",
+  "post.verifier.downgrade": "验证者将其从 {from} 下调：{reason}",
+  "post.verifier.upgrade": "验证者将其从 {from} 上调，见 {place}：{reason}",
+  "post.notRepeated.other": "有 {count} 条之前已提出的意见不再重复（{severities}）。",
+  "post.overNitCap.other": "有 {count} 个细节超出每次审查 {cap} 个的上限，列在下面而不是对应的行上。",
+  "post.droppedNoEvidence.other": "有 {count} 条意见因引用不存在的文件或行而被丢弃。",
+  "post.droppedUnread.other": "有 {count} 条意见因其视角表示无法读取相应文件而被丢弃。"
 }

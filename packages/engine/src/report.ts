@@ -1,5 +1,6 @@
 import { countChecks, unreviewedFiles, type Finding, type LensResult, type Severity } from "@crewreview/core";
 import type { Translator } from "@crewreview/i18n";
+import { whyFlagged } from "./publish.ts";
 import type { ReviewReport } from "./review.ts";
 
 export interface Style {
@@ -125,6 +126,8 @@ export function renderMarkdown(r: ReviewReport, t: Translator): string {
   if (r.findings.length === 0) out.push(t.t("local.noFindings"), "");
   for (const f of r.findings) {
     out.push(`### ${t.t(`severity.${f.severity}`)} · \`${f.path}:${f.line}\` — ${f.title}`, "", f.body.trim(), "");
+    const why = whyFlagged(f, t);
+    if (why.length) out.push(...why, "");
     if (f.suggestion) out.push("```", f.suggestion.trim(), "```", "");
     out.push(`<sub>${f.lenses.join(", ")} · ${f.confidence}${f.verification ? ` · ${f.verification.action}` : ""}</sub>`, "");
   }

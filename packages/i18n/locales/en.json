@@ -784,5 +784,18 @@
   "post.check.rule": "rule",
   "post.check.unproven": "no place in the code was given",
   "harness.reproved": "{harness} updated to {version} and passed its proof again by itself.",
-  "harness.reproveFailed": "{harness} updated to {version} and failed its proof; check it in Harnesses & limits."
+  "harness.reproveFailed": "{harness} updated to {version} and failed its proof; check it in Harnesses & limits.",
+  "post.whyFlagged": "Why this was flagged",
+  "post.evidence": "Evidence:",
+  "post.verifier.confirm": "The verifier checked the code and confirmed it: {reason}",
+  "post.verifier.downgrade": "The verifier lowered it from {from}: {reason}",
+  "post.verifier.upgrade": "The verifier raised it from {from}, see {place}: {reason}",
+  "post.notRepeated.one": "{count} finding already raised earlier is not repeated ({severities}).",
+  "post.notRepeated.other": "{count} findings already raised earlier are not repeated ({severities}).",
+  "post.overNitCap.one": "{count} nit past the limit of {cap} per review is listed below instead of on its line.",
+  "post.overNitCap.other": "{count} nits past the limit of {cap} per review are listed below instead of on their lines.",
+  "post.droppedNoEvidence.one": "{count} finding was dropped for citing a file or line that doesn't exist.",
+  "post.droppedNoEvidence.other": "{count} findings were dropped for citing a file or line that doesn't exist.",
+  "post.droppedUnread.one": "{count} finding was dropped because its lens said it couldn't read that file.",
+  "post.droppedUnread.other": "{count} findings were dropped because their lens said it couldn't read those files."
 }
