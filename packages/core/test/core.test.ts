@@ -397,6 +397,11 @@ describe("markers and concurrency", () => {
     expect(parseMarker("no marker")).toBeUndefined();
   });
 
+  test("a malformed marker is no marker, not a crash", () => {
+    expect(parseMarker("<!-- crewreview:kind=review;v=1;ref=% -->")).toBeUndefined();
+    expect(parseMarker("<!-- crewreview:kind=finding;v=1;ref=%E0%A4%A -->")).toBeUndefined();
+  });
+
   test("mapLimit keeps order, caps concurrency and captures failures", async () => {
     let inFlight = 0;
     let peak = 0;

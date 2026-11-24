@@ -14,6 +14,14 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 - The tests lens asks what each new test would assert if the fix were reverted, and why the existing tests missed a bug that is being fixed.
 
+### Fixed
+
+- A malformed Crewreview marker in a pull request comment no longer stops the daemon's cycle, and one pull request that fails to review no longer stops the others.
+- Two daemons starting at the same moment can no longer both take the single-instance lock.
+- `/api/history` ignores a limit that isn't a positive number instead of returning every row.
+- Fixing a red CI now gives the agent the part of each failed job's log around what failed (the lines that name a failure, inside the step they belong to), instead of its last 120 lines. A job that kept running after the broken step used to hand over only uploads and cleanup, and the agent gave up for lack of the error.
+- Jobs whose log names a failure go first among the three a CI fix sees, and a job that only sums up the others (such as a "summary" job) goes last.
+
 ## 0.20.0 — 2026-11-23
 
 A trust seal on every review, profiles and verdict settings per repository, honest coverage of large files, and severe findings that say how they go wrong.

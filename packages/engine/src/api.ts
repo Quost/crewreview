@@ -171,7 +171,7 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
     }
     if (inboxMatch?.[2] === "approve" && m === "POST") return json(await crew.approve(inboxMatch[1]!));
     if (inboxMatch?.[2] === "discard" && m === "POST") return json({ ok: await crew.discard(inboxMatch[1]!) });
-    if (p === "/api/history" && m === "GET") return json(crew.history(Math.min(200, Number(url.searchParams.get("limit") ?? 50))));
+    if (p === "/api/history" && m === "GET") return json(crew.history(Math.max(1, Math.min(200, Number.parseInt(url.searchParams.get("limit") ?? "", 10) || 50))));
     if (p === "/api/harnesses" && m === "GET") return json(await crew.harnesses());
     const proveMatch = /^\/api\/harnesses\/([a-z0-9][a-z0-9-]*)\/prove$/.exec(p);
     if (proveMatch && m === "POST") {

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_RULES, reviewEligibility, stackOrder, stackParents, type PullRequest, type ReviewRules, type SkipReason } from "@crewreview/core";
@@ -188,7 +188,14 @@ export async function runCycle(
     log({ type: "start", repo: item.target.repo.id, number: item.pr.number, title: item.pr.title, sha: item.pr.headSha });
     const mode = item.target.repo.review.mode === "auto" ? "auto" : "inbox";
     const job = { repo: item.target.repo.id, number: item.pr.number, title: item.pr.title, kind: "review" as const };
-    const outcome = await reviewPullRequest({ ...d, onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, item.target, item.pr.number, mode);
+    let outcome: PrOutcome;
+    try {
+      outcome = await reviewPullRequest({ ...d, onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, item.target, item.pr.number, mode);
+    } catch (err) {
+      // One pull request that can't be reviewed (a host hiccup, a comment it can't read) mustn't stop the rest.
+      failed(item.target.repo.id, err);
+      continue;
+    }
     log({ type: "outcome", repo: item.target.repo.id, number: item.pr.number, outcome });
     if (outcome.kind === "harness") break; // no reviewer available: no point trying the rest
     reviewed++;
@@ -227,12 +234,25 @@ function alive(pid: number): boolean {
 /** One daemon per machine: a pid file in the state folder, taken over when its process is gone. */
 export async function acquireLock(stateDir: string): Promise<() => Promise<void>> {
   const file = join(stateDir, "daemon.pid");
-  if (existsSync(file)) {
-    const pid = Number(readFileSync(file, "utf8").trim());
-    if (pid && pid !== process.pid && alive(pid)) throw new LockedError(pid);
-  }
   await mkdir(stateDir, { recursive: true });
-  await writeFile(file, String(process.pid));
+  // Created only if absent, so two daemons starting at once can't both take it. A file left by a process
+  // that's gone is removed and the take tried once more.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await writeFile(file, String(process.pid), { flag: "wx" });
+      break;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+      let pid = 0;
+      try {
+        pid = Number(readFileSync(file, "utf8").trim());
+      } catch {}
+      if (pid === process.pid) break;
+      if (pid && alive(pid)) throw new LockedError(pid);
+      if (attempt > 0) throw new LockedError(pid);
+      await rm(file, { force: true });
+    }
+  }
   return async () => {
     try {
       if (readFileSync(file, "utf8").trim() === String(process.pid)) await rm(file, { force: true });

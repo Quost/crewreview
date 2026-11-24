@@ -22,3 +22,4 @@ export * from "./profiles.ts";
 export * from "./quota.ts";
 export * from "./seats.ts";
 export * from "./task.ts";
+export * from "./ci.ts";
