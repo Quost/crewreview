@@ -4,6 +4,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.21.0 — 2026-11-24
+
 ### Added
 
 - A docs and claims lens. It checks what the description, the commits and the docs say about the code against the code itself, docs that still describe what the change made untrue, settings the change starts reading that are missing from the environment example or the deploy notes, translations, decision records, and the project's own written rules about them. It runs on every change, docs-only ones included; the `fast` profile leaves it out.
