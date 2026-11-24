@@ -4,6 +4,12 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- A malformed Crewreview marker in a pull request comment no longer stops the daemon's cycle, and one pull request that fails to review no longer stops the others.
+- Two daemons starting at the same moment can no longer both take the single-instance lock.
+- `/api/history` ignores a limit that isn't a positive number instead of returning every row.
+
 ## 0.20.0 — 2026-11-23
 
 A trust seal on every review, profiles and verdict settings per repository, honest coverage of large files, and severe findings that say how they go wrong.

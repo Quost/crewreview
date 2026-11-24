@@ -1,6 +1,6 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { changedSymbols, fitGuidelines, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
 import { commitSubjects, diffText, exportTree, fileHistory, grepWord, listDir, mergeBase, showFile } from "./git.ts";
 
@@ -178,7 +178,9 @@ export function treeOracle(headDir: string): FileOracle {
       let n: number | null = null;
       try {
         const full = join(headDir, path);
-        if (!full.startsWith(headDir)) return null;
+        // Inside the tree only: a plain prefix test would let `../head-other/x` through.
+        const rel = relative(headDir, full);
+        if (rel === "" || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return null;
         // A link is never followed: git stores it as a one-line blob (its target), and that is what the change
         // shows. Following it would read outside the tree, or call a link the change adds "missing" when it dangles.
         const st = lstatSync(full);
