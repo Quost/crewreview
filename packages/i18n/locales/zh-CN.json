@@ -759,5 +759,9 @@
   "post.cut": "文件过大无法完整展示：已展示前几个片段，其余部分从代码中读取：{files}。",
   "post.scenario": "场景：",
   "post.noScenario": "从 {from} 下调：没有场景",
-  "post.unconfirmed": "未确认：是问题，不是发现"
+  "post.unconfirmed": "未确认：是问题，不是发现",
+  "post.checks": "对照代码核查的说法和规则：✅ {holds} · ❌ {fails} · ❔ {unverified}",
+  "post.check.claim": "说法",
+  "post.check.rule": "规则",
+  "post.check.unproven": "未给出代码中的位置"
 }

@@ -44,7 +44,7 @@ describe("what a review may do", () => {
 });
 
 describe("a repository's review settings", () => {
-  const global = { profile: "standard" as const, lenses: ["correctness", "contracts", "tests"], verifierRaise: true, policy: DEFAULT_POLICY, severityStyle: "crewreview" as const, maxNits: 5 };
+  const global = { profile: "standard" as const, lenses: ["correctness", "contracts", "tests", "docs"], verifierRaise: true, policy: DEFAULT_POLICY, severityStyle: "crewreview" as const, maxNits: 5 };
 
   test("its own values over the global ones; unset follows them", () => {
     const r = resolveReview(global, { requestChangesAt: "never", allowApprove: true, severityStyle: "tupi", maxNits: 2 });
@@ -52,7 +52,7 @@ describe("a repository's review settings", () => {
     expect(resolveReview(global)).toEqual(global);
   });
 
-  test("fast trims the contracts lens and the verifier's raises, unless the repository lists its lenses", () => {
+  test("fast trims the contracts and docs lenses and the verifier's raises, unless the repository lists its lenses", () => {
     expect(resolveReview(global, { profile: "fast" })).toMatchObject({ lenses: ["correctness", "tests"], verifierRaise: false });
     expect(resolveReview(global, { profile: "fast", lenses: ["contracts"] }).lenses).toEqual(["contracts"]);
   });

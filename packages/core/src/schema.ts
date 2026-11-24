@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeRepoPath, type FileOracle } from "./evidence.ts";
-import { CONFIDENCES, lessSevere, SEVERITIES, type Confidence, type Finding, type Severity } from "./model.ts";
+import { CONFIDENCES, lessSevere, SEVERITIES, type Check, type Confidence, type Finding, type Severity } from "./model.ts";
 
 const SEVERITY_ALIASES: Record<string, Severity> = {
   blocker: "blocker", critical: "blocker", crit: "blocker", severe: "blocker", "must-fix": "blocker",
@@ -32,10 +32,27 @@ const RawFinding = z.object({
   confidence: z.unknown().optional().transform(coerceConfidence),
 });
 
+const CHECK_STATUS: Record<string, Check["status"]> = {
+  holds: "holds", true: "holds", ok: "holds", confirmed: "holds", pass: "holds", passes: "holds", followed: "holds",
+  fails: "fails", false: "fails", wrong: "fails", broken: "fails", fail: "fails", violated: "fails",
+  unverified: "unverified", unknown: "unverified", unchecked: "unverified", "not found": "unverified",
+};
+
+const RawCheck = z.object({
+  kind: z.enum(["claim", "rule"]).catch("claim"),
+  text: z.string().min(1).transform((s) => s.trim().slice(0, 300)),
+  source: z.string().optional().catch(undefined).transform((s) => s?.trim().slice(0, 120) || undefined),
+  status: z.unknown().transform((v) => (typeof v === "string" ? CHECK_STATUS[v.trim().toLowerCase()] : undefined) ?? "unverified"),
+  evidence: z.string().optional().catch(undefined),
+});
+
+const MAX_CHECKS = 40;
+
 export interface LensOutput {
   findings: Omit<Finding, "id" | "lens" | "lenses">[];
   coverage: "full" | "partial";
   uncovered: string[];
+  checks: Check[];
   /** Raw findings that didn't fit the schema. */
   rejected: number;
 }
@@ -55,7 +72,12 @@ export function parseLensOutput(value: unknown): LensOutput | undefined {
   }
   const coverage = obj.coverage === "partial" ? "partial" : "full";
   const uncovered = Array.isArray(obj.uncovered) ? obj.uncovered.filter((x): x is string => typeof x === "string") : [];
-  return { findings, coverage, uncovered, rejected };
+  const checks: Check[] = [];
+  for (const item of Array.isArray(obj.checks) ? obj.checks.slice(0, MAX_CHECKS) : []) {
+    const r = RawCheck.safeParse(item);
+    if (r.success) checks.push(r.data);
+  }
+  return { findings, coverage, uncovered, checks, rejected };
 }
 
 const Decision = z.object({
@@ -94,7 +116,7 @@ export interface VerifierRules {
 const RAISE: VerifierRules = { raise: false, raiseTo: "major" };
 
 /** "lib/a.ex:120" (or "lib/a.ex:120-130") pointing at a real line, when an oracle can tell. */
-function placeExists(evidence: string | undefined, oracle: FileOracle | undefined): boolean {
+export function placeExists(evidence: string | undefined, oracle: FileOracle | undefined): boolean {
   const m = /^\s*`?([^\s`:]+):(\d+)(?:-\d+)?`?\s*$/.exec(evidence ?? "");
   if (!m) return false;
   if (!oracle) return true;

@@ -4,6 +4,16 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- A docs and claims lens. It checks what the description, the commits and the docs say about the code against the code itself, docs that still describe what the change made untrue, settings the change starts reading that are missing from the environment example or the deploy notes, translations, decision records, and the project's own written rules about them. It runs on every change, docs-only ones included; the `fast` profile leaves it out.
+- The agents get `ctx/docs.md`, found by code: the environment variables the change starts or stops reading and where each is written down (or not), and the docs outside the change that name the changed files or functions.
+- The summary lists, folded, the claims and rules the review checked: those that hold, those that don't and those it couldn't confirm. A claim said to hold or fail without a real place in the code is posted as not confirmed.
+
+### Changed
+
+- The tests lens asks what each new test would assert if the fix were reverted, and why the existing tests missed a bug that is being fixed.
+
 ## 0.20.0 — 2026-11-23
 
 A trust seal on every review, profiles and verdict settings per repository, honest coverage of large files, and severe findings that say how they go wrong.

@@ -4,6 +4,7 @@ import type { DiffFile } from "@crewreview/core";
 import architecture from "../lenses/architecture.md" with { type: "text" };
 import contracts from "../lenses/contracts.md" with { type: "text" };
 import correctness from "../lenses/correctness.md" with { type: "text" };
+import docs from "../lenses/docs.md" with { type: "text" };
 import security from "../lenses/security.md" with { type: "text" };
 import tests from "../lenses/tests.md" with { type: "text" };
 import ui from "../lenses/ui.md" with { type: "text" };
@@ -16,6 +17,8 @@ export interface Lens {
   /** Where the rubric came from: built in, or the repository's `.crewreview/lenses/`. */
   source: "builtin" | "repo";
   applies(files: readonly DiffFile[]): boolean;
+  /** Also answers the claims and project rules it checked, posted as a list. */
+  checks?: boolean;
 }
 
 const DOC = /\.(md|mdx|markdown|rst|txt|adoc)$|(^|\/)(LICENSE|NOTICE|AUTHORS|CHANGELOG)[^/]*$/i;
@@ -31,6 +34,8 @@ const BUILTIN: Lens[] = [
   { id: "architecture", title: "Architecture", rubric: architecture, source: "builtin", applies: (f) => !onlyDocs(f) },
   { id: "tests", title: "Tests", rubric: tests, source: "builtin", applies: (f) => !onlyDocs(f) },
   { id: "ui", title: "Interface", rubric: ui, source: "builtin", applies: (f) => f.some((x) => UI.test(x.path)) },
+  // Claims in a description and docs left behind matter for any change, a docs-only one included.
+  { id: "docs", title: "Docs and claims", rubric: docs, source: "builtin", applies: () => true, checks: true },
 ];
 
 export const BUILTIN_LENS_IDS = BUILTIN.map((l) => l.id);

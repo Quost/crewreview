@@ -5,7 +5,7 @@ description: Use Crewreview, a local crew of AI agents that reviews pull request
 
 # Crewreview
 
-Crewreview runs on the user's machine. It reviews changes with several read-only "lenses" (correctness, contracts, security, architecture, tests, UI) in parallel, checks each finding against the real code, lets a verifier try to refute them, and decides the verdict with a fixed rule. On the user's own pull requests, an "attendant" can fix, reply to and resolve review comments. It uses the coding agents already installed (Claude Code, Codex, Kiro, ACP agents).
+Crewreview runs on the user's machine. It reviews changes with several read-only "lenses" (correctness, contracts, security, architecture, tests, UI, docs and claims) in parallel, checks each finding against the real code, lets a verifier try to refute them, and decides the verdict with a fixed rule. On the user's own pull requests, an "attendant" can fix, reply to and resolve review comments. It uses the coding agents already installed (Claude Code, Codex, Kiro, ACP agents).
 
 Prefer the MCP tools when the `crewreview` MCP server is connected (`crewreview_status`, `crewreview_review_local`, `crewreview_inbox`, `crewreview_inbox_item`, `crewreview_repo_link`, `crewreview_repo_set`, `crewreview_harnesses`, `crewreview_config`). Otherwise use the CLI.
 

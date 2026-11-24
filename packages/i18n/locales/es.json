@@ -775,5 +775,9 @@
   "post.cut": "Demasiado grandes para mostrarlos enteros: se mostraron los primeros fragmentos y el resto se leyó del código: {files}.",
   "post.scenario": "Escenario:",
   "post.noScenario": "rebajado desde {from}: sin escenario",
-  "post.unconfirmed": "No confirmado: preguntas, no hallazgos"
+  "post.unconfirmed": "No confirmado: preguntas, no hallazgos",
+  "post.checks": "Afirmaciones y reglas comprobadas en el código: ✅ {holds} · ❌ {fails} · ❔ {unverified}",
+  "post.check.claim": "afirmación",
+  "post.check.rule": "regla",
+  "post.check.unproven": "no se indicó un lugar en el código"
 }

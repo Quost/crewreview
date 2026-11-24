@@ -3,7 +3,7 @@ import type { VerdictPolicy } from "./verdict.ts";
 
 /**
  * How much a review does, and how much it takes to approve:
- * - fast: the lenses without the contracts one, and a verifier that only confirms, lowers or drops. Cheapest.
+ * - fast: the lenses without the contracts and docs ones, and a verifier that only confirms, lowers or drops. Cheapest.
  * - standard: every lens, a verifier that weighs severity both ways with proof. The default.
  * - gate: standard, and an approval only when the review is trusted (every file read, nothing left out, CI green).
  */
@@ -51,7 +51,7 @@ export function resolveReview(global: ReviewKnobs, repo: RepoReviewKnobs = {}): 
   };
   if (profile === "fast") {
     // A repository that lists its lenses keeps them; the profile only trims the default set.
-    if (!repo.lenses) out.lenses = lenses.filter((l) => l !== "contracts");
+    if (!repo.lenses) out.lenses = lenses.filter((l) => l !== "contracts" && l !== "docs");
     out.verifierRaise = false;
   }
   if (profile === "gate" && repo.requireTrusted === undefined) out.policy = { ...out.policy, requireTrusted: true };

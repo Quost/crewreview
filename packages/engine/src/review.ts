@@ -7,7 +7,9 @@ import {
   requireScenario,
   checkEvidence,
   decideVerdict,
+  settleChecks,
   trustLevel,
+  type Check,
   type Trust,
   dedupeAgainstThreads,
   dedupeFindings,
@@ -142,6 +144,8 @@ export interface ReviewReport {
   verdict: Verdict;
   /** How far the review can be trusted (trustLevel): shown at the top of what's posted. */
   trust?: Trust;
+  /** Claims and project rules the review checked against the code. */
+  checks?: Check[];
   usage: Usage;
   jobDir: string;
 }
@@ -253,6 +257,8 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
       findings: unread.kept,
       coverage,
       uncovered,
+      // Said to hold or fail only with a real place: decided here, like the findings' evidence.
+      ...(parsed.checks.length ? { checks: settleChecks(parsed.checks, oracle) } : {}),
       durationMs: r.durationMs,
       usage: r.usage,
       ...seat,
@@ -334,6 +340,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
   }
   findings = sortFindings(findings);
   // Decided by code from what happened: what the review read, what ran, what's still open.
+  const checks = results.flatMap((r) => r.checks ?? []);
   const trust = trustLevel({
     findings: [...findings, ...repeated],
     lenses: results,
@@ -372,6 +379,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     findings,
     droppedByEvidence,
     droppedUnread,
+    ...(checks.length ? { checks } : {}),
     coveredByThreads: repeated.length,
     repeated,
     delta: o.deltaFrom,
