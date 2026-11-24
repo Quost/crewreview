@@ -27,6 +27,13 @@ export function parseMarker(body: string): Marker | undefined {
   }
   const kind = fields.get("kind");
   if (kind !== "review" && kind !== "finding" && kind !== "reply" && kind !== "summary") return undefined;
-  const ref = fields.get("ref");
-  return { kind, version: fields.get("v") ?? "?", ref: ref === undefined ? undefined : decodeURIComponent(ref) };
+  const raw = fields.get("ref");
+  let ref: string | undefined;
+  try {
+    ref = raw === undefined ? undefined : decodeURIComponent(raw);
+  } catch {
+    // Anyone can write a comment that looks like a marker: a broken one is no marker at all.
+    return undefined;
+  }
+  return { kind, version: fields.get("v") ?? "?", ref };
 }
