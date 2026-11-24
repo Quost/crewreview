@@ -86,7 +86,7 @@ describe("the pull request's own state", () => {
   test("a conflict and a red CI become items for this head, only when the repository asks", () => {
     const items = situationItems({ headSha: "abc", baseRef: "main", conflicts: true, failing: [{ name: "test", log: "expected 2, got 3" }, { name: "lint" }] }, on, new Set());
     expect(items.map((i) => [i.key, i.kind])).toEqual([["conflict:abc", "conflict"], ["ci:abc", "ci"]]);
-    expect(items[1]!.text).toContain('Job "test" failed. The end of its log:\nexpected 2, got 3');
+    expect(items[1]!.text).toContain('Job "test" failed. From its log:\nexpected 2, got 3');
     expect(items[1]!.text).toContain('Job "lint" failed (no log available).');
     // Not anyone's comment: never holds up the wait for a review to land.
     expect(settled(items, Date.now(), 45_000)).toBe(true);

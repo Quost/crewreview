@@ -118,7 +118,7 @@ export interface Situation {
   headSha: string;
   baseRef: string;
   conflicts?: boolean;
-  /** Only when CI is red: the failing jobs, with the end of their logs when the host keeps them. */
+  /** Only when CI is red: the failing jobs, with what their logs say about the failure when the host keeps them. */
   failing?: { name: string; log?: string }[];
 }
 
@@ -141,7 +141,7 @@ export function situationItems(s: Situation, rules: { conflicts: boolean; ci: bo
   }
   const ci = `ci:${s.headSha}`;
   if (rules.ci && s.failing?.length && !done.has(ci)) {
-    const jobs = s.failing.map((f) => (f.log ? `Job "${f.name}" failed. The end of its log:\n${f.log}` : `Job "${f.name}" failed (no log available).`));
+    const jobs = s.failing.map((f) => (f.log ? `Job "${f.name}" failed. From its log:\n${f.log}` : `Job "${f.name}" failed (no log available).`));
     out.push({ key: ci, kind: "ci", author: "", text: `CI failed on this commit.\n\n${jobs.join("\n\n")}`, createdAt: "", fromCrew: false });
   }
   return out;
