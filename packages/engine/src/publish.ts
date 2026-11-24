@@ -4,6 +4,7 @@ import { countChecks, makeMarker, parseMarker, parseUnifiedDiff, splitInline, un
 import type { InlineComment, PostReviewInput, Thread } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
+import { crewreviewLink } from "@crewreview/core";
 
 const ICONS: Record<SeverityStyle, Record<Severity, string>> = {
   crewreview: { blocker: "🔴", major: "🟠", minor: "🟡", nit: "⚪" },
@@ -28,7 +29,8 @@ function findingBody(f: Finding, t: Translator, version: string, headSha: string
   if (f.verification?.action === "downgrade" && f.verification.from) meta.push(t.t("post.downgraded", { from: t.t(`severity.${f.verification.from}`) }));
   if (f.capped) meta.push(t.t("post.noScenario", { from: t.t(`severity.${f.capped.from}`) }));
   if (f.verification?.action === "upgrade" && f.verification.from) meta.push(t.t("post.upgraded", { from: t.t(`severity.${f.verification.from}`), place: f.verification.evidence ?? "" }));
-  lines.push("", `<sub>Crewreview · ${meta.join(" · ")}</sub>`, makeMarker({ kind: "finding", ref: `${f.id}@${headSha.slice(0, 12)}`, version }));
+  const crewreview = crewreviewLink("github");
+  lines.push("", `<sub>${crewreview} · ${meta.join(" · ")}</sub>`, makeMarker({ kind: "finding", ref: `${f.id}@${headSha.slice(0, 12)}`, version }));
   return lines.join("\n");
 }
 
@@ -118,7 +120,8 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   }
   const harness = report.lenses[0]?.harness ?? "?";
   const verifier = report.verifier.harness && report.verifier.harness !== harness ? ` · ${t.t("post.verifiedBy", { harness: report.verifier.harness })}` : "";
-  body.push("", `<sub>${t.t("post.footer", { version, harness: `${harness}${verifier}`, prompt: report.promptVersion, sha: head.slice(0, 7) })}</sub>`);
+  const crewreview = crewreviewLink("github");
+  body.push("", `<sub>${t.t("post.footer", { crewreview, version, harness: `${harness}${verifier}`, prompt: report.promptVersion, sha: head.slice(0, 7) })}</sub>`);
   body.push(makeMarker({ kind: "review", ref: head, version }));
 
   const comments: InlineComment[] = inline.map((f) => {

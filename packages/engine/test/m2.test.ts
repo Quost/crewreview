@@ -198,7 +198,7 @@ describe("pull request reviews end to end (fake host, real git, fake agents)", (
     expect(sent.comments[0]).toMatchObject({ path: "src/cart.ts", line: 2 });
     expect(parseMarker(sent.comments[0]!.body)?.kind).toBe("finding");
     expect(parseMarker(sent.body)).toMatchObject({ kind: "review", ref: sha });
-    expect(sent.body).toContain("Crewreview · comment");
+    expect(sent.body).toContain("https://crewreview.ai?ref=github");
     expect(store.get(row.id)?.status).toBe("posted");
 
     // A forced re-review finds the same problem: it isn't posted again, but it still decides the verdict.
