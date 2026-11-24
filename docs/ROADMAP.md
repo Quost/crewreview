@@ -88,6 +88,8 @@ M8.1 (seats and roles) shipped in v0.12. M8.2 (`crewreview task`: plan, approval
 
 The design, with seats and roles (a harness, model and effort per job, shared across your plans), the task ledger and handoffs, and terminal runners: [plans/crew-mode.md](plans/crew-mode.md).
 
+Next, so the crew can be the gate it's meant to be: an approval policy per repository, `.crewreview/approvals.toml`, saying path by path when the crew may approve and which people must approve too ([plans/approvals-policy.md](plans/approvals-policy.md)).
+
 ## Principles
 
 - The model proposes; code decides.
