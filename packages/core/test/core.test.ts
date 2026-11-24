@@ -17,6 +17,9 @@ import {
   parseMarker,
   parseUnifiedDiff,
   parseVerifierOutput,
+  pickReviewGuide,
+  REVIEW_GUIDE_FILES,
+  REVIEW_GUIDE_ROOM,
   patchFingerprint,
   redactSecrets,
   sameSignature,
@@ -308,6 +311,26 @@ describe("project rules", () => {
     expect(r.included[0]!.text).toContain("cut at 10 of 30");
     expect(r.cut).toEqual(["AGENTS.md", "c.md", "d.md"]);
     expect(fitGuidelines([{ path: "AGENTS.md", text: "x".repeat(50_816) }]).cut).toEqual([]);
+  });
+
+  test("the review guidance: .crewreview/REVIEW.md wins over the root one, an empty file doesn't count", () => {
+    expect(REVIEW_GUIDE_FILES).toEqual([".crewreview/REVIEW.md", "REVIEW.md"]);
+    const both = pickReviewGuide([{ path: ".crewreview/REVIEW.md", text: "ours\n" }, { path: "REVIEW.md", text: "theirs" }]);
+    expect(both).toEqual({ path: ".crewreview/REVIEW.md", text: "ours", cut: false });
+    expect(pickReviewGuide([{ path: ".crewreview/REVIEW.md", text: " \n " }, { path: "REVIEW.md", text: "root" }])?.path).toBe("REVIEW.md");
+    expect(pickReviewGuide([{ path: ".crewreview/REVIEW.md", text: null }, { path: "REVIEW.md", text: "root" }])?.text).toBe("root");
+    expect(pickReviewGuide([{ path: ".crewreview/REVIEW.md", text: null }, { path: "REVIEW.md", text: "" }])).toBeNull();
+    expect(pickReviewGuide([])).toBeNull();
+  });
+
+  test("the review guidance is cut past its room, and the cut is marked", () => {
+    const g = pickReviewGuide([{ path: "REVIEW.md", text: "r".repeat(25) }], 10)!;
+    expect(g.cut).toBe(true);
+    expect(g.text.startsWith(`${"r".repeat(10)}\n\n`)).toBe(true);
+    expect(g.text).toContain("cut at 10 of 25");
+    expect(pickReviewGuide([{ path: "REVIEW.md", text: "r".repeat(10) }], 10)!.cut).toBe(false);
+    expect(REVIEW_GUIDE_ROOM).toBe(32_000);
+    expect(pickReviewGuide([{ path: "REVIEW.md", text: "r".repeat(REVIEW_GUIDE_ROOM + 1) }])!.cut).toBe(true);
   });
 });
 

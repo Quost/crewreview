@@ -79,7 +79,7 @@
   "teams.title": "Made for teams, without a server",
   "teams.sub": "Start on your own computer. When it earns the team's trust, everyone runs it the same way.",
   "teams.t1": "Your team's rules, in the repository",
-  "teams.t1d_html": "Add or replace lenses in <code>.crewreview/lenses/</code>; the crew also follows <code>AGENTS.md</code>, <code>CLAUDE.md</code> and <code>CONTRIBUTING.md</code>. All read from the base branch, so a pull request can't change the rules it's judged by.",
+  "teams.t1d_html": "Add or replace lenses in <code>.crewreview/lenses/</code>; the crew also follows <code>AGENTS.md</code>, <code>CLAUDE.md</code> and <code>CONTRIBUTING.md</code>. Team review guidance goes in <code>REVIEW.md</code> or <code>.crewreview/REVIEW.md</code>: what counts as serious, what to skip, what to always check. All read from the base branch, so a pull request can't change the rules it's judged by.",
   "teams.t2": "Everyone brings their own agent",
   "teams.t2d_html": "Each developer runs the crew with the coding agent plan they already have, and reviews post from their own account. Or one bot reviews for the whole team from a <a href=\"https://github.com/Quost/crewreview/blob/main/docs/team-machine.md\">shared machine</a>, with the Docker image.",
   "teams.t3": "No duplicate reviews",

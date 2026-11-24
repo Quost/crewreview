@@ -130,6 +130,8 @@ export interface ReviewReport {
   guidelines: string[];
   /** Project rules read only in part: too long, or past the room for all of them. */
   guidelinesCut?: string[];
+  /** The team's review guidance the crew followed (REVIEW.md), read from the rules ref. */
+  reviewGuide?: string;
   lenses: LensResult[];
   findings: Finding[];
   droppedByEvidence: number;
@@ -191,7 +193,7 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
 
   const lenses = o.partial ? o.lenses : o.lenses.filter((l) => l.applies(ctx.files));
   const nonce = newNonce();
-  const promptCtx = { language: o.language, nonce };
+  const promptCtx = { language: o.language, nonce, ...(ctx.reviewGuide ? { reviewGuide: ctx.reviewGuide } : {}) };
   const oracle = treeOracle(ctx.headDir);
   const concurrency = o.config.limits.maxConcurrentAgents ?? defaultConcurrency(cpus().length);
   const run = { cwd: o.jobDir, access: "read" as const, timeoutMs: o.config.limits.agentTimeout, stallMs: o.config.limits.stallTimeout, signal: o.signal };
@@ -374,7 +376,8 @@ export async function runReview(o: ReviewOptions, version: string): Promise<Revi
     ...(ctx.omitted.length ? { omitted: ctx.omitted } : {}),
     commits: ctx.commits,
     guidelines: ctx.guidelines,
-    ...(ctx.guidelinesCut.length ? { guidelinesCut: ctx.guidelinesCut } : {}),
+    ...(ctx.guidelinesCut.length || ctx.reviewGuide?.cut ? { guidelinesCut: [...ctx.guidelinesCut, ...(ctx.reviewGuide?.cut ? [ctx.reviewGuide.path] : [])] } : {}),
+    ...(ctx.reviewGuide ? { reviewGuide: ctx.reviewGuide.path } : {}),
     lenses: results,
     findings,
     droppedByEvidence,

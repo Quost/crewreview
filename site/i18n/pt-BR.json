@@ -79,7 +79,7 @@
   "teams.title": "Feito para times, sem servidor",
   "teams.sub": "Comece no seu computador. Quando ganhar a confiança do time, todo mundo usa do mesmo jeito.",
   "teams.t1": "As regras do time, no repositório",
-  "teams.t1d_html": "Adicione ou substitua lentes em <code>.crewreview/lenses/</code>; a equipe também segue o <code>AGENTS.md</code>, o <code>CLAUDE.md</code> e o <code>CONTRIBUTING.md</code>. Tudo lido da branch base, então um pull request não consegue mudar as regras com que ele é julgado.",
+  "teams.t1d_html": "Adicione ou substitua lentes em <code>.crewreview/lenses/</code>; a equipe também segue o <code>AGENTS.md</code>, o <code>CLAUDE.md</code> e o <code>CONTRIBUTING.md</code>. As orientações de revisão do time vão no <code>REVIEW.md</code> ou no <code>.crewreview/REVIEW.md</code>: o que é grave, o que não apontar, o que sempre conferir. Tudo lido da branch base, então um pull request não consegue mudar as regras com que ele é julgado.",
   "teams.t2": "Cada um com o seu agente",
   "teams.t2d_html": "Cada dev roda a equipe com o plano de agente de código que já tem, e as reviews saem da própria conta. Ou um bot revisa para o time todo a partir de uma <a href=\"https://github.com/Quost/crewreview/blob/main/docs/team-machine.md\">máquina compartilhada</a>, com a imagem Docker.",
   "teams.t3": "Sem review duplicada",

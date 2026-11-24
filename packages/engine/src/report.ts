@@ -88,6 +88,7 @@ export function renderTerminal(r: ReviewReport, t: Translator, st: Style = PLAIN
   }
   const uncovered = unreviewedFiles(r.lenses);
   if (uncovered.length) lines.push(st.dim(`  ${t.t("local.uncovered", { files: uncovered.join(", ") })}`));
+  if (r.reviewGuide) lines.push(st.dim(`  ${t.t("local.reviewGuide", { file: r.reviewGuide })}`));
   if (r.guidelinesCut?.length) lines.push(st.dim(`  ${t.t("local.guidelinesCut", { files: r.guidelinesCut.join(", ") })}`));
   if (r.omitted?.length) lines.push(st.dim(`  ${t.t("local.leftOut", { files: r.omitted.map((f) => f.path).join(", ") })}`));
   lines.push("", st.bold(`${t.t("local.findings")} (${r.findings.length})`));

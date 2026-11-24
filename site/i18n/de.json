@@ -79,7 +79,7 @@
   "teams.title": "Für Teams gemacht, ohne Server",
   "teams.sub": "Fang auf deinem eigenen Rechner an. Wenn es das Vertrauen des Teams gewonnen hat, nutzen es alle auf dieselbe Weise.",
   "teams.t1": "Die Regeln des Teams, im Repository",
-  "teams.t1d_html": "Füge Linsen in <code>.crewreview/lenses/</code> hinzu oder ersetze sie; die Crew folgt außerdem <code>AGENTS.md</code>, <code>CLAUDE.md</code> und <code>CONTRIBUTING.md</code>. Alles wird vom Basis-Branch gelesen, damit ein Pull Request die Regeln, nach denen er bewertet wird, nicht ändern kann.",
+  "teams.t1d_html": "Füge Linsen in <code>.crewreview/lenses/</code> hinzu oder ersetze sie; die Crew folgt außerdem <code>AGENTS.md</code>, <code>CLAUDE.md</code> und <code>CONTRIBUTING.md</code>. Review-Richtlinien des Teams stehen in <code>REVIEW.md</code> oder <code>.crewreview/REVIEW.md</code>: was hier schwer wiegt, was nicht gemeldet wird, was immer geprüft wird. Alles wird vom Basis-Branch gelesen, damit ein Pull Request die Regeln, nach denen er bewertet wird, nicht ändern kann.",
   "teams.t2": "Jeder bringt seinen eigenen Agenten mit",
   "teams.t2d_html": "Alle im Team nutzen die Crew mit dem Coding-Agent-Abo, das sie schon haben, und Reviews erscheinen unter dem eigenen Konto. Oder ein Bot prüft für das ganze Team von einem <a href=\"https://github.com/Quost/crewreview/blob/main/docs/team-machine.md\">gemeinsamen Rechner</a> aus, mit dem Docker-Image.",
   "teams.t3": "Keine doppelten Reviews",

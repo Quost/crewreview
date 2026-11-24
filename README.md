@@ -160,6 +160,7 @@ Every repository starts in **inbox** mode: reviews and answers wait for your app
 ## Use it with your team
 
 - **Your team's rules live in the repository.** `.crewreview/lenses/<lens>.md` replaces a built-in lens or adds one, and the crew follows `AGENTS.md`, `CLAUDE.md` and `CONTRIBUTING.md`. All are read from the base branch, so a pull request can't change the rules it's judged by.
+- **Your team's review guidance in a `REVIEW.md`.** What counts as serious here, what not to report, what to always check: write it in plain Markdown in `REVIEW.md` at the root (the file name other review tools, such as Claude Code Review, already use) or in `.crewreview/REVIEW.md`, which wins if both exist. Every lens and the verifier follow it, read from the base branch. It steers what the crew looks at and reports; it can't change the answer format, the verdict rule or the safety rules, and it never lowers a blocker. The summary says which file was followed. Up to 32,000 characters are read; `@include` lines aren't followed.
 - **Everyone brings their own agent.** Each developer runs the crew with the coding agent plan they already have; reviews post from their own account. No seats, no shared API key, no server.
 - **No duplicate reviews.** When several people run it on the same repository, a commit that already has a Crewreview review on the host is skipped, whoever's crew wrote it.
 - **Link the whole organization at once.** `crewreview repo add https://github.com/acme` (or a GitLab group) links every repository in it, new ones too, with `--include`/`--exclude` name filters. One search per cycle finds the repositories with open pull requests, so even a large organization costs a few API calls. A repository linked on its own keeps its own settings.
@@ -349,7 +350,7 @@ requestChangesAt = "blocker"
 allowApprove = false
 ```
 
-A repository can tune its own review in `.crewreview/lenses/<lens>.md`: a file named like a built-in lens replaces its rubric, and any other file adds a lens.
+A repository can tune its own review in `.crewreview/lenses/<lens>.md`: a file named like a built-in lens replaces its rubric, and any other file adds a lens. Guidance for the whole crew goes in `REVIEW.md` (or `.crewreview/REVIEW.md`, which wins), read from the base branch; `@include` lines in it are not supported.
 
 ### Seats and roles
 

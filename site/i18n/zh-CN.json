@@ -79,7 +79,7 @@
   "teams.title": "为团队而生，无需服务器",
   "teams.sub": "先在自己的电脑上用。等它赢得团队的信任，大家都用同一种方式运行。",
   "teams.t1": "团队的规则，放在仓库里",
-  "teams.t1d_html": "在 <code>.crewreview/lenses/</code> 中添加或替换审查视角；这组代理还会遵循 <code>AGENTS.md</code>、<code>CLAUDE.md</code> 和 <code>CONTRIBUTING.md</code>。全部从基础分支读取，所以合并请求无法修改评判它的规则。",
+  "teams.t1d_html": "在 <code>.crewreview/lenses/</code> 中添加或替换审查视角；这组代理还会遵循 <code>AGENTS.md</code>、<code>CLAUDE.md</code> 和 <code>CONTRIBUTING.md</code>。团队的评审指引写在 <code>REVIEW.md</code> 或 <code>.crewreview/REVIEW.md</code> 中：什么算严重、什么不必报告、什么必须检查。全部从基础分支读取，所以合并请求无法修改评判它的规则。",
   "teams.t2": "每个人用自己的代理",
   "teams.t2d_html": "每位开发者都用自己已有的编程代理套餐运行，审查从自己的账号发出。也可以用 Docker 镜像在一台<a href=\"https://github.com/Quost/crewreview/blob/main/docs/team-machine.md\">共享机器</a>上运行一个机器人，为整个团队审查。",
   "teams.t3": "不会重复审查",
