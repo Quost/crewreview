@@ -2,12 +2,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   extractJson,
+  ciLogExcerpt,
   leftForOwner,
   linkSpent,
   makeMarker,
   parseMarker,
   parseAttendOutput,
   pendingItems,
+  pickFailingJobs,
   redactSecrets,
   heldPaths,
   protectedFilesToEdit,
@@ -429,16 +431,19 @@ async function startMerge(dir: string, base: string, from: string | undefined, w
   return (await git(["diff", "--name-only", "--diff-filter=U"], dir)).stdout.split("\n").filter(Boolean);
 }
 
-/** The jobs that turned CI red, with the end of their logs (secrets taken out), at most three. */
+/**
+ * The jobs that turned CI red, at most three, with the part of their logs that says what failed (secrets taken
+ * out). Jobs that only gather the others' results go last.
+ */
 async function failingJobs(host: HostAdapter, pr: { headSha: string } & Parameters<HostAdapter["getChecks"]>[0]): Promise<{ name: string; log?: string }[] | undefined> {
   const checks = await host.getChecks(pr);
   if (checks.state !== "red") return undefined;
-  const out: { name: string; log?: string }[] = [];
-  for (const f of checks.failing.filter((x) => !x.allowedToFail).slice(0, 3)) {
+  const read: { name: string; log?: string }[] = [];
+  for (const f of checks.failing.filter((x) => !x.allowedToFail).slice(0, 6)) {
     const raw = f.job && host.ciLog ? await host.ciLog(f.job).catch(() => undefined) : undefined;
-    out.push({ name: f.name, log: raw ? redactSecrets(lastLines(raw, 120)).slice(-6000) : undefined });
+    read.push({ name: f.name, log: raw });
   }
-  return out;
+  return pickFailingJobs(read, 3).map((j) => ({ name: j.name, log: j.log ? redactSecrets(ciLogExcerpt(j.log)) : undefined }));
 }
 
 /** Files the agent changed during a merge: against the merged index, plus new ones. */
