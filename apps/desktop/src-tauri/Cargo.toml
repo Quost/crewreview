@@ -28,7 +28,7 @@ sys-locale = "0.3.2"
 
 [dev-dependencies]
 # The same verifier the updater plugin uses: proves our release key's signatures are accepted.
-minisign-verify = "0.2"
+minisign-verify = "0.3"
 base64 = "0.23"
 
 [profile.release]
