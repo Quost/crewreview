@@ -139,6 +139,10 @@ Answers that report what they couldn't do and retry safely, and a website that s
 
 - The website shows that Crewreview is a Pururucos product: the footer links to the company, and a band above it lists the other Pururucos apps.
 
+### Changed
+
+- “Crewreview” in the review footer and the attendant’s reply footer is now a link to the website (with `?ref=comment` / `?ref=github` for analytics).
+
 ## 0.14.1 — 2026-11-21
 
 Reviews that read the whole change, fair to every lens, and posted once on GitLab.

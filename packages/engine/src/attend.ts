@@ -26,6 +26,7 @@ import {
 import { lastLines, runProcess, scrubEnv, type Harness } from "@crewreview/harness";
 import { gitAuthEnv, type Permission } from "@crewreview/hosts";
 import { createTranslator, languageName, matchLocale, type Translator } from "@crewreview/i18n";
+import { crewreviewLink } from "@crewreview/core";
 import { diffText, git, gitOk, mergeBase } from "./git.ts";
 import { isPickError, pickReviewer, pickWriter, type PickError } from "./harnesses.ts";
 import { pickLimits, watchQuota } from "./quota.ts";
@@ -503,9 +504,10 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
       if (dec.action === "needs-human" || !dec.reply.trim()) continue;
       const item = payload.items.find((i) => i.key === dec.key);
       if (!item) continue;
-      if (!posted.has(dec.key)) {
+if (!posted.has(dec.key)) {
         const fixedIn = dec.action === "fixed" && row.commitSha ? ` · ${t.t("attend.fixedIn", { sha: row.commitSha.slice(0, 7) })}` : "";
-        const body = `${dec.reply.trim()}\n\n<sub>🤖 ${t.t("attend.footer")}${fixedIn}</sub>\n${makeMarker({ kind: "reply", ref: dec.key, version: d.version })}`;
+        const crewreview = crewreviewLink("comment");
+        const body = `${dec.reply.trim()}\n\n<sub>🤖 ${t.t("attend.footer", { crewreview })}${fixedIn}</sub>\n${makeMarker({ kind: "reply", ref: dec.key, version: d.version })}`;
         if (item.threadId) await host.reply(pr, item.threadId, body);
         else if (host.comment) await host.comment(pr, body);
         else continue;
