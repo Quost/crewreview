@@ -22,7 +22,7 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
       );
     case "pending": {
       const line = t.t("attend.pending", { repo, number, id: `f${o.attendId}`, fixed: o.fixed, replies: o.replies }) + leftText(t, o.left);
-      return o.forced ? `${line}\n${st.yellow(t.t(`attend.forced.${o.forced}`))}` : line;
+      return o.forced ? `${line}\n${st.yellow(t.t(`attend.forced.${o.forced}`, { files: (o.links ?? []).join(", ") }))}` : line;
     }
     case "done": {
       const parts = [
@@ -79,7 +79,7 @@ export function renderPayload(c: Ctx, p: AttendPayload): string {
   }
   if (p.changed.length) lines.push("", t.t("inbox.changed", { files: p.changed.join(", ") }));
   for (const v of p.validation) lines.push(`${v.ok ? st.green("✓") : st.red("✗")} ${v.command}${v.ok ? "" : `\n${st.dim(v.output)}`}`);
-  if (p.forcedInbox) lines.push(st.yellow(t.t(`attend.forced.${p.forcedInbox}`)));
+  if (p.forcedInbox) lines.push(st.yellow(t.t(`attend.forced.${p.forcedInbox}`, { files: (p.links ?? []).join(", ") })));
   return lines.join("\n");
 }
 

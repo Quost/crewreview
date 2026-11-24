@@ -62,7 +62,7 @@ function FixDetail({ d }: { d: Extract<InboxDetail, { kind: "fix" }> }) {
   return (
     <>
       {d.row.error && <p className="notice warn">{t.t("web.inbox.retryHelp", { error: String(d.row.error) })}</p>}
-      {p.forcedInbox && <p className="notice warn">{t.t(`attend.forced.${p.forcedInbox}` as never)}</p>}
+      {p.forcedInbox && <p className="notice warn">{t.t(`attend.forced.${p.forcedInbox}` as never, { files: (p.links ?? []).join(", ") })}</p>}
       <ul className="decisions">
         {p.decisions.map((dec) => {
           const it = p.items.find((i) => i.key === dec.key);

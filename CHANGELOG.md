@@ -23,6 +23,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - `/api/history` ignores a limit that isn't a positive number instead of returning every row.
 - Fixing a red CI now gives the agent the part of each failed job's log around what failed (the lines that name a failure, inside the step they belong to), instead of its last 120 lines. A job that kept running after the broken step used to hand over only uploads and cleanup, and the agent gave up for lack of the error.
 - Jobs whose log names a failure go first among the three a CI fix sees, and a job that only sums up the others (such as a "summary" job) goes last.
+- The attendant now holds for you changes to `.gitattributes`, `.gitmodules`, `.mcp.json` and anything under `.claude/`, like `CLAUDE.md`. A change that adds, changes or removes a symlink or a submodule always waits for you, even with `--protected auto` and even when a reviewer commented on it, and the inbox says which files.
 
 ## 0.20.0 — 2026-11-23
 

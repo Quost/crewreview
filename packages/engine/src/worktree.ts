@@ -43,6 +43,15 @@ export async function changedPaths(dir: string): Promise<string[]> {
   return paths;
 }
 
+/**
+ * The modes of what the next commit changes against HEAD: everything gets staged first, as `commitAll` would, so a
+ * new symlink or a nested repository (a submodule pointer) shows the mode it will have in the commit.
+ */
+export async function stagedModes(dir: string): Promise<string> {
+  await gitOk(["add", "-A"], dir); // ATTEND_DIR is in info/exclude, so it never gets staged
+  return gitOk(["diff", "--cached", "--raw", "-z", "--no-renames", "--no-color", "HEAD"], dir);
+}
+
 export async function diffStat(dir: string): Promise<string> {
   await gitOk(["add", "-A"], dir); // ATTEND_DIR is in info/exclude, so it never gets staged
   return (await gitOk(["diff", "--cached", "--stat"], dir)).trim();

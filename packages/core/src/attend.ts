@@ -167,6 +167,11 @@ const SENSITIVE = [
   /^\.crewreview\//,
   /(^|\/)(AGENTS|CLAUDE)\.md$/,
   /(^|\/)CODEOWNERS$/,
+  // What git does with files (attributes, submodules) and agents' own configuration (MCP servers, Claude's settings).
+  /(^|\/)\.gitattributes$/,
+  /(^|\/)\.gitmodules$/,
+  /(^|\/)\.mcp\.json$/,
+  /(^|\/)\.claude\//,
 ];
 
 export function sensitivePaths(paths: readonly string[]): string[] {
@@ -189,9 +194,49 @@ export function protectedFilesToEdit(items: readonly AttendItem[]): string[] {
  * The protected files among those changed that make an automatic answer wait for you. With `auto`, the ones a
  * reviewer commented on go out like any other fix; anything else protected still waits.
  */
-export function heldPaths(changed: readonly string[], commented: readonly string[], mode: "approve" | "auto"): string[] {
+export function heldPaths(changed: readonly string[], commented: readonly string[], mode: "approve" | "auto", special: readonly string[] = []): string[] {
   const sensitive = sensitivePaths(changed);
-  return mode === "auto" ? sensitive.filter((p) => !commented.includes(p)) : sensitive;
+  const byPath = mode === "auto" ? sensitive.filter((p) => !commented.includes(p)) : sensitive;
+  // Symlinks and submodules always wait: no setting and no comment lets them go out on their own.
+  return [...new Set([...special, ...byPath])];
+}
+
+/** One entry of `git diff --raw`: a path with its mode before and after ("000000" when it didn't exist). */
+export interface ModeChange {
+  path: string;
+  oldMode: string;
+  newMode: string;
+}
+
+/**
+ * Parse `git diff --raw -z` output. Each entry is `:old new oldSha newSha status` then the path (two paths for a
+ * rename or a copy; the new one counts). Anything that doesn't look like an entry is skipped.
+ */
+export function parseRawDiff(text: string): ModeChange[] {
+  const parts = text.split("\0");
+  const out: ModeChange[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const head = /^:(\d{6}) (\d{6}) \S+ \S+ ([A-Z])\d*$/.exec(parts[i]!.trim());
+    if (!head) continue;
+    const two = head[3] === "R" || head[3] === "C";
+    const path = parts[two ? i + 2 : i + 1];
+    i += two ? 2 : 1;
+    if (path) out.push({ path, oldMode: head[1]!, newMode: head[2]! });
+  }
+  return out;
+}
+
+const SYMLINK = "120000";
+const SUBMODULE = "160000";
+
+/**
+ * Changes that add, change or remove a symlink or a submodule pointer, on either side. A path rule can't see
+ * those: a link can point anywhere (outside the repository, at a secret), and a submodule pulls in someone
+ * else's code. They wait for a person, like secrets never go out on their own.
+ */
+export function specialModePaths(changes: readonly ModeChange[]): string[] {
+  const special = (m: string) => m === SYMLINK || m === SUBMODULE;
+  return [...new Set(changes.filter((c) => special(c.oldMode) || special(c.newMode)).map((c) => c.path))];
 }
 
 export const ATTEND_ACTIONS = ["fixed", "replied", "declined", "needs-human"] as const;
