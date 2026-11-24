@@ -12,8 +12,10 @@ import {
   pickFailingJobs,
   redactSecrets,
   heldPaths,
+  parseRawDiff,
   protectedFilesToEdit,
   sensitivePaths,
+  specialModePaths,
   settled,
   situationItems,
   syncItem,
@@ -35,7 +37,7 @@ import type { HostAdapter } from "@crewreview/hosts";
 import type { PrDeps, PrTarget } from "./pr.ts";
 import { attendPrompt } from "./prompts.ts";
 import type { LinkedRepo } from "./repos.ts";
-import { addWorktree, ATTEND_DIR, changedPaths, commitAll, pushHead, removeWorktree } from "./worktree.ts";
+import { addWorktree, ATTEND_DIR, changedPaths, commitAll, pushHead, removeWorktree, stagedModes } from "./worktree.ts";
 
 export type AttendMode = "inbox" | "auto" | "dry-run";
 
@@ -57,7 +59,9 @@ export interface AttendPayload {
   validation: ValidationRun[];
   harness: string;
   /** Why an automatic run waits for you anyway. */
-  forcedInbox?: "sensitive" | "validation-failed";
+  forcedInbox?: "sensitive" | "links" | "validation-failed";
+  /** Symlinks and submodules among the changes: they always wait for you. */
+  links?: string[];
   /** The base was merged in to keep a stack in line, not because someone asked. */
   sync?: AttendSync;
 }
@@ -72,7 +76,7 @@ export interface AttendSync {
 export type AttendOutcome =
   | { kind: "nothing" }
   | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" | "busy" }
-  | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"]; left?: LeftItem[] }
+  | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"]; links?: string[]; left?: LeftItem[] }
   | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number; synced?: AttendSync; left?: LeftItem[] }
   | { kind: "stale"; attendId: number; error?: string }
   | { kind: "failed"; attendId?: number; error: string }
@@ -356,9 +360,19 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       await discardChanges(worktree);
       changed = [];
     }
-    const sensitive = sensitivePaths(touched ?? changed);
-    // Protected files wait for you, unless the repository lets the ones a reviewer commented on go out.
-    if (heldPaths(touched ?? changed, commented, s.protectedFiles).length) forcedInbox ??= "sensitive";
+    const paths = touched ?? changed;
+    // A path rule can't see a symlink or a submodule pointer: git's modes can. During a merge, only what the agent
+    // touched counts (a nested repository shows up as "dir/" among the untracked).
+    let links: string[] = [];
+    if (paths.length) {
+      const mine = new Set(paths.map((p) => p.replace(/\/$/, "")));
+      links = specialModePaths(parseRawDiff(await stagedModes(worktree))).filter((p) => !touched || mine.has(p));
+    }
+    const sensitive = [...new Set([...links, ...sensitivePaths(paths)])];
+    // Protected files wait for you, unless the repository lets the ones a reviewer commented on go out. Symlinks and
+    // submodules always wait.
+    if (links.length) forcedInbox ??= "links";
+    if (heldPaths(paths, commented, s.protectedFiles, links).length) forcedInbox ??= "sensitive";
 
     let commitSha: string | undefined;
     if (changed.length || merging) {
@@ -370,7 +384,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       commitSha = await commitAll(worktree, message, { signing: d.signing, identity: d.identity });
     }
 
-    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: touched ?? changed, sensitive, validation, harness: harnessId, forcedInbox, ...(sync ? { sync } : {}) };
+    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: paths, sensitive, validation, harness: harnessId, forcedInbox, ...(links.length ? { links } : {}), ...(sync ? { sync } : {}) };
     await writeFile(join(jobDir, "attend.json"), JSON.stringify(payload, null, 2));
     const diff = commitSha ? (await git(["show", "--no-color", "--stat", "--patch", commitSha], worktree)).stdout : "";
     await writeFile(join(jobDir, "diff.patch"), diff);
@@ -384,7 +398,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       d.store.updateAttend(attendId!, { status: "pending" });
       const replies = decisions.filter((x) => x.action !== "needs-human" && x.reply).length;
       const left = leftForOwner(items, decisions);
-      return { kind: "pending", attendId: attendId!, fixed: decisions.filter((x) => x.action === "fixed").length, replies, forced: forcedInbox, ...(left.length ? { left } : {}) };
+      return { kind: "pending", attendId: attendId!, fixed: decisions.filter((x) => x.action === "fixed").length, replies, forced: forcedInbox, ...(links.length ? { links } : {}), ...(left.length ? { left } : {}) };
     }
     return await publishAttend(d, x, attendId!);
   } catch (e) {

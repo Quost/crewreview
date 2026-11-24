@@ -245,6 +245,7 @@ export interface AttendPayload {
   validation: { command: string; ok: boolean; output: string }[];
   harness: string;
   forcedInbox?: string;
+  links?: string[];
 }
 
 export type InboxDetail = { kind: "review"; row: any; report: ReviewReport } | { kind: "fix"; row: any; payload: AttendPayload; diff: string };

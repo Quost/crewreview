@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { heldPaths, leftForOwner, makeMarker, parseAttendOutput, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, type AttendRules, type AttendThread } from "../src/index.ts";
+import { heldPaths, leftForOwner, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
 
 const rules: AttendRules = { me: "quost", trustedBots: ["copilot"], fromCrew: false };
 const c = (id: string, author: string, body: string, createdAt = "2026-11-19T10:00:00Z", authorIsBot = false) => ({ id, author, authorIsBot, body, createdAt });
@@ -113,6 +113,55 @@ describe("what the attendant may change, and what it leaves you", () => {
     expect(heldPaths(["AGENTS.md", "src/a.ts"], ["AGENTS.md"], "approve")).toEqual(["AGENTS.md"]);
     expect(heldPaths(["AGENTS.md", "src/a.ts"], ["AGENTS.md"], "auto")).toEqual([]);
     expect(heldPaths(["AGENTS.md", "CLAUDE.md"], ["AGENTS.md"], "auto")).toEqual(["CLAUDE.md"]);
+  });
+
+  test("git's own files and agent configuration are protected", () => {
+    const paths = [".gitattributes", "lib/.gitattributes", ".gitmodules", ".mcp.json", "tools/.mcp.json", ".claude/settings.json", ".claude/commands/x.md", "pkg/.claude/agents/a.md"];
+    expect(sensitivePaths(paths)).toEqual(paths);
+    expect(sensitivePaths(["src/claude/x.ts", "mcp.json", "docs/gitmodules.md", "src/.claudeignore"])).toEqual([]);
+    // Like CLAUDE.md: they wait for you, and a reviewer's comment on them lets the attendant act.
+    expect(heldPaths([".claude/settings.json", ".mcp.json"], [], "approve")).toEqual([".claude/settings.json", ".mcp.json"]);
+    expect(protectedFilesToEdit([item("a", ".gitmodules", 1), item("b", ".claude/settings.json", 2)])).toEqual([".gitmodules", ".claude/settings.json"]);
+  });
+
+  test("git diff --raw: modes before and after, renames by their new name", () => {
+    const raw = [
+      ":000000 120000 0000000 a1b2c3d A", "docs/link",
+      ":100644 100644 1111111 2222222 M", "src/a.ts",
+      ":000000 160000 0000000 e4f5a6b A", "vendor/lib",
+      ":100644 120000 3333333 4444444 T", "config.yml",
+      ":120000 000000 5555555 0000000 D", "old-link",
+      ":100644 100644 6666666 7777777 R087", "src/old.ts", "src/new.ts",
+      "not an entry",
+      "",
+    ].join("\0");
+    expect(parseRawDiff(raw)).toEqual([
+      { path: "docs/link", oldMode: "000000", newMode: "120000" },
+      { path: "src/a.ts", oldMode: "100644", newMode: "100644" },
+      { path: "vendor/lib", oldMode: "000000", newMode: "160000" },
+      { path: "config.yml", oldMode: "100644", newMode: "120000" },
+      { path: "old-link", oldMode: "120000", newMode: "000000" },
+      { path: "src/new.ts", oldMode: "100644", newMode: "100644" },
+    ]);
+    expect(specialModePaths(parseRawDiff(raw))).toEqual(["docs/link", "vendor/lib", "config.yml", "old-link"]);
+    expect(parseRawDiff("")).toEqual([]);
+  });
+
+  test("symlinks and submodules always wait: neither auto nor a reviewer's comment releases them", () => {
+    const changes = [
+      { path: "src/link.ts", oldMode: "000000", newMode: "120000" },
+      { path: "vendor/lib", oldMode: "160000", newMode: "160000" },
+      { path: "src/a.ts", oldMode: "100644", newMode: "100755" },
+    ];
+    const special = specialModePaths(changes);
+    expect(special).toEqual(["src/link.ts", "vendor/lib"]);
+    const changed = ["src/link.ts", "vendor/lib", "src/a.ts"];
+    expect(heldPaths(changed, [], "approve", special)).toEqual(["src/link.ts", "vendor/lib"]);
+    expect(heldPaths(changed, ["src/link.ts", "vendor/lib"], "auto", special)).toEqual(["src/link.ts", "vendor/lib"]);
+    // A protected path that's also a link: the comment releases the path rule, never the link.
+    expect(heldPaths(["AGENTS.md"], ["AGENTS.md"], "auto", ["AGENTS.md"])).toEqual(["AGENTS.md"]);
+    // An executable bit alone is an ordinary change.
+    expect(heldPaths(["src/a.ts"], [], "auto", specialModePaths([changes[2]!]))).toEqual([]);
   });
 
   test("the items left for you, with where they are", () => {

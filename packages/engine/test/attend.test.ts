@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { makeMarker, parseMarker, type PullRequest } from "@crewreview/core";
@@ -467,6 +467,28 @@ describe("protected files a reviewer commented on", () => {
     expect(answer.prompts.at(-1)).not.toContain("approves such a change");
     const pushed = await sh(["rev-parse", "refs/heads/rules-b"], remote);
     expect(await sh(["show", `${pushed}:AGENTS.md`], remote)).toContain("gets its own");
+  });
+
+  // Windows checkouts often can't make symlinks; the rule itself is tested in core.
+  test.skipIf(process.platform === "win32")("a symlink or a submodule waits for you even on auto, comment or not", async () => {
+    const linker = writer(async (req, items) => {
+      await symlink("cart.ts", join(req.cwd, "src", "link.ts"));
+      // A nested repository: `git add -A` stages it as a submodule pointer.
+      const nested = join(req.cwd, "vendor", "lib");
+      await mkdir(nested, { recursive: true });
+      await sh(["init", "-q"], nested);
+      await writeFile(join(nested, "x.ts"), "export {};\n");
+      await sh(["add", "x.ts"], nested);
+      await sh(["-c", "user.name=t", "-c", "user.email=t@example.test", "-c", "commit.gpgsign=false", "commit", "-qm", "x"], nested);
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "Linked." })), summary: "link" });
+    });
+    const sha = await branchAt("links-a", 82);
+    const { d, repo, ref } = await setup(linker, { mode: "auto", protectedFiles: "auto" });
+    const host = new FakeHost(ref, mkPr(82, sha, "links-a"), [thread("T1", "bia", "Link it.", "src/link.ts")]);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 82, "auto");
+    expect(o).toMatchObject({ kind: "pending", forced: "links", links: ["src/link.ts", "vendor/lib"] });
+    expect(host.replies).toHaveLength(0);
+    expect(await sh(["rev-parse", "refs/heads/links-a"], remote)).toBe(sha);
   });
 });
 
