@@ -97,4 +97,20 @@ describe("claims and rules a review checked", () => {
     ]);
     expect(countChecks(out)).toEqual({ holds: 0, fails: 1, unverified: 3 });
   });
+
+  test("the place is read out of the words a model wraps it in", () => {
+    const out = settleChecks(
+      [
+        check({ evidence: "head/lib/auth.ex:36-42 and confirmation_summary in the diff" }),
+        check({ text: "b", evidence: "`./lib/auth.ex:7`" }),
+        check({ text: "c", evidence: "lib/auth.ex (protect_recent_writes, in the diff)" }),
+      ],
+      oracle,
+    );
+    expect(out.map((c) => [c.status, c.evidence])).toEqual([
+      ["holds", "lib/auth.ex:36-42"],
+      ["holds", "lib/auth.ex:7"],
+      ["unverified", "lib/auth.ex (protect_recent_writes, in the diff)"],
+    ]);
+  });
 });

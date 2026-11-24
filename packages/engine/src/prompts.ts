@@ -45,7 +45,7 @@ Besides findings, answer "checks": every claim and project rule you checked, at 
 - "text": the statement, short, in the language of the findings.
 - "source": where it was made: "pr", a commit subject, or a path.
 - "status": "holds", "fails" or "unverified".
-- "evidence": the path:line in ./head/ that shows it holds or fails. Without one that exists, it is posted as unverified.
+- "evidence": exactly one path:line in ./head/ that shows it holds or fails, like "lib/auth.ex:112", with no other words. Without one that exists, it is posted as unverified; a check you couldn't settle is "unverified" with no evidence.
 A claim or rule that fails is also a finding.`;
 
 const CHECKS_SCHEMA = `"checks": [{"kind": "claim | rule", "text": "Short statement", "source": "pr", "status": "holds | fails | unverified", "evidence": "lib/auth.ex:112"}]`;
