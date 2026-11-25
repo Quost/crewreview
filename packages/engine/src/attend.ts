@@ -164,6 +164,8 @@ async function runAgent(c: SeatChoice, routed: boolean, d: AttendDeps, cwd: stri
 export interface AttendOptions {
   /** The open pull request this one sits on (its branch is this one's base), from the daemon's listing. */
   parent?: { number: number; headRef: string; headSha: string };
+  /** Whose pull requests to attend: "mine" (default), "all", or "others". */
+  authors?: "mine" | "all" | "others";
 }
 
 export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: number, mode: AttendMode, opts: AttendOptions = {}): Promise<AttendOutcome> {
@@ -173,7 +175,10 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
   const now = d.now?.() ?? Date.now();
   const pr = await host.getPullRequest(number);
   const me = await host.whoami();
-  if (pr.author.toLowerCase() !== me.toLowerCase()) return { kind: "waiting", reason: "not-yours" };
+  const authors = opts.authors ?? "mine";
+  const mine = pr.author.toLowerCase() === me.toLowerCase();
+  if (authors === "mine" && !mine) return { kind: "waiting", reason: "not-yours" };
+  if (authors === "others" && mine) return { kind: "waiting", reason: "not-yours" };
   if (pr.fromFork) return { kind: "waiting", reason: "fork" };
   // The daemon and a manual run must not answer the same pull request twice.
   if (mode !== "dry-run" && d.store.attending(repo.id, number)) return { kind: "waiting", reason: "busy" };
@@ -242,7 +247,10 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     if (!perms.has(it.author)) perms.set(it.author, await host.permission(it.author));
     const p = perms.get(it.author);
     if (p === "write" || p === "admin") items.push(it);
-    else ignored.push(it.key);
+    else {
+      ignored.push(it.key);
+      console.warn(`attend: ignoring item ${it.key} on PR #${number}: author "${it.author}" has no write access`);
+    }
   }
   if (ignored.length && mode !== "dry-run") d.store.markItems(repo.id, number, ignored, "ignored");
   if (items.length === 0) return { kind: "nothing" };

@@ -715,6 +715,16 @@ export class CrewDaemon {
     return ok;
   }
 
+  /** Give ignored/gave-up/trying attend items on a pull request another chance. Returns how many were reset. */
+  async resetAttendItems(repo: string, number: number): Promise<number> {
+    const count = this.o.store.resetItems(repo, number);
+    if (count > 0) {
+      this.emit({ type: "changed", what: "inbox" });
+      this.emit({ type: "status", status: this.status() });
+    }
+    return count;
+  }
+
   history(limit = 50) {
     const reviews = this.o.store.recent(limit).map((r) => ({ id: `r${r.id}`, kind: "review" as const, repo: r.repo, number: r.number, title: r.title, url: r.postedUrl ?? r.url, status: r.status, event: r.event, findings: r.findings, note: r.note, error: r.error, at: r.updatedAt }));
     const attends = this.o.store.recentAttends(limit).map((a) => ({ id: `f${a.id}`, kind: "fix" as const, repo: a.repo, number: a.number, title: a.title, url: a.url, status: a.status, commit: a.commitSha, note: a.note, error: a.error, at: a.updatedAt }));
