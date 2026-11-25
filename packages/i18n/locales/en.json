@@ -782,5 +782,7 @@
   "post.checks": "Claims and rules checked against the code: ✅ {holds} · ❌ {fails} · ❔ {unverified}",
   "post.check.claim": "claim",
   "post.check.rule": "rule",
-  "post.check.unproven": "no place in the code was given"
+  "post.check.unproven": "no place in the code was given",
+  "harness.reproved": "{harness} updated to {version} and passed its proof again by itself.",
+  "harness.reproveFailed": "{harness} updated to {version} and failed its proof; check it in Harnesses & limits."
 }

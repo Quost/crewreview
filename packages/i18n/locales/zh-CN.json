@@ -766,5 +766,7 @@
   "post.checks": "对照代码核查的说法和规则：✅ {holds} · ❌ {fails} · ❔ {unverified}",
   "post.check.claim": "说法",
   "post.check.rule": "规则",
-  "post.check.unproven": "未给出代码中的位置"
+  "post.check.unproven": "未给出代码中的位置",
+  "harness.reproved": "{harness} 已更新到 {version}，并自动重新通过了验证。",
+  "harness.reproveFailed": "{harness} 已更新到 {version}，但未通过验证；请在“Harness 与限制”中检查。"
 }

@@ -230,6 +230,7 @@ export class CrewDaemon {
     this.emit({ type: "status", status: this.status() });
     try {
       const repos = await loadRepos(reposFile(this.o.dirs));
+      await this.reproveUpdated();
       await runCycle(this.deps(signal), repos, (e) => this.record(e));
     } catch (e) {
       this.record({ type: "repo-error", repo: "*", error: e instanceof Error ? e.message : String(e) });
@@ -747,6 +748,36 @@ export class CrewDaemon {
   }
 
   private proving = new Set<string>();
+  private reproved = new Set<string>();
+
+  /**
+   * A harness that proved itself here and then updated has no result for its new version, so every job would stop
+   * until someone proves it again by hand. Prove the new version before the cycle, once per version.
+   */
+  private async reproveUpdated(): Promise<void> {
+    for (const h of this.o.registry.values()) {
+      if (h.capabilities.readOnly !== "enforced" || this.proving.has(h.id)) continue;
+      const det = await h.detect().catch(() => ({ installed: false, version: undefined }));
+      if (!det.installed) continue;
+      const key = `${h.id}@${det.version ?? "?"}`;
+      if (this.reproved.has(key) || (await this.o.conformance.get(h.id, det.version))) continue;
+      if (!(await this.o.conformance.provenBefore(h.id))) continue;
+      this.reproved.add(key);
+      this.proving.add(h.id);
+      this.emit({ type: "changed", what: "harnesses" });
+      try {
+        const r = await runConformance(h, { write: h.capabilities.write });
+        await this.o.conformance.put(r);
+        const passed = r.readOnly === "pass" && (!h.capabilities.write || r.writeScope === "pass");
+        this.record({ type: "reproved", harness: h.id, version: det.version ?? "?", passed });
+      } catch {
+        // Couldn't start: the dashboard's button still proves it by hand.
+      } finally {
+        this.proving.delete(h.id);
+        this.emit({ type: "changed", what: "harnesses" });
+      }
+    }
+  }
 
   /**
    * Prove a harness's locks from the dashboard, as `doctor --conformance` does: two tiny prompts on the user's plan.
