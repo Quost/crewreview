@@ -279,3 +279,37 @@ export function leftForOwner(items: readonly AttendItem[], decisions: readonly A
     .filter((i) => human.has(i.key))
     .map((i) => ({ kind: i.kind, ...(i.path ? { path: i.path } : {}), ...(i.line ? { line: i.line } : {}), ...(i.author ? { author: i.author } : {}) }));
 }
+
+/** One line of a round's summary: what was done with an item, where it was, and for declined or left items, why. */
+export interface RoundLine {
+  action: AttendDecision["action"];
+  kind: AttendItem["kind"];
+  path?: string;
+  line?: number;
+  author?: string;
+  reason?: string;
+}
+
+/** The first sentence of a reply, on one line and at most `max` characters: enough to say why. */
+export function firstSentence(text: string, max = 200): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  const end = flat.search(/[.!?](\s|$)/);
+  const one = end === -1 ? flat : flat.slice(0, end + 1);
+  return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
+}
+
+/**
+ * What one round of the attendant did, for a single comment on the pull request. Only when it touched at least
+ * `min` items: one answered thread already says it all. Fixed and answered items say where; declined and left
+ * ones also say why.
+ */
+export function roundSummary(items: readonly AttendItem[], decisions: readonly AttendDecision[], min = 2): RoundLine[] | undefined {
+  const lines: RoundLine[] = [];
+  for (const d of decisions) {
+    const i = items.find((x) => x.key === d.key);
+    if (!i) continue;
+    const why = (d.action === "declined" || d.action === "needs-human") && d.reply.trim() ? firstSentence(d.reply) : "";
+    lines.push({ action: d.action, kind: i.kind, ...(i.path ? { path: i.path } : {}), ...(i.line ? { line: i.line } : {}), ...(i.author ? { author: i.author } : {}), ...(why ? { reason: why } : {}) });
+  }
+  return lines.length >= min ? lines : undefined;
+}

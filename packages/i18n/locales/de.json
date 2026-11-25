@@ -797,5 +797,11 @@
   "post.droppedNoEvidence.one": "{count} Befund wurde verworfen, weil er eine Datei oder Zeile nennt, die es nicht gibt.",
   "post.droppedNoEvidence.other": "{count} Befunde wurden verworfen, weil sie eine Datei oder Zeile nennen, die es nicht gibt.",
   "post.droppedUnread.one": "{count} Befund wurde verworfen, weil seine Linse die Datei nicht lesen konnte.",
-  "post.droppedUnread.other": "{count} Befunde wurden verworfen, weil ihre Linse die Dateien nicht lesen konnte."
+  "post.droppedUnread.other": "{count} Befunde wurden verworfen, weil ihre Linse die Dateien nicht lesen konnte.",
+  "attend.round.head": "In dieser Runde, in {sha}:",
+  "attend.round.headNoCommit": "In dieser Runde, ohne Codeänderung:",
+  "attend.round.fixed": "Behoben",
+  "attend.round.replied": "Beantwortet",
+  "attend.round.declined": "Abgelehnt",
+  "attend.round.left": "Bleibt bei {owner}"
 }

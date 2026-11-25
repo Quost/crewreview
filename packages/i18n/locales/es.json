@@ -797,5 +797,11 @@
   "post.droppedNoEvidence.one": "{count} hallazgo se descartó por citar un archivo o una línea que no existe.",
   "post.droppedNoEvidence.other": "{count} hallazgos se descartaron por citar un archivo o una línea que no existe.",
   "post.droppedUnread.one": "{count} hallazgo se descartó porque su lente dijo que no pudo leer ese archivo.",
-  "post.droppedUnread.other": "{count} hallazgos se descartaron porque su lente dijo que no pudo leer esos archivos."
+  "post.droppedUnread.other": "{count} hallazgos se descartaron porque su lente dijo que no pudo leer esos archivos.",
+  "attend.round.head": "En esta ronda, en {sha}:",
+  "attend.round.headNoCommit": "En esta ronda, sin cambios en el código:",
+  "attend.round.fixed": "Corregido",
+  "attend.round.replied": "Respondido",
+  "attend.round.declined": "Rechazado",
+  "attend.round.left": "Queda para {owner}"
 }

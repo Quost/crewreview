@@ -165,6 +165,10 @@ export function githubHost(repo: RepoRef, t: Transport): HostAdapter {
       await t.request("POST", `/repos/${repo.slug}/issues/${pr.number}/comments`, { body: { body } });
     },
 
+    async editComment(_pr, commentId, body) {
+      await t.request("PATCH", `/repos/${repo.slug}/issues/comments/${encodeURIComponent(commentId)}`, { body: { body } });
+    },
+
     async ciLog(job) {
       const res = await t.request("GET", `${base}/actions/jobs/${job}/logs`).catch(() => undefined);
       return typeof res?.data === "string" ? res.data : undefined;

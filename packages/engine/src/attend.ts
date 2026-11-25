@@ -4,6 +4,8 @@ import {
   extractJson,
   ciLogExcerpt,
   leftForOwner,
+  roundSummary,
+  type RoundLine,
   linkSpent,
   makeMarker,
   parseMarker,
@@ -67,6 +69,8 @@ export interface AttendPayload {
   sync?: AttendSync;
   /** Fixes undone with a merge that couldn't finish: tried again on their own next time, not left for you. */
   retry?: string[];
+  /** The round's summary went out: a retry doesn't post it again. */
+  summarized?: boolean;
 }
 
 /** Why a stacked branch took its base in: the pull request below moved (`stacked`) or was merged (`restack`). */
@@ -488,6 +492,23 @@ async function removeStale(worktree: string): Promise<void> {
   if (common) await removeWorktree(common, worktree).catch(() => {});
 }
 
+const ROUND_ICON: Record<RoundLine["action"], string> = { fixed: "✅", replied: "💬", declined: "🚫", "needs-human": "✋" };
+const ROUND_KIND = { thread: "attend.leftKind.thread", review: "attend.leftKind.review", comment: "attend.leftKind.comment", conflict: "attend.leftKind.conflict", ci: "attend.leftKind.ci" } as const;
+
+/** One comment that says what a round did with each item, so a reviewer sees it without opening every resolved thread. */
+function roundBody(t: Translator, lines: readonly RoundLine[], owner: string, commit: string | undefined, version: string, number: number): string {
+  const head = commit ? t.t("attend.round.head", { sha: commit.slice(0, 7) }) : t.t("attend.round.headNoCommit");
+  const out = [`**${head}**`, ""];
+  for (const l of lines) {
+    const where = l.path ? `\`${l.path}${l.line ? `:${l.line}` : ""}\`` : t.t(ROUND_KIND[l.kind]);
+    const by = l.author ? ` (@${l.author})` : "";
+    const what = l.action === "needs-human" ? t.t("attend.round.left", { owner }) : t.t(`attend.round.${l.action}`);
+    out.push(`- ${ROUND_ICON[l.action]} ${what} · ${where}${by}${l.reason ? ` — ${l.reason}` : ""}`);
+  }
+  out.push("", `<sub>🤖 ${t.t("attend.footer", { crewreview: crewreviewLink("comment") })}</sub>`, makeMarker({ kind: "round", ref: String(number), version }));
+  return out.join("\n");
+}
+
 /** Push the commit (if any), post the replies, resolve fixed threads and ask reviewers to look again. */
 export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number): Promise<AttendOutcome> {
   const row = d.store.getAttend(attendId);
@@ -518,11 +539,16 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
     // the markers on the host cover a crash between posting a reply and saving that list.
     const posted = new Set(payload.replied ?? []);
     const alreadyResolved = new Set<string>();
+    const login = await host.whoami();
+    const me = login.toLowerCase();
+    let roundComment: string | undefined;
     for (const thread of await host.listThreads(row.number)) {
       if (thread.resolved) alreadyResolved.add(thread.id);
       for (const comment of thread.comments) {
         const marker = parseMarker(comment.body);
         if (marker?.kind === "reply" && marker.ref) posted.add(marker.ref);
+        // The summary this account left on an earlier round: updated in place, not posted again.
+        if (marker?.kind === "round" && !thread.resolvable && comment.author.toLowerCase() === me) roundComment = comment.id;
       }
     }
     let replies = 0;
@@ -549,6 +575,21 @@ if (!posted.has(dec.key)) {
         // Resolving is a courtesy: the fix and the reply are already out. A failure is reported, not fatal.
         await host.resolve(pr, item.threadId).then(
           () => resolved++,
+          (e) => unresolved.push(e instanceof Error ? e.message : String(e)),
+        );
+      }
+    }
+    if (s.summary === "auto" && !payload.summarized) {
+      const lines = roundSummary(payload.items, payload.decisions);
+      if (lines) {
+        // A courtesy, like resolving: a failure is reported, not fatal.
+        const body = roundBody(t, lines, login, row.commitSha ?? undefined, d.version, row.number);
+        const sent = roundComment && host.editComment ? host.editComment(pr, roundComment, body) : host.comment?.(pr, body);
+        await Promise.resolve(sent).then(
+          () => {
+            payload.summarized = true;
+            d.store.updateAttend(attendId, { payload: JSON.stringify(payload) });
+          },
           (e) => unresolved.push(e instanceof Error ? e.message : String(e)),
         );
       }

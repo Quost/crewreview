@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- After a round that touched two or more items, the attendant leaves one comment on the pull request saying what each got: fixed, answered, declined (with why) or left for you (with what to decide), and the commit. Resolved threads fold away on the host, so the reviewer sees the round without opening each one. Later rounds update that same comment instead of adding another. `summary = "off"` in `[repo.attend]` turns it off.
+
 ### Fixed
 
 - A conflict with the base the attendant couldn't finish no longer takes the other fixes of the same round with it. The merge is still undone and the conflict left for you, but those fixes are tried again on their own at the next check, instead of being left for you for good.
