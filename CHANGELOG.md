@@ -6,6 +6,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Fixed
 
+- The footer of reviews and replies shows "Crewreview" as a link to the site, instead of a bare address that didn't open.
 - A harness that updates no longer stops every review and answer until it's proven by hand: if an earlier version passed its proof on this computer, the new version proves itself before the next check and says the result in the activity log.
 
 ### Changed
