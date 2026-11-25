@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type HistoryRow } from "../api.ts";
 import { relative, useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Pill } from "../ui.tsx";
+import { Card, Empty, ExternalLink, Pill, SectionHead } from "../ui.tsx";
 
 const TONE: Record<string, "ok" | "warn" | "bad" | "neutral" | "live"> = { posted: "ok", done: "ok", pending: "warn", running: "live", failed: "bad", stale: "neutral", discarded: "neutral", skipped: "neutral" };
 
@@ -13,9 +13,7 @@ export function HistoryPage({ version }: { version: number }) {
   }, [version]);
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.history")}</h1>
-      </header>
+      <SectionHead title={t.t("web.nav.history")} />
       <Card>
         {rows && rows.length === 0 ? (
           <Empty>{t.t("web.history.empty")}</Empty>
@@ -38,9 +36,7 @@ export function HistoryPage({ version }: { version: number }) {
                     <td>{r.kind === "review" ? t.t("inbox.kind.review") : t.t("inbox.kind.fix")}</td>
                     <td>
                       <ExternalLink href={r.url}>
-                        <span className="mono">
-                          {r.repo}#{r.number}
-                        </span>{" "}
+                        <span className="mono">{r.repo}#{r.number}</span>{" "}
                         {r.title}
                       </ExternalLink>
                     </td>

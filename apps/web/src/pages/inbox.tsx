@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, type InboxDetail, type InboxItem } from "../api.ts";
 import { lensName, relative, useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Inline, Pill, SeverityPill } from "../ui.tsx";
+import { Card, Empty, ExternalLink, Inline, Pill, SeverityPill, SectionHead } from "../ui.tsx";
 
-/** The first line of a comment, without the author prefix, markdown or hidden markers. */
 function plain(text: string): string {
   const first = text.split("\n").find((l) => l.trim()) ?? "";
   return first
@@ -41,9 +40,7 @@ function ReviewDetail({ d }: { d: Extract<InboxDetail, { kind: "review" }> }) {
           <li key={f.id} className={`finding sev-${f.severity}`}>
             <div className="finding-head">
               <SeverityPill severity={f.severity} label={t.t(`severity.${f.severity}`)} />
-              <span className="mono">
-                {f.path}:{f.line}
-              </span>
+              <span className="mono">{f.path}:{f.line}</span>
               <span className="muted small">{f.lenses.map((l) => lensName(t, l)).join(", ")}</span>
             </div>
             <strong>{f.title}</strong>
@@ -98,7 +95,6 @@ function FixDetail({ d }: { d: Extract<InboxDetail, { kind: "fix" }> }) {
 export function InboxPage({ version }: { version: number }) {
   const t = useT();
   const [items, setItems] = useState<InboxItem[] | undefined>();
-  // `#/inbox?item=r12` (the menu bar's Open) selects that item.
   const fromHash = () => /[?&]item=([rf]\d+)/.exec(location.hash)?.[1];
   const [selected, setSelected] = useState<string | undefined>(fromHash);
   useEffect(() => {
@@ -159,9 +155,7 @@ export function InboxPage({ version }: { version: number }) {
   const current = items?.find((i) => i.id === selected);
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.inbox")}</h1>
-      </header>
+      <SectionHead title={t.t("web.nav.inbox")} />
       {message && <p className={`notice ${message.tone}`}>{message.text}</p>}
       {items && items.length === 0 ? (
         <Card>
@@ -176,9 +170,7 @@ export function InboxPage({ version }: { version: number }) {
                   <button className={i.id === selected ? "item on" : "item"} onClick={() => setSelected(i.id)}>
                     <span className="item-top">
                       <Pill tone={i.kind === "review" ? "accent" : "live"}>{i.kind === "review" ? t.t("inbox.kind.review") : t.t("inbox.kind.fix")}</Pill>
-                      <span className="mono small">
-                        {i.repo}#{i.number}
-                      </span>
+                      <span className="mono small">{i.repo}#{i.number}</span>
                     </span>
                     <span className="item-title">{i.title}</span>
                     <span className="muted small">
@@ -197,9 +189,7 @@ export function InboxPage({ version }: { version: number }) {
               current && (
                 <>
                   <ExternalLink href={current.url}>{t.t("web.openOnHost")}</ExternalLink>
-                  <button className="btn ghost" disabled={busy} onClick={() => act("discard")}>
-                    {t.t("web.discard")}
-                  </button>
+                  <button className="btn ghost" disabled={busy} onClick={() => act("discard")}>{t.t("web.discard")}</button>
                   <button className="btn primary" disabled={busy} onClick={() => act("approve")}>
                     {current.kind === "review" ? t.t("web.approveReview") : detail?.kind === "fix" && detail.row.error ? t.t("web.inbox.retryFix") : t.t("web.approveFix")}
                   </button>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type TeamView } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, Pill } from "../ui.tsx";
+import { Card, Empty, Pill, Avatar, SectionHead } from "../ui.tsx";
 
 const EXAMPLE = `[seats]
 planner = { harness = "claude", model = "claude-opus-5-5", effort = "high" }
@@ -13,10 +13,6 @@ review = { seats = ["fast", "sonnet"], balance = "spread" }
 verify = ["planner"]
 attend = ["sonnet", "fast"]`;
 
-/**
- * The crew as a team (docs/plans/crew-mode.md): every seat is a member with a job, a harness, a model and an effort,
- * and its day. Live: the agents board tells who is working right now.
- */
 export function TeamPage({ agentsVersion }: { agentsVersion: number }) {
   const t = useT();
   const [team, setTeam] = useState<TeamView | undefined>();
@@ -25,11 +21,10 @@ export function TeamPage({ agentsVersion }: { agentsVersion: number }) {
   }, [agentsVersion]);
   const when = (at: number) => new Date(at).toLocaleString(t.locale, { weekday: "short", hour: "2-digit", minute: "2-digit" });
   const routed = team?.roles.some((r) => r.configured);
+  const avatarTone = (s: { working: unknown[]; pausedUntil?: number }) => (s.working.length ? "accent" : s.pausedUntil ? "warn" : "accent");
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.team")}</h1>
-      </header>
+      <SectionHead title={t.t("web.nav.team")} />
       <p className="muted lead">{t.t("web.team.intro")}</p>
       {!team ? (
         <Empty>{t.t("web.loading")}</Empty>
@@ -39,9 +34,7 @@ export function TeamPage({ agentsVersion }: { agentsVersion: number }) {
             {team.seats.map((s) => (
               <Card key={s.id} className="member" title={
                 <>
-                  <span className={`avatar ${s.working.length ? "busy" : s.pausedUntil ? "paused" : ""}`} aria-hidden="true">
-                    {s.id.slice(0, 2).toUpperCase()}
-                  </span>
+                  <Avatar label={s.id} size={32} tone={avatarTone(s)} />
                   {s.id}
                 </>
               }>

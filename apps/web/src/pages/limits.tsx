@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type HarnessInfo, type Limits } from "../api.ts";
 import { duration, useT } from "../i18n.ts";
-import { Card, Empty, Pill, ProveButton } from "../ui.tsx";
+import { Card, Empty, Pill, ProveButton, SectionHead, StatCard } from "../ui.tsx";
 import { SettingsCard } from "./settings.tsx";
 
 function Check({ value }: { value?: string }) {
@@ -22,9 +22,7 @@ export function LimitsPage({ version, agentsVersion }: { version: number; agents
   const u = limits?.usageToday;
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.limits")}</h1>
-      </header>
+      <SectionHead title={t.t("web.nav.limits")} />
       {u && (
         <div className="stats">
           <div className="stat">

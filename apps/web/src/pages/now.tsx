@@ -2,7 +2,7 @@ import type { LiveAgent } from "../api.ts";
 import type { Live } from "../app.tsx";
 import { describeEntry, foldQuiet } from "../describe.ts";
 import { clock, duration, lensName, useT } from "../i18n.ts";
-import { Card, Empty, Pill } from "../ui.tsx";
+import { Card, Empty, Pill, SectionHead } from "../ui.tsx";
 
 function roleLabel(t: ReturnType<typeof useT>, role: string): string {
   if (role === "verifier") return t.t("local.verifier");
@@ -22,12 +22,7 @@ export function NowPage({ live, onCheckNow }: { live: Live; onCheckNow: () => vo
   const log = foldQuiet(live.log).reverse().slice(0, 60);
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.now")}</h1>
-        <button className="btn primary" onClick={onCheckNow} disabled={!live.connected || live.status?.cycleRunning}>
-          {t.t("web.checkNow")}
-        </button>
-      </header>
+      <SectionHead title={t.t("web.nav.now")} actions={<button className="btn primary" onClick={onCheckNow} disabled={!live.connected || live.status?.cycleRunning}>{t.t("web.checkNow")}</button>} />
       <Card title={t.t("web.now.agents")}>
         {jobs.size === 0 ? (
           <Empty>{t.t("web.now.noAgents")}</Empty>

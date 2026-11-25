@@ -1,11 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, unreachable, type Repo, type TaskInfo } from "../api.ts";
 import { relative, useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Pill } from "../ui.tsx";
+import { Card, Empty, ExternalLink, Pill, SectionHead } from "../ui.tsx";
 
 type Tone = "ok" | "warn" | "bad" | "live" | "accent" | undefined;
 
-/** Where a task is, as a pill: yours to act on (approval, ready) stands out. */
 export function stageTone(stage: TaskInfo["stage"]): Tone {
   if (stage === "approval" || stage === "ready") return "warn";
   if (stage === "done") return "ok";
@@ -16,7 +15,6 @@ export function stageTone(stage: TaskInfo["stage"]): Tone {
 
 const MARK = { todo: "○", doing: "◐", done: "●", blocked: "!" } as const;
 
-/** Give the crew a task, and follow it: the plan to approve, each step, the handoffs, the self-review, the PR. */
 export function TasksPage({ version }: { version: number }) {
   const t = useT();
   const [tasks, setTasks] = useState<TaskInfo[] | undefined>();
@@ -56,9 +54,7 @@ export function TasksPage({ version }: { version: number }) {
   const needsYou = (s: TaskInfo["stage"]) => s === "approval" || s === "ready";
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.tasks")}</h1>
-      </header>
+      <SectionHead title={t.t("web.nav.tasks")} />
       <p className="muted lead">{t.t("web.tasks.intro")}</p>
       <NewTask onCreated={(id) => (setSelected(id), setMessage({ tone: "ok", text: t.t("web.tasks.started") }))} />
       {message && <p className={`notice ${message.tone}`}>{message.text}</p>}
@@ -142,9 +138,7 @@ function TaskDetail({ k }: { k: TaskInfo }) {
           <ul className="steps">
             {k.plan.steps.map((s) => (
               <li key={s.id} className={`step-${s.status}`}>
-                <span className="mark" aria-label={s.status}>
-                  {MARK[s.status]}
-                </span>
+                <span className="mark" aria-label={s.status}>{MARK[s.status]}</span>
                 <div>
                   <strong>{s.title}</strong>
                   {s.detail && <p className="small">{s.detail}</p>}
@@ -186,9 +180,7 @@ function TaskDetail({ k }: { k: TaskInfo }) {
           <ol className="handoffs">
             {[...k.handoffs].reverse().map((h) => (
               <li key={h.n}>
-                <span className="muted small mono">
-                  #{h.n} · {t.t(`task.role.${h.role}` as never)} · {h.seat} · {relative(t, h.at)}
-                </span>
+                <span className="muted small mono">#{h.n} · {t.t(`task.role.${h.role}` as never)} · {h.seat} · {relative(t, h.at)}</span>
                 {h.cut && <p className="notice warn small">{t.t("web.tasks.cut", { reason: h.cut })}</p>}
                 {h.done.length > 0 && <p className="small">{t.t("web.tasks.handoffDone", { steps: h.done.join(", ") })}</p>}
                 {h.next && <p className="small">{t.t("web.tasks.handoffNext", { next: h.next })}</p>}
@@ -203,7 +195,6 @@ function TaskDetail({ k }: { k: TaskInfo }) {
   );
 }
 
-/** A new task: the repository, what to do, who does it, and whether it waits for you. */
 function NewTask({ onCreated }: { onCreated: (id: string) => void }) {
   const t = useT();
   const [repos, setRepos] = useState<Repo[]>([]);
@@ -221,7 +212,6 @@ function NewTask({ onCreated }: { onCreated: (id: string) => void }) {
     }, () => {});
   }, []);
   const chosen = repos.find((r) => r.id === repo);
-  // The crew's account by default when the repository has one: that's what it's for.
   useEffect(() => setAs(chosen?.review.account ? "crew" : "you"), [chosen?.review.account]);
   const start = async (e: FormEvent) => {
     e.preventDefault();
@@ -254,9 +244,7 @@ function NewTask({ onCreated }: { onCreated: (id: string) => void }) {
           <span className="small muted">{t.t("web.tasks.repo")}</span>
           <select value={repo} onChange={(e) => setRepo(e.target.value)}>
             {repos.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.id}
-              </option>
+              <option key={r.id} value={r.id}>{r.id}</option>
             ))}
           </select>
         </label>
@@ -285,9 +273,7 @@ function NewTask({ onCreated }: { onCreated: (id: string) => void }) {
           {t.t("web.tasks.auto")}
         </label>
         <div className="row">
-          <button className="btn primary" disabled={busy || !text.trim()}>
-            {t.t("web.tasks.start")}
-          </button>
+          <button className="btn primary" disabled={busy || !text.trim()}>{t.t("web.tasks.start")}</button>
         </div>
         {error && <p className="notice bad">{error}</p>}
       </form>
