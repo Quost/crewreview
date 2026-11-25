@@ -296,3 +296,25 @@ export interface Limits {
   usageToday: { reviews: number; inputTokens: number; outputTokens: number; costUsd: number };
   configPath?: string;
 }
+
+export interface BlockedItem {
+  key: string;
+  status: "needs-human" | "gave-up" | "ignored" | "trying";
+  attempts: number;
+  at: number;
+  kind: "thread" | "review" | "comment" | "conflict" | "ci";
+  path?: string;
+  line?: number;
+  author?: string;
+  text?: string;
+  reason?: string;
+}
+
+export interface PullsRepo {
+  repo: string;
+  repoUrl: string;
+  mode: string;
+  paused: boolean;
+  error?: string;
+  pulls: { number: number; title: string; url: string; draft: boolean; conflicts: boolean; busy: boolean; last?: { status: string; at: number; commit?: string }; blocked: BlockedItem[] }[];
+}

@@ -9,7 +9,7 @@ export function attendText(c: Ctx, repo: string, number: number, o: AttendOutcom
   const { t, style: st } = c;
   switch (o.kind) {
     case "nothing":
-      return st.dim(t.t("attend.nothing", { repo, number }));
+      return o.blocked ? st.yellow(t.tp("attend.nothingBlocked", o.blocked, { repo, number })) : st.dim(t.t("attend.nothing", { repo, number }));
     case "waiting":
       return st.dim(
         o.reason === "fork"

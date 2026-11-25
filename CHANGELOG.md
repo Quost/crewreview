@@ -7,6 +7,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 ### Added
 
 - After a round that touched two or more items, the attendant leaves one comment on the pull request saying what each got: fixed, answered, declined (with why) or left for you (with what to decide), and the commit. Resolved threads fold away on the host, so the reviewer sees the round without opening each one. Later rounds update that same comment instead of adding another. `summary = "off"` in `[repo.attend]` turns it off.
+- A Pull requests page in the dashboard: your open pull requests in the repositories the attendant works on, whether each conflicts with its base or is a draft, when it was last answered, and what waits on you there: each item left for you or given up, with what the reviewer asked and what the agent said. Each item can be tried again or marked done, a pull request can be tried again as a whole, and "Answer now" runs the attendant on it right away. The nav shows how many items wait on you.
+- `crewreview attend` says how many items wait on you instead of "nothing to answer" when that's why it did nothing.
 
 ### Fixed
 

@@ -225,6 +225,23 @@ export class Store {
     return gaveUp;
   }
 
+  /** The items of a pull request that wait on you or stopped: left for you, given up, ignored or half-tried. */
+  blockedItems(repo: string, number: number): { key: string; status: ItemStatus; attempts: number; updatedAt: number }[] {
+    return this.db
+      .query("SELECT key, status, attempts, updated_at AS updatedAt FROM attend_items WHERE repo = ? AND number = ? AND status != 'handled' ORDER BY updated_at")
+      .all(repo, number) as { key: string; status: ItemStatus; attempts: number; updatedAt: number }[];
+  }
+
+  /** Give one item another chance, whatever stopped it. Returns whether there was one. */
+  retryItem(repo: string, number: number, key: string): boolean {
+    return this.db.query("DELETE FROM attend_items WHERE repo = ? AND number = ? AND key = ? AND status != 'handled'").run(repo, number, key).changes > 0;
+  }
+
+  /** The latest runs of one pull request, newest first: where an item's text and the agent's reason are. */
+  attendsOf(repo: string, number: number, limit = 10): AttendRow[] {
+    return this.db.query(`SELECT ${ATTEND_COLS} FROM attends WHERE repo = ? AND number = ? ORDER BY id DESC LIMIT ?`).all(repo, number, limit) as AttendRow[];
+  }
+
   /** Give items left for you, given up or half-tried another chance. Handled and ignored ones stay. Returns how many. */
   resetItems(repo: string, number: number): number {
     return this.db.query("DELETE FROM attend_items WHERE repo = ? AND number = ? AND status IN ('needs-human', 'gave-up', 'trying')").run(repo, number).changes;

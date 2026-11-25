@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type Repo, type Status, type TaskInfo } from "./api.ts";
+import { api, connectEvents, takeToken, type LiveAgent, type LogEntry, type PullsRepo, type Repo, type Status, type TaskInfo } from "./api.ts";
 import { createTranslator, I18n, initialLocale, LANGUAGE_NAMES, LOCALES, relative, saveLocale, type Locale } from "./i18n.ts";
 import { AccountPage } from "./pages/account.tsx";
 import { HistoryPage } from "./pages/history.tsx";
@@ -8,10 +8,11 @@ import { LimitsPage } from "./pages/limits.tsx";
 import { TasksPage } from "./pages/tasks.tsx";
 import { TeamPage } from "./pages/team.tsx";
 import { NowPage } from "./pages/now.tsx";
+import { PullsPage } from "./pages/pulls.tsx";
 import { ReposPage } from "./pages/repos.tsx";
 import { SetupPage } from "./pages/setup.tsx";
 
-const PAGES = ["setup", "now", "inbox", "tasks", "history", "repos", "team", "limits", "account"] as const;
+const PAGES = ["setup", "now", "pulls", "inbox", "tasks", "history", "repos", "team", "limits", "account"] as const;
 type Page = (typeof PAGES)[number];
 
 function pageFromHash(): Page {
@@ -25,7 +26,7 @@ export interface Live {
   log: LogEntry[];
   connected: boolean;
   /** Bumped when the daemon says a list changed. */
-  version: { inbox: number; repos: number; history: number; settings: number; harnesses: number; tasks: number };
+  version: { inbox: number; repos: number; history: number; settings: number; harnesses: number; tasks: number; pulls: number };
 }
 
 export function App() {
@@ -33,7 +34,7 @@ export function App() {
   const t = useMemo(() => createTranslator(locale), [locale]);
   const [token, setToken] = useState(() => takeToken());
   const [page, setPage] = useState<Page>(pageFromHash);
-  const [live, setLive] = useState<Live>({ agents: [], log: [], connected: false, version: { inbox: 0, repos: 0, history: 0, settings: 0, harnesses: 0, tasks: 0 } });
+  const [live, setLive] = useState<Live>({ agents: [], log: [], connected: false, version: { inbox: 0, repos: 0, history: 0, settings: 0, harnesses: 0, tasks: 0, pulls: 0 } });
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -89,6 +90,15 @@ export function App() {
       () => {},
     );
   }, [token, live.version.tasks]);
+  // Your open pull requests and what waits on you there: loaded when it changes, and on the pull requests page.
+  const [pulls, setPulls] = useState<PullsRepo[] | undefined>();
+  const loadPulls = useCallback(() => {
+    api.get<PullsRepo[]>("/api/pulls").then(setPulls, () => setPulls((p) => p ?? []));
+  }, []);
+  useEffect(() => {
+    if (token) loadPulls();
+  }, [token, live.version.pulls, live.version.repos, page === "pulls", loadPulls]);
+  const pullsWaiting = (pulls ?? []).reduce((n, r) => n + r.pulls.reduce((m, p) => m + p.blocked.filter((b) => b.status === "needs-human" || b.status === "gave-up").length, 0), 0);
   const [firstRun, setFirstRun] = useState(() => !location.hash.replace(/^#\/?/, ""));
   useEffect(() => {
     if (repoCount === undefined || !firstRun) return;
@@ -124,6 +134,7 @@ export function App() {
   const nav: { id: Page; label: string; badge?: number }[] = [
     ...(repoCount === 0 || page === "setup" ? [{ id: "setup" as const, label: t.t("web.nav.setup") }] : []),
     { id: "now", label: t.t("web.nav.now"), badge: live.agents.filter((a) => a.status === "running").length || undefined },
+    { id: "pulls", label: t.t("web.nav.pulls"), badge: pullsWaiting || undefined },
     { id: "inbox", label: t.t("web.nav.inbox"), badge: st?.inbox || undefined },
     { id: "tasks", label: t.t("web.nav.tasks"), badge: tasksWaiting || undefined },
     { id: "history", label: t.t("web.nav.history") },
@@ -179,6 +190,7 @@ export function App() {
         <main className="main">
           {page === "setup" && <SetupPage onCheckNow={checkNow} repos={repoCount} agentsVersion={live.version.harnesses} />}
           {page === "now" && <NowPage live={live} onCheckNow={checkNow} />}
+          {page === "pulls" && <PullsPage data={pulls} reload={loadPulls} />}
           {page === "inbox" && <InboxPage version={live.version.inbox} />}
           {page === "history" && <HistoryPage version={live.version.history} />}
           {page === "repos" && <ReposPage version={live.version.repos} />}
