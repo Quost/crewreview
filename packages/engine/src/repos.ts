@@ -44,6 +44,8 @@ const AttendSettings = z
   .object({
     /** off: nothing. inbox: fix and draft replies, wait for your approval. auto: push and reply. */
     mode: z.enum(REVIEW_MODES).default("off"),
+    /** Whose pull requests to attend: "mine" (default), "all", or "others". */
+    authors: z.enum(["mine", "all", "others"]).default("mine"),
     /** false: only answer, never change code. */
     fix: z.boolean().default(true),
     /** The polish loop: also act on findings Crewreview's reviewer left on your pull request. */

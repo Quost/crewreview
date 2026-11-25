@@ -171,6 +171,11 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
     }
     if (inboxMatch?.[2] === "approve" && m === "POST") return json(await crew.approve(inboxMatch[1]!));
     if (inboxMatch?.[2] === "discard" && m === "POST") return json({ ok: await crew.discard(inboxMatch[1]!) });
+    const resetMatch = /^\/api\/repos\/([a-z0-9._-]+)\/attend\/([0-9]+)\/reset-items$/.exec(p);
+    if (resetMatch && m === "POST") {
+      const count = await crew.resetAttendItems(resetMatch[1]!, Number(resetMatch[2]!));
+      return json({ ok: true, reset: count });
+    }
     if (p === "/api/history" && m === "GET") return json(crew.history(Math.max(1, Math.min(200, Number.parseInt(url.searchParams.get("limit") ?? "", 10) || 50))));
     if (p === "/api/harnesses" && m === "GET") return json(await crew.harnesses());
     const proveMatch = /^\/api\/harnesses\/([a-z0-9][a-z0-9-]*)\/prove$/.exec(p);

@@ -119,7 +119,7 @@ export async function runCycle(
         if (pr.author.toLowerCase() !== me || pr.draft) continue;
         const job = { repo: repo.id, number: pr.number, title: pr.title, kind: "attend" as const };
         const parent = parents.get(pr.number);
-        const opts = parent ? { parent: { number: parent.number, headRef: parent.headRef, headSha: parent.headSha } } : {};
+        const opts = parent ? { parent: { number: parent.number, headRef: parent.headRef, headSha: parent.headSha }, authors: repo.attend.authors } : {};
         const outcome = await attendPullRequest({ ...(d as AttendDeps), onEvent: (e) => d.onJobEvent?.(job, e) ?? d.onEvent?.(e) }, target, pr.number, repo.attend.mode === "auto" ? "auto" : "inbox", opts);
         if (outcome.kind === "nothing" || (outcome.kind === "waiting" && outcome.reason === "not-yours")) continue;
         if (outcome.kind === "harness") {
