@@ -41,7 +41,7 @@ function prose(s: string): string {
 function codeBlock(s: string): string[] {
   const longest = Math.max(0, ...[...s.matchAll(/`+/g)].map((m) => m[0].length));
   const fence = "`".repeat(Math.max(3, longest + 1));
-  return [fence, s.replace(/^\n+|\s+$/g, ""), fence];
+  return [fence, s.replace(/^\n+/, "").trimEnd(), fence];
 }
 
 /**
