@@ -10,7 +10,12 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Changed
 
+<<<<<<< HEAD
 - A cleaner dashboard: refined light and dark colors, a clearer type scale and spacing, visible keyboard focus, and section headers, stat cards and badges shared by every page.
+=======
+- Posted findings keep the short statement on top and fold "Why this was flagged" below it: the scenario, the code it points at, and what the verifier said when it confirmed, lowered or raised it. The same fold is used in the summary and in `report.md`.
+- A review's summary says, one line per reason, how many findings it didn't comment on and why: already raised earlier (by severity), nits past `maxNits`, dropped for citing a line that doesn't exist, on a file their lens couldn't read, or discarded by the verifier.
+>>>>>>> 22f5956 (fix(engine): place the changelog entry under unreleased and match the footer link)
 - The ⛔ / ⚠ / 💅 severity style is now called `severityStyle = "signs"`. A config that still says the old name is refused; change it to `"signs"`.
 
 ### Removed
@@ -40,8 +45,6 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 - A change can be approved up to 50,000 changed lines by default (it was 1,500), and the same size no longer makes the trust seal say "don't rely on it alone". `limits.maxDiffLines` now defaults to 50,000 too (it was 4,000), so large changes are reviewed instead of skipped.
 - The tests lens asks what each new test would assert if the fix were reverted, and why the existing tests missed a bug that is being fixed.
-- Posted findings keep the short statement on top and fold "Why this was flagged" below it: the scenario, the code it points at, and what the verifier said when it confirmed, lowered or raised it. The same fold is used in the summary and in `report.md`.
-- A review's summary says, one line per reason, how many findings it didn't comment on and why: already raised earlier (by severity), nits past `maxNits`, dropped for citing a line that doesn't exist, on a file their lens couldn't read, or discarded by the verifier.
 
 ### Fixed
 

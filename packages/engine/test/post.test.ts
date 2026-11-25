@@ -120,7 +120,7 @@ test("an inline comment keeps the statement on top and folds why it was flagged 
       "",
       "</details>",
       "",
-      "<sub>Crewreview · high confidence · raised from minor by the verifier, see src/a.ts:4</sub>",
+      "<sub>https://crewreview.ai?ref=github · high confidence · raised from minor by the verifier, see src/a.ts:4</sub>",
       "<!-- crewreview:kind=finding;v=test;ref=F1%401234567890ab -->",
     ].join("\n"),
   );
