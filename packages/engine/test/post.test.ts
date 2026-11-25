@@ -33,7 +33,7 @@ test("the post opens with the trust seal and what it rests on, in the chosen sty
       jobDir,
     } as unknown as ReviewReport;
     const t = createTranslator("en");
-    const r = await renderHostReview(report, t, "test", { severityStyle: "tupi", maxNits: 1 });
+    const r = await renderHostReview(report, t, "test", { severityStyle: "signs", maxNits: 1 });
     const lines = r.body.split("\n");
     expect(lines[2]).toBe("**🟡 Trust: partial** · Reviewed up to `1234567`.");
     expect(lines[3]).toBe("Because: a major finding is still open.");

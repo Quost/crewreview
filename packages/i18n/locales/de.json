@@ -782,5 +782,7 @@
   "post.checks": "Aussagen und Regeln am Code geprüft: ✅ {holds} · ❌ {fails} · ❔ {unverified}",
   "post.check.claim": "Aussage",
   "post.check.rule": "Regel",
-  "post.check.unproven": "keine Stelle im Code angegeben"
+  "post.check.unproven": "keine Stelle im Code angegeben",
+  "harness.reproved": "{harness} wurde auf {version} aktualisiert und hat den Test von selbst erneut bestanden.",
+  "harness.reproveFailed": "{harness} wurde auf {version} aktualisiert und hat den Test nicht bestanden; prüfe es unter Harnesses & Limits."
 }

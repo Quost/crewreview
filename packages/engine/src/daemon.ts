@@ -23,6 +23,8 @@ export type DaemonEvent =
   /** `offline`: links the host couldn't be reached for (no network), said once here instead of an error each. */
   | { type: "cycle"; repos: number; reviewed: number; waiting: number; offline?: string[] }
   | { type: "update"; version: string; installed: boolean; error?: string }
+  /** A harness updated and proved its new version by itself before the cycle. */
+  | { type: "reproved"; harness: string; version: string; passed: boolean }
   /** A crew mode task reached a milestone: planned, a step committed, reviewed, opened, waiting, asking, failed. */
   | { type: "task"; repo: string; task: string; title: string; event: TaskEvent };
 

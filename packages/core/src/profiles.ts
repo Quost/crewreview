@@ -9,7 +9,7 @@ import type { VerdictPolicy } from "./verdict.ts";
  */
 export const REVIEW_PROFILES = ["fast", "standard", "gate"] as const;
 export type ReviewProfile = (typeof REVIEW_PROFILES)[number];
-export type SeverityStyle = "crewreview" | "tupi";
+export type SeverityStyle = "crewreview" | "signs";
 
 export interface ReviewKnobs {
   profile: ReviewProfile;

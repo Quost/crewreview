@@ -22,6 +22,11 @@ export class ConformanceStore {
     return (await this.all())[`${harness}@${version ?? "?"}`];
   }
 
+  /** Whether some version of this harness proved its locks here, so a new version is worth proving by itself. */
+  async provenBefore(harness: string): Promise<boolean> {
+    return Object.values(await this.all()).some((r) => r.harness === harness && r.readOnly === "pass" && r.writeScope !== "fail");
+  }
+
   async put(result: ConformanceResult): Promise<void> {
     const all = await this.all();
     all[`${result.harness}@${result.version ?? "?"}`] = result;

@@ -782,5 +782,7 @@
   "post.checks": "Afirmações e regras conferidas no código: ✅ {holds} · ❌ {fails} · ❔ {unverified}",
   "post.check.claim": "afirmação",
   "post.check.rule": "regra",
-  "post.check.unproven": "sem um lugar no código que mostre"
+  "post.check.unproven": "sem um lugar no código que mostre",
+  "harness.reproved": "{harness} atualizou para {version} e passou na prova de novo sozinho.",
+  "harness.reproveFailed": "{harness} atualizou para {version} e não passou na prova; confira em Harnesses e limites."
 }

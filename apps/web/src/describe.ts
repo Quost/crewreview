@@ -59,6 +59,8 @@ export function describe(t: Translator, e: any): { text: string; tone: "neutral"
       return e.error
         ? { text: t.t("update.failed", { error: e.error }), tone: "bad" }
         : { text: e.installed ? t.t("web.log.updateInstalled", { version: e.version }) : t.t("web.log.updateAvailable", { version: e.version }), tone: e.installed ? "ok" : "warn" };
+    case "reproved":
+      return { text: t.t(e.passed ? "harness.reproved" : "harness.reproveFailed", { harness: e.harness, version: e.version }), tone: e.passed ? "ok" : "bad" };
     default:
       return { text: JSON.stringify(e), tone: "neutral" };
   }
