@@ -1,6 +1,18 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { countChecks, makeMarker, parseMarker, parseUnifiedDiff, splitInline, unreviewedFiles, type Finding, type Severity, type SeverityStyle } from "@crewreview/core";
+import {
+  countChecks,
+  makeMarker,
+  parseMarker,
+  parseUnifiedDiff,
+  planPost,
+  splitInline,
+  unreviewedFiles,
+  type Finding,
+  type LeftOut,
+  type Severity,
+  type SeverityStyle,
+} from "@crewreview/core";
 import type { InlineComment, PostReviewInput, Thread } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import type { ReviewReport } from "./review.ts";
@@ -20,9 +32,68 @@ export interface PostStyle {
 
 const DEFAULT_STYLE: PostStyle = { severityStyle: "crewreview", maxNits: Number.POSITIVE_INFINITY };
 
+/** Model text shown as prose inside the fold: no HTML, so it can't close the fold or open another one. */
+function prose(s: string): string {
+  return s.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** A code block the quoted text can't end early: the fence is longer than any run of backticks in it. */
+function codeBlock(s: string): string[] {
+  const longest = Math.max(0, ...[...s.matchAll(/`+/g)].map((m) => m[0].length));
+  const fence = "`".repeat(Math.max(3, longest + 1));
+  return [fence, s.replace(/^\n+/, "").trimEnd(), fence];
+}
+
+/**
+ * Why a finding was flagged, folded under its statement: the scenario, the code it points at, and what the verifier
+ * said when it checked it. Empty when there is nothing to show, so a plain finding stays one short comment.
+ */
+export function whyFlagged(f: Finding, t: Translator): string[] {
+  const parts: string[][] = [];
+  if (f.scenario?.trim()) parts.push([`**${t.t("post.scenario")}** ${prose(f.scenario)}`]);
+  if (f.evidence?.trim()) parts.push([`**${t.t("post.evidence")}**`, "", ...codeBlock(f.evidence)]);
+  const v = f.verification;
+  const reason = v?.reason?.trim() ? prose(v.reason) : "";
+  if (v && reason) {
+    const from = v.from ? t.t(`severity.${v.from}`) : "";
+    if (v.action === "confirm") parts.push([t.t("post.verifier.confirm", { reason })]);
+    if (v.action === "downgrade" && from) parts.push([t.t("post.verifier.downgrade", { from, reason })]);
+    if (v.action === "upgrade" && from) parts.push([t.t("post.verifier.upgrade", { from, place: `\`${(v.evidence ?? "").replace(/`/g, "")}\``, reason })]);
+  }
+  if (!parts.length) return [];
+  return [`<details><summary>${t.t("post.whyFlagged")}</summary>`, "", ...parts.flatMap((p, i) => (i ? ["", ...p] : p)), "", "</details>"];
+}
+
+/** One summary entry: the statement and, folded, why it was flagged, indented to sit inside the list item. */
+function summaryEntry(f: Finding, t: Translator, ICON: Record<Severity, string>): string[] {
+  const why = whyFlagged(f, t);
+  const inner = [f.body.trim(), ...(why.length ? ["", ...why] : [])].join("\n").split("\n");
+  return [`- ${ICON[f.severity]} \`${f.path}:${f.line}\` **${f.title}**`, "", ...inner.map((l) => (l ? `  ${l}` : l)), ""];
+}
+
+/** What a review didn't comment on and why, one line per reason; core decides and counts. */
+export function leftOutLine(l: LeftOut, t: Translator): string {
+  switch (l.reason) {
+    case "already-raised": {
+      const severities = (l.severities ?? []).map((s) => `${s.count} ${t.t(`severity.${s.severity}`)}`).join(", ");
+      return t.tp("post.notRepeated", l.count, { severities });
+    }
+    case "over-nit-cap":
+      return t.tp("post.overNitCap", l.count, { cap: l.cap ?? 0 });
+    case "no-evidence":
+      return t.tp("post.droppedNoEvidence", l.count);
+    case "unread":
+      return t.tp("post.droppedUnread", l.count);
+    case "verifier":
+      return t.tp("post.droppedByVerifier", l.count);
+  }
+}
+
 function findingBody(f: Finding, t: Translator, version: string, headSha: string, ICON: Record<Severity, string>): string {
+  // The statement stays on top and short; the reasoning folds below it.
   const lines = [`${ICON[f.severity]} **${t.t(`severity.${f.severity}`)}** · ${f.lenses.join(", ")} — **${f.title}**`, "", f.body.trim()];
-  if (f.scenario?.trim()) lines.push("", `**${t.t("post.scenario")}** ${f.scenario.trim()}`);
+  const why = whyFlagged(f, t);
+  if (why.length) lines.push("", ...why);
   if (f.suggestion?.trim()) lines.push("", `<details><summary>${t.t("post.suggestion")}</summary>`, "", "```", f.suggestion.trim(), "```", "", "</details>");
   const meta = [t.t(`confidence.${f.confidence}`)];
   if (f.verification?.action === "confirm") meta.push(t.t("post.verified"));
@@ -49,12 +120,15 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   const diff = parseUnifiedDiff(await readFile(join(report.jobDir, "ctx", "diff.patch"), "utf8"));
   const lines = new Map(diff.map((f) => [f.path, f.rightLines]));
   const files = new Map(diff.map((f) => [f.path, f]));
-  // Past the cap, nits are listed once in the summary instead of each getting a comment: they're the noise.
-  const nits = report.findings.filter((f) => f.severity === "nit");
-  const extraNits = nits.slice(style.maxNits);
-  // A finding its own lens couldn't confirm is a question for the author, not a comment on a line stated as fact.
-  const unconfirmed = report.findings.filter((f) => f.confidence === "low" && !extraNits.includes(f));
-  const posted = report.findings.filter((f) => !extraNits.includes(f) && !unconfirmed.includes(f));
+  // Decided in core: what gets its own comment, what is asked, what is only listed, and what is left out and why.
+  const { posted, unconfirmed, extraNits, stillOpen, leftOut } = planPost({
+    findings: report.findings,
+    repeated: report.repeated ?? [],
+    maxNits: style.maxNits,
+    verifierDropped: report.verifier.dropped.length,
+    droppedByEvidence: report.droppedByEvidence ?? 0,
+    droppedUnread: report.droppedUnread ?? 0,
+  });
   const { inline, outside } = splitInline(posted, (p) => lines.get(p));
   const head = report.target.headSha;
 
@@ -83,19 +157,18 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   const cut = (report.omitted ?? []).filter((f) => f.reason === "cut");
   if (minified.length) notes.push(t.t("post.leftOut", { files: minified.map((f) => `\`${f.path}\``).join(", ") }));
   if (cut.length) notes.push(t.t("post.cut", { files: cut.map((f) => `\`${f.path}\``).join(", ") }));
-  if (report.verifier.dropped.length) notes.push(t.tp("post.droppedByVerifier", report.verifier.dropped.length));
-  if (report.coveredByThreads) notes.push(t.tp("post.alreadyDiscussed", report.coveredByThreads));
+  // A re-review that finds less because it doesn't repeat itself says so: how many, and why.
+  for (const l of leftOut) notes.push(leftOutLine(l, t));
   const failed = report.lenses.filter((l) => l.status !== "ok").map((l) => l.lens);
   if (failed.length) notes.push(t.t("post.lensesFailed", { lenses: failed.join(", ") }));
   if (notes.length) body.push("", ...notes.map((n) => `- ${n}`));
-  const still = (report.repeated ?? []).filter((f) => f.severity === "blocker" || f.severity === "major");
-  if (still.length) {
+  if (stillOpen.length) {
     body.push("", `#### ${t.t("post.stillOpen")}`, "");
-    for (const f of still) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` ${f.title}`);
+    for (const f of stillOpen) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` ${f.title}`);
   }
   if (unconfirmed.length) {
     body.push("", `#### ${t.t("post.unconfirmed")}`, "");
-    for (const f of unconfirmed) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` **${f.title}**`, "", f.body.trim().replace(/^/gm, "  "), "");
+    for (const f of unconfirmed) body.push(...summaryEntry(f, t, ICON));
   }
   if (report.checks?.length) {
     // Counted by code, failures first: the model only says what it checked and where.
@@ -117,7 +190,7 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   }
   if (outside.length) {
     body.push("", `#### ${t.t("post.outsideDiff")}`, "");
-    for (const f of outside) body.push(`- ${ICON[f.severity]} \`${f.path}:${f.line}\` **${f.title}**`, "", f.body.trim().replace(/^/gm, "  "), "");
+    for (const f of outside) body.push(...summaryEntry(f, t, ICON));
   }
   const harness = report.lenses[0]?.harness ?? "?";
   const verifier = report.verifier.harness && report.verifier.harness !== harness ? ` · ${t.t("post.verifiedBy", { harness: report.verifier.harness })}` : "";

@@ -24,3 +24,4 @@ export * from "./seats.ts";
 export * from "./task.ts";
 export * from "./ci.ts";
 export * from "./brand.ts";
+export * from "./posting.ts";

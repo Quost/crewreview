@@ -784,5 +784,18 @@
   "post.check.rule": "regla",
   "post.check.unproven": "no se indicó un lugar en el código",
   "harness.reproved": "{harness} se actualizó a {version} y volvió a pasar la prueba por sí solo.",
-  "harness.reproveFailed": "{harness} se actualizó a {version} y no pasó la prueba; revísalo en Harnesses y límites."
+  "harness.reproveFailed": "{harness} se actualizó a {version} y no pasó la prueba; revísalo en Harnesses y límites.",
+  "post.whyFlagged": "Por qué se señaló",
+  "post.evidence": "Evidencia:",
+  "post.verifier.confirm": "El verificador revisó el código y lo confirmó: {reason}",
+  "post.verifier.downgrade": "El verificador lo rebajó desde {from}: {reason}",
+  "post.verifier.upgrade": "El verificador lo subió desde {from}, ver {place}: {reason}",
+  "post.notRepeated.one": "{count} hallazgo ya señalado antes no se repite ({severities}).",
+  "post.notRepeated.other": "{count} hallazgos ya señalados antes no se repiten ({severities}).",
+  "post.overNitCap.one": "{count} detalle por encima del límite de {cap} por revisión se lista abajo en lugar de en su línea.",
+  "post.overNitCap.other": "{count} detalles por encima del límite de {cap} por revisión se listan abajo en lugar de en sus líneas.",
+  "post.droppedNoEvidence.one": "{count} hallazgo se descartó por citar un archivo o una línea que no existe.",
+  "post.droppedNoEvidence.other": "{count} hallazgos se descartaron por citar un archivo o una línea que no existe.",
+  "post.droppedUnread.one": "{count} hallazgo se descartó porque su lente dijo que no pudo leer ese archivo.",
+  "post.droppedUnread.other": "{count} hallazgos se descartaron porque su lente dijo que no pudo leer esos archivos."
 }
