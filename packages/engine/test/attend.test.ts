@@ -524,6 +524,9 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     });
     const host = new FakeHost(ref, mkPr(28, sha, "regen-ok", { conflicts: true }), []);
     const o = await attendPullRequest(d, { repo, host, token: "t" }, 28, "auto");
+    // On failure, say what the generator printed.
+    const ran = JSON.parse(store.getAttend((o as { attendId: number }).attendId)!.payload!).validation;
+    expect({ needsHuman: (o as { needsHuman?: number }).needsHuman, ran }).toEqual({ needsHuman: 0, ran: [] });
     expect(o).toMatchObject({ kind: "done", needsHuman: 0 });
     const pushed = await sh(["rev-parse", "refs/heads/regen-ok"], remote);
     expect(pushed).not.toBe(sha);
