@@ -10,6 +10,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Changed
 
+- A cleaner dashboard: refined light and dark colors, a clearer type scale and spacing, visible keyboard focus, and section headers, stat cards and badges shared by every page.
 - The ⛔ / ⚠ / 💅 severity style is now called `severityStyle = "signs"`. A config that still says the old name is refused; change it to `"signs"`.
 
 ### Removed
