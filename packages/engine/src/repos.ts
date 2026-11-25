@@ -73,6 +73,8 @@ const AttendSettings = z
     harness: z.string().optional(),
     resolve: z.boolean().default(true),
     reReview: z.boolean().default(true),
+    /** auto: after a round that touched two or more items, one comment on the pull request says what each one got (kept up to date, not repeated). off: only the replies in each thread. */
+    summary: z.enum(["auto", "off"]).default("auto"),
     maxAttempts: z.number().int().min(1).default(3),
     commentLanguage: z.string().optional(),
   })

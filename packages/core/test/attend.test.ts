@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { heldPaths, leftForOwner, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
+import { firstSentence, heldPaths, leftForOwner, parseMarker, roundSummary, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
 
 const rules: AttendRules = { me: "quost", trustedBots: ["copilot"], fromCrew: false };
 const c = (id: string, author: string, body: string, createdAt = "2026-11-19T10:00:00Z", authorIsBot = false) => ({ id, author, authorIsBot, body, createdAt });
@@ -173,5 +173,39 @@ describe("what the attendant may change, and what it leaves you", () => {
       { key: "d", action: "needs-human", reply: "" },
     ]);
     expect(left).toEqual([{ kind: "thread", path: "AGENTS.md", line: 44, author: "bia" }, { kind: "review", author: "lewalmeida" }, { kind: "conflict" }]);
+  });
+});
+
+describe("a round's summary", () => {
+  const item = (key: string, extra: object = {}) => ({ key, kind: "thread" as const, author: "bia", text: "", createdAt: "", fromCrew: false, ...extra });
+  const items = [item("a", { path: "src/a.ts", line: 3 }), item("b", { path: "src/b.ts", line: 9 }), item("c", { kind: "review" as const })];
+
+  test("only when the round touched at least two items", () => {
+    expect(roundSummary(items, [{ key: "a", action: "fixed", reply: "Done." }])).toBeUndefined();
+    expect(roundSummary(items, [{ key: "a", action: "fixed", reply: "Done." }], 1)).toHaveLength(1);
+  });
+
+  test("says where each item was, and why for the declined and the left ones", () => {
+    const lines = roundSummary(items, [
+      { key: "a", action: "fixed", reply: "Moved the comment. Also renamed x." },
+      { key: "b", action: "declined", reply: "Out of scope here. A follow-up covers it." },
+      { key: "c", action: "needs-human", reply: "This changes the product rule.\nYour call." },
+      { key: "gone", action: "fixed", reply: "x" },
+    ])!;
+    expect(lines).toEqual([
+      { action: "fixed", kind: "thread", path: "src/a.ts", line: 3, author: "bia" },
+      { action: "declined", kind: "thread", path: "src/b.ts", line: 9, author: "bia", reason: "Out of scope here." },
+      { action: "needs-human", kind: "review", author: "bia", reason: "This changes the product rule." },
+    ]);
+  });
+
+  test("a reason is one sentence on one line, cut to its limit", () => {
+    expect(firstSentence("  one\n two. three")).toBe("one two.");
+    expect(firstSentence("v1.2 is out")).toBe("v1.2 is out");
+    expect(firstSentence("x".repeat(50), 10)).toBe(`${"x".repeat(9)}…`);
+  });
+
+  test("its marker is told apart from the others", () => {
+    expect(parseMarker(makeMarker({ kind: "round", ref: "671", version: "1" }))).toEqual({ kind: "round", ref: "671", version: "1" });
   });
 });

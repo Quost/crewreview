@@ -797,5 +797,11 @@
   "post.droppedNoEvidence.one": "{count} finding was dropped for citing a file or line that doesn't exist.",
   "post.droppedNoEvidence.other": "{count} findings were dropped for citing a file or line that doesn't exist.",
   "post.droppedUnread.one": "{count} finding was dropped because its lens said it couldn't read that file.",
-  "post.droppedUnread.other": "{count} findings were dropped because their lens said it couldn't read those files."
+  "post.droppedUnread.other": "{count} findings were dropped because their lens said it couldn't read those files.",
+  "attend.round.head": "This round, in {sha}:",
+  "attend.round.headNoCommit": "This round, with no code change:",
+  "attend.round.fixed": "Fixed",
+  "attend.round.replied": "Answered",
+  "attend.round.declined": "Declined",
+  "attend.round.left": "Left for {owner}"
 }

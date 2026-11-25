@@ -424,6 +424,69 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(store.attendDone(repo.id, 24).has("thread:T1:T1-c1")).toBe(false);
   });
 
+  test("a round that touched several items says what each got in one comment, kept up to date", async () => {
+    const sha = await branchAt("round-summary", 25);
+    // The conversation keeps what was posted, so the next round finds its own summary.
+    class ConvoHost extends FakeHost {
+      edits: { id: string; body: string }[] = [];
+      override async comment(_pr: PullRequest, body: string) {
+        this.comments.push(body);
+        this.threads.push({ id: `issue-comment-${this.comments.length}`, resolvable: false, resolved: false, outdated: false, comments: [{ id: `c${this.comments.length}`, author: "quost", authorIsBot: false, body, createdAt: "" }] });
+      }
+      async editComment(_pr: PullRequest, id: string, body: string) {
+        this.edits.push({ id, body });
+      }
+    }
+    let round = 0;
+    const h = writer(async (req, items) => {
+      round++;
+      await writeFile(join(req.cwd, "src", "cart.ts"), `export const round = ${round};\n`);
+      return JSON.stringify({
+        items: items.map((it, i) => (i === 0 ? { key: it.key, action: "fixed", reply: "Clamped pct to 0..100." } : { key: it.key, action: "needs-human", reply: "Whether to use Money is a design call. Your pick." })),
+        summary: "Clamp pct",
+      });
+    });
+    const { d, repo, ref } = await setup(h, { mode: "auto" });
+    const host = new ConvoHost(ref, mkPr(25, sha, "round-summary"), [thread("T1", "bia", "Clamp pct."), thread("T2", "bia", "Why not a Money type?")]);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 25, "auto");
+    expect(o).toMatchObject({ kind: "done", replies: 2, needsHuman: 1 });
+    expect(host.comments).toHaveLength(1);
+    const body = host.comments[0]!;
+    expect(body).toContain("This round, in ");
+    expect(body).toContain("- ✅ Fixed · `src/cart.ts:1` (@bia)");
+    expect(body).toContain("- ✋ Left for quost · `src/cart.ts:1` (@bia) — Whether to use Money is a design call.");
+    expect(parseMarker(body)).toMatchObject({ kind: "round", ref: "25" });
+
+    // The next round updates that comment instead of adding another one.
+    const head = await sh(["rev-parse", "refs/heads/round-summary"], remote);
+    await sh(["update-ref", "refs/pull/25/head", head], remote);
+    host.pr = { ...host.pr, headSha: head };
+    host.threads.push(thread("T3", "bia", "Rename x."), thread("T4", "bia", "And y."));
+    const o2 = await attendPullRequest(d, { repo, host, token: "t" }, 25, "auto");
+    expect(o2).toMatchObject({ kind: "done" });
+    expect(host.comments).toHaveLength(1);
+    expect(host.edits).toHaveLength(1);
+    expect(host.edits[0]!.id).toBe("c1");
+  });
+
+  test("one answered item gets no summary, and summary = off turns it off", async () => {
+    const sha = await branchAt("round-quiet", 26);
+    const h = writer(async (req, items) => {
+      await writeFile(join(req.cwd, "src", "cart.ts"), "export const quiet = 1;\n");
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "Done." })), summary: "x" });
+    });
+    const one = await setup(h, { mode: "auto" });
+    const host1 = new FakeHost(one.ref, mkPr(26, sha, "round-quiet"), [thread("T1", "bia", "Clamp pct.")]);
+    await attendPullRequest(one.d, { repo: one.repo, host: host1, token: "t" }, 26, "auto");
+    expect(host1.comments).toEqual([]);
+
+    const sha2 = await branchAt("round-off", 27);
+    const off = await setup(h, { mode: "auto", summary: "off" });
+    const host2 = new FakeHost(off.ref, mkPr(27, sha2, "round-off"), [thread("T1", "bia", "Clamp pct."), thread("T2", "bia", "And this.")]);
+    await attendPullRequest(off.d, { repo: off.repo, host: host2, token: "t" }, 27, "auto");
+    expect(host2.comments).toEqual([]);
+  });
+
   test("a red CI reaches the agent with the failing job's log", async () => {
     const sha = await branchAt("ci-red", 22);
     let seen = "";

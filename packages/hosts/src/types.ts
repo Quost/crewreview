@@ -95,6 +95,8 @@ export interface HostAdapter {
   headRefspec(number: number, local: string): string;
   /** A comment on the pull request's conversation, not in a thread. */
   comment?(pr: PullRequest, body: string): Promise<void>;
+  /** Change a comment this account wrote on the pull request (its id as listThreads gives it). */
+  editComment?(pr: PullRequest, commentId: string, body: string): Promise<void>;
   /** The end of a failed CI job's log, when the host keeps one. */
   ciLog?(job: string): Promise<string | undefined>;
   /** The branch pull requests go to by default. */

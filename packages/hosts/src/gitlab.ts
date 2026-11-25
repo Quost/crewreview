@@ -240,6 +240,10 @@ export function gitlabHost(repo: RepoRef, t: Transport): HostAdapter {
       await t.request("POST", `${project}/merge_requests/${pr.number}/notes`, { body: { body } });
     },
 
+    async editComment(pr, commentId, body) {
+      await t.request("PUT", `${project}/merge_requests/${pr.number}/notes/${encodeURIComponent(commentId)}`, { body: { body } });
+    },
+
     async ciLog(job) {
       const res = await t.request("GET", `${project}/jobs/${job}/trace`).catch(() => undefined);
       return typeof res?.data === "string" ? res.data : undefined;

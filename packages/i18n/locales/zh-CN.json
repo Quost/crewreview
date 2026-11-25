@@ -777,5 +777,11 @@
   "post.notRepeated.other": "有 {count} 条之前已提出的意见不再重复（{severities}）。",
   "post.overNitCap.other": "有 {count} 个细节超出每次审查 {cap} 个的上限，列在下面而不是对应的行上。",
   "post.droppedNoEvidence.other": "有 {count} 条意见因引用不存在的文件或行而被丢弃。",
-  "post.droppedUnread.other": "有 {count} 条意见因其视角表示无法读取相应文件而被丢弃。"
+  "post.droppedUnread.other": "有 {count} 条意见因其视角表示无法读取相应文件而被丢弃。",
+  "attend.round.head": "本轮，提交 {sha}：",
+  "attend.round.headNoCommit": "本轮，代码未改动：",
+  "attend.round.fixed": "已修复",
+  "attend.round.replied": "已回复",
+  "attend.round.declined": "已拒绝",
+  "attend.round.left": "留给 {owner}"
 }

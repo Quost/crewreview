@@ -1,6 +1,6 @@
 /** Hidden marker on everything Crewreview posts, so later runs can tell its own comments apart. */
 export interface Marker {
-  kind: "review" | "finding" | "reply" | "summary";
+  kind: "review" | "finding" | "reply" | "summary" | "round";
   /** Finding id or item key. */
   ref?: string;
   /** Crewreview version that wrote it. */
@@ -26,7 +26,7 @@ export function parseMarker(body: string): Marker | undefined {
     if (eq > 0) fields.set(kv.slice(0, eq), kv.slice(eq + 1));
   }
   const kind = fields.get("kind");
-  if (kind !== "review" && kind !== "finding" && kind !== "reply" && kind !== "summary") return undefined;
+  if (kind !== "review" && kind !== "finding" && kind !== "reply" && kind !== "summary" && kind !== "round") return undefined;
   const raw = fields.get("ref");
   let ref: string | undefined;
   try {
