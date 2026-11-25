@@ -4,6 +4,12 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- Crewreview follows the team's `REVIEW.md` (root or `.crewreview/REVIEW.md`) read from the base branch, given to every lens and the verifier as the project's words.
+- The `attend.authors` config, ignore logging and reset-items for the attendant.
+- A repository can set its own `approveMaxChangedLines` in `[repo.review]`, over `review.policy.approveMaxChangedLines`; default approval size limit raised to 50,000 changed lines.
+
 ## 0.21.0 — 2026-11-24
 
 ### Added

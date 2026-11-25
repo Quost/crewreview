@@ -1,6 +1,6 @@
 {
   "name": "crewreview",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "A local crew of AI agents that reviews your branch and pull requests, and answers the reviews on yours. Adds the Crewreview MCP server, a skill and the /crewreview command.",
   "author": {
     "name": "Matheus Quost",
