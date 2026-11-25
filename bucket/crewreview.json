@@ -6,7 +6,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/Quost/crewreview/releases/download/v0.22.0/crewreview-windows-x64.exe#/crewreview.exe",
-      "hash": "db82196b853e1c18da3f6cda6cd2c94dfe44ea25a91be85b89b3c34338fde2fe"
+      "hash": "1824731a48b81a9bca39b7ee835eb9bdf506ea1ea31e5f594911c5468824afff"
     }
   },
   "bin": "crewreview.exe",
