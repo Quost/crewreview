@@ -824,5 +824,6 @@
   "web.pulls.error.not-found": "该项或 pull request 已不存在。",
   "web.pulls.error.bad-key": "该项无效。",
   "web.pulls.error.other": "没有成功。请稍后再试。",
-  "web.pulls.pausedHint": "已暂停：团队不会处理这个仓库。可在“仓库”中重新开启。"
+  "web.pulls.pausedHint": "已暂停：团队不会处理这个仓库。可在“仓库”中重新开启。",
+  "attend.regenerateFailed": "无法完成与基础分支的合并：重新生成文件的命令 `{command}` 失败了。冲突留给作者处理。"
 }

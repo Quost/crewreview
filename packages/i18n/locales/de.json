@@ -844,5 +844,6 @@
   "web.pulls.error.not-found": "Dieser Punkt oder Pull Request existiert nicht mehr.",
   "web.pulls.error.bad-key": "Dieser Punkt ist ungültig.",
   "web.pulls.error.other": "Das hat nicht geklappt. Versuche es gleich noch einmal.",
-  "web.pulls.pausedHint": "Pausiert: das Team arbeitet nicht an diesem Repository. Schalte es unter Repositories wieder ein."
+  "web.pulls.pausedHint": "Pausiert: das Team arbeitet nicht an diesem Repository. Schalte es unter Repositories wieder ein.",
+  "attend.regenerateFailed": "Ich konnte den Merge mit der Basis nicht abschließen: `{command}`, das die generierten Dateien neu erzeugt, ist fehlgeschlagen. Der Konflikt bleibt beim Autor."
 }

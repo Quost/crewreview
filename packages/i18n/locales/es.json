@@ -844,5 +844,6 @@
   "web.pulls.error.not-found": "Ese elemento o pull request ya no existe.",
   "web.pulls.error.bad-key": "Ese elemento no es válido.",
   "web.pulls.error.other": "No funcionó. Inténtalo de nuevo en un momento.",
-  "web.pulls.pausedHint": "En pausa: el equipo no trabaja en este repositorio. Vuelve a activarlo en Repositorios."
+  "web.pulls.pausedHint": "En pausa: el equipo no trabaja en este repositorio. Vuelve a activarlo en Repositorios.",
+  "attend.regenerateFailed": "No pude terminar el merge con la base: `{command}`, que reconstruye los archivos generados, falló. El conflicto queda para el autor."
 }

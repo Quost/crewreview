@@ -4,7 +4,9 @@ import {
   extractJson,
   ciLogExcerpt,
   leftForOwner,
+  regenerationPlan,
   roundSummary,
+  type RegenerateRule,
   type RoundLine,
   linkSpent,
   makeMarker,
@@ -115,6 +117,47 @@ export async function runChecks(commands: readonly string[], cwd: string, timeou
     if (!ok) break;
   }
   return out;
+}
+
+const MARKERS = /^(<{7}|={7}|>{7})( |$)/m;
+
+/**
+ * Rebuild conflicted files with the project's own generators: write one side of each file, then run the command in
+ * the checkout, with the base commit and the files in CREWREVIEW_BASE and CREWREVIEW_FILES. Returns the files left
+ * for the agent, and the first command that failed (or left conflict markers), if any.
+ */
+export async function regenerateConflicts(
+  dir: string,
+  base: string,
+  conflicted: readonly string[],
+  rules: readonly RegenerateRule[],
+  timeoutMs: number,
+): Promise<{ rest: string[]; done: string[]; failed?: ValidationRun }> {
+  const plan = regenerationPlan(conflicted, rules);
+  const done: string[] = [];
+  for (const { rule, files } of plan.runs) {
+    for (const f of files) {
+      const sides = rule.take === "base" ? [base, "HEAD"] : ["HEAD", base];
+      let text: string | undefined;
+      for (const side of sides) {
+        const r = await git(["show", `${side}:${f}`], dir);
+        if (r.code === 0) {
+          text = r.stdout;
+          break;
+        }
+      }
+      if (text !== undefined) await writeFile(join(dir, f), text);
+    }
+    const argv = process.platform === "win32" ? ["cmd", "/d", "/s", "/c", rule.run] : ["sh", "-c", rule.run];
+    const r = await runProcess({ argv, cwd: dir, env: { ...scrubEnv(process.env), CREWREVIEW_BASE: base, CREWREVIEW_FILES: files.join("\n") }, timeoutMs });
+    const output = redactSecrets(lastLines(`${r.stdout}\n${r.stderr}`, 60));
+    if (r.exitCode !== 0 || r.timedOut) return { rest: plan.rest, done, failed: { command: rule.run, ok: false, output } };
+    for (const f of files) {
+      if (MARKERS.test(await readFile(join(dir, f), "utf8").catch(() => ""))) return { rest: plan.rest, done, failed: { command: rule.run, ok: false, output: `${f}: conflict markers left` } };
+    }
+    done.push(...files);
+  }
+  return { rest: plan.rest, done };
 }
 
 /** Cut at a word boundary, with an ellipsis, to keep commit lines readable. */
@@ -299,14 +342,25 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
 
     // A conflict: merge the base here (never a rebase: the push stays a fast-forward) and let the agent resolve it.
     let merging: { conflicted: string[] } | undefined;
+    let regenerated: string[] = [];
+    let regenFailed: ValidationRun | undefined;
     if (items.some((i) => i.kind === "conflict")) {
       // Some git versions want an identity even for a merge that doesn't commit yet: the same one the commit gets.
       const who = d.identity ? ["-c", `user.name=${d.identity.name}`, "-c", `user.email=${d.identity.email}`] : [];
       const conflicted = await startMerge(worktree, fetched.baseSha, plan?.mergeBase, who);
       if (conflicted) {
         merging = { conflicted };
-        const list = conflicted.length ? conflicted.map((f) => `- ${f}`).join("\n") : "(none: the merge went through on its own)";
-        items = items.map((i) => (i.kind === "conflict" ? { ...i, text: `${i.text}\n\nFiles with conflicts:\n${list}` } : i));
+        // Files the project's generators rebuild are done by code before the agent starts; it resolves the rest.
+        let rest = conflicted;
+        if (conflicted.length && s.regenerate.length) {
+          const r = await regenerateConflicts(worktree, fetched.baseSha, conflicted, s.regenerate, d.config.attend.validateTimeout);
+          regenerated = r.done;
+          regenFailed = r.failed;
+          rest = r.failed ? conflicted.filter((f) => !r.done.includes(f)) : r.rest;
+        }
+        const list = rest.length ? rest.map((f) => `- ${f}`).join("\n") : regenerated.length ? "(none left: the generator rebuilt them)" : "(none: the merge went through on its own)";
+        const rebuilt = regenerated.length ? `\n\nRebuilt by the project's generator, leave them as they are:\n${regenerated.map((f) => `- ${f}`).join("\n")}` : "";
+        items = items.map((i) => (i.kind === "conflict" ? { ...i, text: `${i.text}\n\nFiles with conflicts:\n${list}${rebuilt}` } : i));
       }
     }
 
@@ -319,7 +373,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
 
     const { language } = languageFor(repo, d);
     const access = s.fix ? "write" : "read";
-    const commented = protectedFilesToEdit(items);
+    const commented = protectedFilesToEdit(items, merging?.conflicted.filter((f) => !regenerated.includes(f)) ?? []);
     const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR, protectedFiles: commented, protectedMode: s.protectedFiles };
     let parsed: { decisions: AttendDecision[]; summary: string } | undefined;
     if (seat) {
@@ -355,15 +409,18 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       const unresolved: string[] = [];
       for (const f of merging?.conflicted ?? []) {
         const text = await readFile(join(worktree, f), "utf8").catch(() => "");
-        if (/^(<{7}|={7}|>{7})( |$)/m.test(text)) unresolved.push(f);
+        if (MARKERS.test(text)) unresolved.push(f);
       }
-      if (!merging || unresolved.length) {
+      // A generator that failed wrote one side over its files: no markers, but not resolved either.
+      if (!merging || unresolved.length || regenFailed) {
         // Half a merge is worse than none: undo all of it, and leave the conflict to you.
         if (merging) await git(["merge", "--abort"], worktree);
         merging = undefined;
         // Only the conflict is yours. The other fixes went with the merge: they're tried again by themselves.
         retry = decisions.filter((x) => x.action === "fixed" && x.key !== conflictKey).map((x) => x.key);
-        decisions = decisions.filter((x) => !retry.includes(x.key)).map((x) => (x.key === conflictKey ? { ...x, action: "needs-human" as const, reply: "" } : x));
+        const why = regenFailed ? languageFor(repo, d).t.t("attend.regenerateFailed", { command: regenFailed.command }) : "";
+        decisions = decisions.filter((x) => !retry.includes(x.key)).map((x) => (x.key === conflictKey ? { ...x, action: "needs-human" as const, reply: why } : x));
+        if (regenFailed) validation = [...validation, regenFailed];
         changed = [];
       } else {
         decisions = decisions.map((x) => (x.key === conflictKey ? { ...x, action: "fixed" as const } : x));

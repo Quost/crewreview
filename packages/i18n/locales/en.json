@@ -844,5 +844,6 @@
   "web.pulls.error.not-found": "That item or pull request isn't there any more.",
   "web.pulls.error.bad-key": "That item isn't valid.",
   "web.pulls.error.other": "That didn't work. Try again in a moment.",
-  "web.pulls.pausedHint": "Paused: the crew doesn't work on this repository. Turn it back on under Repositories."
+  "web.pulls.pausedHint": "Paused: the crew doesn't work on this repository. Turn it back on under Repositories.",
+  "attend.regenerateFailed": "I couldn't finish the merge with the base: `{command}`, which rebuilds the generated files, failed. The conflict is left for the owner."
 }
