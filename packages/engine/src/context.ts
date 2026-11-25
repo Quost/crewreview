@@ -1,7 +1,7 @@
 import { lstatSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
-import { changedSymbols, DECISION_RECORD, DEPLOY_DOC, ENV_EXAMPLE, envChanges, fileMentions, fitGuidelines, isDocOrSetting, normalizeRepoPath, parseUnifiedDiff, redactSecrets, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile } from "@crewreview/core";
+import { changedSymbols, DECISION_RECORD, DEPLOY_DOC, ENV_EXAMPLE, envChanges, fileMentions, fitGuidelines, isDocOrSetting, normalizeRepoPath, parseUnifiedDiff, pickReviewGuide, redactSecrets, REVIEW_GUIDE_FILES, slimDiff, totalChangedLines, type DiffFile, type FileOracle, type GuidelineDoc, type OmittedFile, type ReviewGuide } from "@crewreview/core";
 import { commitSubjects, diffText, exportTree, fileHistory, grepWord, listDir, listFiles, mergeBase, showFile } from "./git.ts";
 
 /** Project docs that hold rules a reviewer should apply, read from the rules ref. */
@@ -26,6 +26,8 @@ export interface ChangeContext {
   guidelines: string[];
   /** Rules read only in part. */
   guidelinesCut: string[];
+  /** The team's review guidance (REVIEW.md) from the rules ref, if it keeps one. */
+  reviewGuide: ReviewGuide | null;
 }
 
 export interface BuildContextOptions {
@@ -113,6 +115,8 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
   const parts = fit.included.map((d) => `<!-- ${d.path} -->\n${d.text}\n`);
   if (fit.cut.length) parts.unshift(`(Read only in part, too long for the room: ${fit.cut.join(", ")}.)\n`);
   await writeFile(join(ctxDir, "guidelines.md"), parts.length ? parts.join("\n") : "(The project has no written guidelines.)\n");
+  // Read from the rules ref like the rules above: for a pull request that is the base, so the change can't rewrite it.
+  const reviewGuide = pickReviewGuide(await Promise.all(REVIEW_GUIDE_FILES.map(async (path) => ({ path, text: await showFile(o.root, o.rulesRef, path) }))));
 
   const history: string[] = ["# Recent history of the changed files", ""];
   for (const f of files.slice(0, 25)) {
@@ -143,6 +147,7 @@ export async function buildContext(o: BuildContextOptions): Promise<ChangeContex
     commits,
     guidelines,
     guidelinesCut: fit.cut,
+    reviewGuide,
   };
 }
 

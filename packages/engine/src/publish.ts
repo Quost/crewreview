@@ -77,6 +77,7 @@ export async function renderHostReview(report: ReviewReport, t: Translator, fall
   const notes: string[] = [];
   const uncovered = unreviewedFiles(report.lenses);
   if (uncovered.length) notes.push(t.t("post.notCovered", { files: uncovered.map((f) => `\`${f}\``).join(", ") }));
+  if (report.reviewGuide) notes.push(t.t("post.reviewGuide", { file: `\`${report.reviewGuide}\`` }));
   if (report.guidelinesCut?.length) notes.push(t.t("post.guidelinesCut", { files: report.guidelinesCut.map((f) => `\`${f}\``).join(", ") }));
   const minified = (report.omitted ?? []).filter((f) => f.reason === "minified");
   const cut = (report.omitted ?? []).filter((f) => f.reason === "cut");
