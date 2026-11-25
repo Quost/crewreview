@@ -519,7 +519,8 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     const { d, repo, ref, store } = await setup(h, {
       mode: "auto",
       conflicts: true,
-      regenerate: [{ paths: ["gen/**"], run: 'test "$CREWREVIEW_FILES" = gen/catalog.txt && test -n "$CREWREVIEW_BASE" && printf "rebuilt\\n" > gen/catalog.txt' }],
+      // The same command under sh and cmd: Bun itself checks what it was given and rebuilds the file.
+      regenerate: [{ paths: ["gen/**"], run: `"${process.execPath}" -e "if (process.env.CREWREVIEW_FILES !== 'gen/catalog.txt' || !process.env.CREWREVIEW_BASE) process.exit(4); require('fs').writeFileSync('gen/catalog.txt', 'rebuilt' + String.fromCharCode(10))"` }],
     });
     const host = new FakeHost(ref, mkPr(28, sha, "regen-ok", { conflicts: true }), []);
     const o = await attendPullRequest(d, { repo, host, token: "t" }, 28, "auto");
