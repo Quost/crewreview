@@ -182,11 +182,12 @@ export function sensitivePaths(paths: readonly string[]): string[] {
 const NEVER = [/(^|\/)\.env(\..*)?$/, /(^|\/)(id_rsa|id_ed25519)/, /\.(pem|key|p12|pfx)$/, /^\.crewreview\//];
 
 /**
- * Protected files (CI, deployment, the agents' rules) a reviewer commented on. The attendant may change those to do
- * what that comment asks: a point raised in review deserves an answer in code. Secrets never.
+ * Protected files (CI, deployment, the agents' rules) a reviewer commented on, or a merge with the base left in
+ * conflict. The attendant may change those to do what that comment asks, or to resolve that conflict: a point raised
+ * in review deserves an answer in code, and a merge isn't done until every file in it is. Secrets never.
  */
-export function protectedFilesToEdit(items: readonly AttendItem[]): string[] {
-  const paths = items.filter((i) => i.kind === "thread" && i.path).map((i) => i.path!);
+export function protectedFilesToEdit(items: readonly AttendItem[], conflicted: readonly string[] = []): string[] {
+  const paths = [...items.filter((i) => i.kind === "thread" && i.path).map((i) => i.path!), ...(items.some((i) => i.kind === "conflict") ? conflicted : [])];
   return [...new Set(sensitivePaths(paths).filter((p) => !NEVER.some((re) => re.test(p))))];
 }
 
@@ -312,4 +313,48 @@ export function roundSummary(items: readonly AttendItem[], decisions: readonly A
     lines.push({ action: d.action, kind: i.kind, ...(i.path ? { path: i.path } : {}), ...(i.line ? { line: i.line } : {}), ...(i.author ? { author: i.author } : {}), ...(why ? { reason: why } : {}) });
   }
   return lines.length >= min ? lines : undefined;
+}
+
+/** A project's own generator for files a merge leaves in conflict, like translation catalogs or lockfiles. */
+export interface RegenerateRule {
+  /** Globs: `*` stays in one folder, `**` crosses folders, `?` is one character. */
+  paths: readonly string[];
+  /** The command that rebuilds them, run in the checkout by Crewreview (never by the agent). */
+  run: string;
+  /** The side written before the command runs: the pull request's (default) or the base's. */
+  take?: "head" | "base";
+}
+
+/** A glob as a regular expression over a path with `/` separators. */
+export function globRegExp(glob: string): RegExp {
+  let re = "";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i]!;
+    if (c === "*" && glob[i + 1] === "*") {
+      i++;
+      if (glob[i + 1] === "/") {
+        i++;
+        re += "(?:.*/)?";
+      } else re += ".*";
+    } else if (c === "*") re += "[^/]*";
+    else if (c === "?") re += "[^/]";
+    else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${re}$`);
+}
+
+/**
+ * Which conflicted files each generator rebuilds (the first rule that matches a file takes it), and which are left
+ * for the agent to resolve by hand.
+ */
+export function regenerationPlan(conflicted: readonly string[], rules: readonly RegenerateRule[]): { runs: { rule: RegenerateRule; files: string[] }[]; rest: string[] } {
+  const res = rules.map((r) => r.paths.map(globRegExp));
+  const runs = rules.map((rule) => ({ rule, files: [] as string[] }));
+  const rest: string[] = [];
+  for (const f of conflicted) {
+    const i = res.findIndex((list) => list.some((re) => re.test(f)));
+    if (i === -1) rest.push(f);
+    else runs[i]!.files.push(f);
+  }
+  return { runs: runs.filter((r) => r.files.length), rest };
 }

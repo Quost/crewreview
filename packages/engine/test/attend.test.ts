@@ -489,6 +489,74 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(host2.comments).toEqual([]);
   });
 
+  // The branch and main both rewrite a generated catalog: only the project's generator can rebuild it.
+  async function catalogConflict(name: string, n: number): Promise<string> {
+    await sh(["checkout", "-q", "-B", name, "main"], work);
+    await mkdir(join(work, "gen"), { recursive: true });
+    await writeFile(join(work, "gen", "catalog.txt"), `branch ${name}\n`);
+    // The project's generator, as a script in the repository: called with no quotes, the same under sh and cmd.
+    await mkdir(join(work, "tools"), { recursive: true });
+    await writeFile(
+      join(work, "tools", "rebuild.mjs"),
+      'import { writeFileSync } from "node:fs";\nif (process.env.CREWREVIEW_FILES !== "gen/catalog.txt" || !process.env.CREWREVIEW_BASE) process.exit(4);\nwriteFileSync("gen/catalog.txt", "rebuilt\\n");\n',
+    );
+    await sh(["add", "-A"], work);
+    await sh(["commit", "-qm", `catalog ${name}`], work);
+    await sh(["push", "-q", "-f", "origin", `${name}:refs/heads/${name}`], work);
+    const sha = await sh(["rev-parse", name], work);
+    await sh(["update-ref", `refs/pull/${n}/head`, sha], remote);
+    await sh(["checkout", "-q", "main"], work);
+    await mkdir(join(work, "gen"), { recursive: true });
+    await writeFile(join(work, "gen", "catalog.txt"), `main ${name}\n`);
+    await sh(["add", "-A"], work);
+    await sh(["commit", "-qm", `catalog main ${name}`], work);
+    await sh(["push", "-q", "origin", "main"], work);
+    return sha;
+  }
+
+  test("a conflict in generated files is rebuilt by the project's generator, not left for you", async () => {
+    const sha = await catalogConflict("regen-ok", 28);
+    // The agent can't run commands: it would leave the conflict. Code decides from the files instead.
+    let seen = "";
+    const h = writer(async (_req, items) => {
+      seen = JSON.stringify(items);
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "needs-human", reply: "" })), summary: "" });
+    });
+    const { d, repo, ref, store } = await setup(h, {
+      mode: "auto",
+      conflicts: true,
+      regenerate: [{ paths: ["gen/**"], run: "bun tools/rebuild.mjs" }],
+    });
+    const host = new FakeHost(ref, mkPr(28, sha, "regen-ok", { conflicts: true }), []);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 28, "auto");
+    // On failure, say what the generator printed.
+    const ran = JSON.parse(store.getAttend((o as { attendId: number }).attendId)!.payload!).validation;
+    expect({ needsHuman: (o as { needsHuman?: number }).needsHuman, ran }).toEqual({ needsHuman: 0, ran: [] });
+    expect(o).toMatchObject({ kind: "done", needsHuman: 0 });
+    const pushed = await sh(["rev-parse", "refs/heads/regen-ok"], remote);
+    expect(pushed).not.toBe(sha);
+    expect(await sh(["show", `${pushed}:gen/catalog.txt`], remote)).toBe("rebuilt");
+    expect((await sh(["rev-list", "--parents", "-n", "1", pushed], remote)).split(" ")).toHaveLength(3);
+    expect(store.attendDone(repo.id, 28).has(`conflict:${sha}`)).toBe(true);
+    expect(seen).toContain("Rebuilt by the project's generator");
+    expect(seen).toContain("(none left: the generator rebuilt them)");
+  });
+
+  test("a generator that fails leaves the conflict for you, says which command, and pushes nothing", async () => {
+    const sha = await catalogConflict("regen-fail", 29);
+    const h = writer(async (_req, items) => JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "Merged." })), summary: "" }));
+    const { d, repo, ref, store } = await setup(h, { mode: "auto", conflicts: true, regenerate: [{ paths: ["gen/**"], run: "exit 3" }] });
+    const host = new FakeHost(ref, mkPr(29, sha, "regen-fail", { conflicts: true }), []);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 29, "auto");
+    expect(o).toMatchObject({ kind: "done", needsHuman: 1 });
+    expect(await sh(["rev-parse", "refs/heads/regen-fail"], remote)).toBe(sha);
+    const row = store.getAttend((o as { attendId: number }).attendId)!;
+    const payload = JSON.parse(row.payload!);
+    expect(payload.decisions[0]).toMatchObject({ key: `conflict:${sha}`, action: "needs-human" });
+    expect(payload.decisions[0].reply).toContain("`exit 3`");
+    expect(host.comments[0]).toContain("`exit 3`");
+  });
+
   test("a red CI reaches the agent with the failing job's log", async () => {
     const sha = await branchAt("ci-red", 22);
     let seen = "";
@@ -561,7 +629,7 @@ describe("protected files a reviewer commented on", () => {
     const host = new FakeHost(ref, mkPr(80, sha, "rules-a"), threads());
     const o = await attendPullRequest(d, { repo, host, token: "t" }, 80, "auto");
     expect(o).toMatchObject({ kind: "pending", fixed: 1, forced: "sensitive", left: [{ kind: "thread", path: "src/cart.ts", line: 1 }] });
-    expect(answer.prompts.at(-1)).toContain("a reviewer commented on ./AGENTS.md");
+    expect(answer.prompts.at(-1)).toContain("./AGENTS.md had a reviewer's comment or a conflict with the base");
     expect(answer.prompts.at(-1)).toContain("approves such a change before it goes out");
     expect(await sh(["rev-parse", "refs/heads/rules-a"], remote)).toBe(sha);
   });

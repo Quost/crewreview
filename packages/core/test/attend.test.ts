@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { firstSentence, heldPaths, leftForOwner, parseMarker, roundSummary, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
+import { firstSentence, globRegExp, heldPaths, regenerationPlan, leftForOwner, parseMarker, roundSummary, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
 
 const rules: AttendRules = { me: "quost", trustedBots: ["copilot"], fromCrew: false };
 const c = (id: string, author: string, body: string, createdAt = "2026-11-19T10:00:00Z", authorIsBot = false) => ({ id, author, authorIsBot, body, createdAt });
@@ -109,6 +109,15 @@ describe("what the attendant may change, and what it leaves you", () => {
     expect(protectedFilesToEdit(items)).toEqual(["AGENTS.md", ".github/workflows/ci.yml"]);
   });
 
+  test("a protected file a merge left in conflict may be resolved too; secrets never, and only with a conflict to fix", () => {
+    const conflict = item("k", undefined, undefined, "conflict", "");
+    expect(protectedFilesToEdit([conflict], ["AGENTS.md", "src/a.ts", ".env", ".github/workflows/ci.yml"])).toEqual(["AGENTS.md", ".github/workflows/ci.yml"]);
+    expect(protectedFilesToEdit([item("a", "src/a.ts", 1)], ["AGENTS.md"])).toEqual([]);
+    // With auto it goes out; with approve it waits for you.
+    expect(heldPaths(["AGENTS.md"], protectedFilesToEdit([conflict], ["AGENTS.md"]), "auto")).toEqual([]);
+    expect(heldPaths(["AGENTS.md"], protectedFilesToEdit([conflict], ["AGENTS.md"]), "approve")).toEqual(["AGENTS.md"]);
+  });
+
   test("approve holds every protected change; auto lets the commented ones go out, never the others", () => {
     expect(heldPaths(["AGENTS.md", "src/a.ts"], ["AGENTS.md"], "approve")).toEqual(["AGENTS.md"]);
     expect(heldPaths(["AGENTS.md", "src/a.ts"], ["AGENTS.md"], "auto")).toEqual([]);
@@ -207,5 +216,29 @@ describe("a round's summary", () => {
 
   test("its marker is told apart from the others", () => {
     expect(parseMarker(makeMarker({ kind: "round", ref: "671", version: "1" }))).toEqual({ kind: "round", ref: "671", version: "1" });
+  });
+});
+
+describe("files a project's generator rebuilds after a merge", () => {
+  test("globs: * stays in a folder, ** crosses folders", () => {
+    expect(globRegExp("priv/gettext/**").test("priv/gettext/en/LC_MESSAGES/default.po")).toBe(true);
+    expect(globRegExp("priv/gettext/*.pot").test("priv/gettext/default.pot")).toBe(true);
+    expect(globRegExp("priv/gettext/*.pot").test("priv/gettext/en/default.pot")).toBe(false);
+    expect(globRegExp("**/*.po").test("default.po")).toBe(true);
+    expect(globRegExp("**/*.po").test("a/b/default.po")).toBe(true);
+    expect(globRegExp("bun.lock").test("bun.lock")).toBe(true);
+    expect(globRegExp("bun.lock").test("bunXlock")).toBe(false);
+  });
+
+  test("each file goes to the first rule that matches it; the rest stay for the agent", () => {
+    const gettext = { paths: ["priv/gettext/**"], run: "mix gettext.extract --merge" };
+    const lock = { paths: ["mix.lock", "**/*.po"], run: "mix deps.get" };
+    const plan = regenerationPlan(["priv/gettext/default.pot", "priv/gettext/en/LC_MESSAGES/default.po", "lib/a.ex", "mix.lock"], [gettext, lock]);
+    expect(plan.runs).toEqual([
+      { rule: gettext, files: ["priv/gettext/default.pot", "priv/gettext/en/LC_MESSAGES/default.po"] },
+      { rule: lock, files: ["mix.lock"] },
+    ]);
+    expect(plan.rest).toEqual(["lib/a.ex"]);
+    expect(regenerationPlan(["lib/a.ex"], [gettext])).toEqual({ runs: [], rest: ["lib/a.ex"] });
   });
 });

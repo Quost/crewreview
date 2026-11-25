@@ -70,6 +70,14 @@ const AttendSettings = z
     protectedFiles: z.enum(["approve", "auto"]).default("approve"),
     /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
     validate: z.array(z.string()).default([]),
+    /**
+     * The project's own generators for files a merge leaves in conflict (translation catalogs, lockfiles). Crewreview
+     * writes one side of each matched file and runs the command in the checkout; the agent never runs commands.
+     * Example: [{ paths = ["priv/gettext/**"], run = "mix gettext.extract --merge" }].
+     */
+    regenerate: z
+      .array(z.object({ paths: z.array(z.string().min(1)).min(1), run: z.string().min(1), take: z.enum(["head", "base"]).optional() }).strict())
+      .default([]),
     harness: z.string().optional(),
     resolve: z.boolean().default(true),
     reReview: z.boolean().default(true),
