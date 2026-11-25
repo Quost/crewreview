@@ -4,6 +4,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.22.0 — 2026-11-25
+
 ### Added
 
 - Crewreview follows the team's `REVIEW.md` (root or `.crewreview/REVIEW.md`) read from the base branch, given to every lens and the verifier as the project's words.
