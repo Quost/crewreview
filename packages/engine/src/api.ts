@@ -176,6 +176,20 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const count = await crew.resetAttendItems(resetMatch[1]!, Number(resetMatch[2]!));
       return json({ ok: true, reset: count });
     }
+    if (p === "/api/pulls" && m === "GET") return json(await crew.pulls());
+    const pullMatch = /^\/api\/pulls\/([a-z0-9._-]+)\/([0-9]+)\/(attend|retry|dismiss)$/.exec(p);
+    if (pullMatch && m === "POST") {
+      const [, repo, n, action] = pullMatch as unknown as [string, string, string, string];
+      const number = Number(n);
+      if (action === "attend") {
+        const r = await crew.attendNow(repo, number);
+        return "error" in r ? json(r, r.error === "not-found" ? 404 : 409) : json(r);
+      }
+      const { key } = await body();
+      if (typeof key !== "string" || !key || key.length > 300) return json({ error: "bad-key" }, 400);
+      const ok = action === "retry" ? crew.retryAttendItem(repo, number, key) : crew.dismissAttendItem(repo, number, key);
+      return ok ? json({ ok: true }) : json({ error: "not-found" }, 404);
+    }
     if (p === "/api/history" && m === "GET") return json(crew.history(Math.max(1, Math.min(200, Number.parseInt(url.searchParams.get("limit") ?? "", 10) || 50))));
     if (p === "/api/harnesses" && m === "GET") return json(await crew.harnesses());
     const proveMatch = /^\/api\/harnesses\/([a-z0-9][a-z0-9-]*)\/prove$/.exec(p);

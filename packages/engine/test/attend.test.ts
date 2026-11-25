@@ -420,6 +420,8 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(host.resolved).toEqual([]);
     // Left for you, until you ask for another try.
     expect(store.attendDone(repo.id, 24).has("thread:T1:T1-c1")).toBe(true);
+    // Nothing new, but it says something waits on you instead of "nothing to answer".
+    expect(await attendPullRequest(d, { repo, host, token: "t" }, 24, "auto")).toEqual({ kind: "nothing", blocked: 1 });
     expect(store.resetItems(repo.id, 24)).toBe(1);
     expect(store.attendDone(repo.id, 24).has("thread:T1:T1-c1")).toBe(false);
   });

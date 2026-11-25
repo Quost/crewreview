@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { resolveHarness, runConformance, type Harness, type HarnessEvent } from "@crewreview/harness";
 import { acceptInvitations, createHost, githubUser, hostTransport, inviteCollaborator, repoRef, resolveAccountToken, resolveToken } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
-import { discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
+import { attendPullRequest, discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
+import { stackParents, type AttendItem } from "@crewreview/core";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { hostAccess, resolveLink, type HostAccess } from "./access.ts";
@@ -78,7 +79,7 @@ export type CrewEvent =
   | { type: "agents"; agents: LiveAgent[] }
   | { type: "log"; entry: LogEntry }
   | { type: "status"; status: CrewStatus }
-  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" | "harnesses" | "tasks" };
+  | { type: "changed"; what: "inbox" | "repos" | "history" | "settings" | "harnesses" | "tasks" | "pulls" };
 
 export interface CrewStatus {
   version: string;
@@ -108,6 +109,31 @@ const KEEP_FINISHED_MS = 60_000;
 const LOG_SIZE = 200;
 
 /** The running crew: the loop, what its agents are doing, and the actions the dashboard can take. */
+/** A waiting item of a pull request, as the pull requests page shows it. */
+export interface BlockedItemView {
+  key: string;
+  status: string;
+  attempts: number;
+  at: number;
+  kind: AttendItem["kind"];
+  path?: string;
+  line?: number;
+  author?: string;
+  /** What the reviewer asked (or the conflict / CI), cut short. */
+  text?: string;
+  /** The agent's last word on it. */
+  reason?: string;
+}
+
+export interface PullView {
+  repo: string;
+  repoUrl: string;
+  mode: string;
+  paused: boolean;
+  error?: string;
+  pulls: { number: number; title: string; url: string; draft: boolean; conflicts: boolean; busy: boolean; last?: { status: string; at: number; commit?: string }; blocked: BlockedItemView[] }[];
+}
+
 export class CrewDaemon {
   readonly startedAt = Date.now();
   private agents = new Map<string, LiveAgent>();
@@ -185,6 +211,7 @@ export class CrewDaemon {
       this.emit({ type: "changed", what: "inbox" });
       this.emit({ type: "changed", what: "history" });
     }
+    if (event.type === "attend-outcome" || event.type === "attend-start") this.emit({ type: "changed", what: "pulls" });
   }
 
   /** Turn pipeline events into the live board. */
@@ -716,10 +743,116 @@ export class CrewDaemon {
     return ok;
   }
 
+  /**
+   * Your open pull requests in the linked repositories the attendant works on, each with what's waiting: the items
+   * left for you or given up, with the item and the agent's last word on it. One host call per repository.
+   */
+  async pulls(): Promise<PullView[]> {
+    const out: PullView[] = [];
+    for (const repo of (await this.repos()).filter((r) => !isOrg(r) && r.attend.mode !== "off")) {
+      const base = { repo: repo.id, repoUrl: repo.ref.webUrl, mode: repo.attend.mode, paused: Boolean(repo.paused) };
+      const target = await connect(repo, this.o.version);
+      if ("error" in target) {
+        out.push({ ...base, error: "no-token", pulls: [] });
+        continue;
+      }
+      try {
+        const me = (await target.host.whoami()).toLowerCase();
+        const authors = repo.attend.authors ?? "mine";
+        const listed = (await target.host.listOpenPullRequests()).filter((pr) => (authors === "all" ? true : authors === "mine" ? pr.author.toLowerCase() === me : pr.author.toLowerCase() !== me));
+        // A listing doesn't say whether a pull request conflicts with its base (GitHub works it out per pull request).
+        const open = await Promise.all(listed.slice(0, 30).map((pr) => (pr.conflicts === undefined ? target.host.getPullRequest(pr.number).catch(() => pr) : pr)));
+        const pulls = open.map((pr) => {
+          const runs = this.o.store.attendsOf(repo.id, pr.number);
+          const last = runs[0];
+          const known = new Map<string, { item?: AttendItem; reason?: string }>();
+          for (const r of [...runs].reverse()) {
+            if (!r.payload) continue;
+            const payload = JSON.parse(r.payload) as AttendPayload;
+            for (const it of payload.items) known.set(it.key, { item: it, reason: payload.decisions.find((x) => x.key === it.key)?.reply.trim() || undefined });
+          }
+          const blocked = this.o.store.blockedItems(repo.id, pr.number).map((b) => {
+            const k = known.get(b.key);
+            const it = k?.item;
+            return { key: b.key, status: b.status, attempts: b.attempts, at: b.updatedAt, kind: it?.kind ?? (b.key.split(":")[0] as AttendItem["kind"]), ...(it?.path ? { path: it.path } : {}), ...(it?.line ? { line: it.line } : {}), ...(it?.author ? { author: it.author } : {}), ...(it?.text ? { text: it.text.slice(0, 600) } : {}), ...(k?.reason ? { reason: k.reason.slice(0, 400) } : {}) };
+          });
+          return {
+            number: pr.number,
+            title: pr.title,
+            url: pr.url,
+            draft: Boolean(pr.draft),
+            conflicts: Boolean(pr.conflicts),
+            busy: this.o.store.attending(repo.id, pr.number),
+            ...(last ? { last: { status: last.status, at: last.updatedAt, commit: last.commitSha ?? undefined } } : {}),
+            blocked,
+          };
+        });
+        out.push({ ...base, pulls });
+      } catch (e) {
+        out.push({ ...base, error: e instanceof Error ? e.message.split("\n")[0]!.slice(0, 200) : String(e), pulls: [] });
+      }
+    }
+    return out;
+  }
+
+  private attendingNow = new Set<string>();
+
+  /**
+   * Answer one pull request now, as the check would, in the repository's mode. It runs in the background: the activity
+   * log and the pull requests page show how it went.
+   */
+  async attendNow(repoId: string, number: number): Promise<{ ok: true } | { error: "not-found" | "off" | "no-token" | "busy" }> {
+    const repo = (await this.repos()).find((r) => r.id === repoId && !isOrg(r));
+    if (!repo) return { error: "not-found" };
+    if (repo.attend.mode === "off") return { error: "off" };
+    const key = `${repoId}#${number}`;
+    if (this.attendingNow.has(key) || this.o.store.attending(repoId, number)) return { error: "busy" };
+    const target = await connect(repo, this.o.version);
+    if ("error" in target) return { error: "no-token" };
+    this.attendingNow.add(key);
+    void (async () => {
+      try {
+        const open = await target.host.listOpenPullRequests();
+        const pr = open.find((p) => p.number === number);
+        const parent = stackParents(open).get(number);
+        const job = { repo: repo.id, number, title: pr?.title ?? "", kind: "attend" as const };
+        this.record({ type: "attend-start", repo: repo.id, number, title: job.title });
+        const opts = parent ? { parent: { number: parent.number, headRef: parent.headRef, headSha: parent.headSha } } : {};
+        const d = this.deps();
+        const outcome = await attendPullRequest({ ...d, onEvent: (e) => this.onJobEvent(job, e) }, target, number, repo.attend.mode === "auto" ? "auto" : "inbox", opts);
+        this.record({ type: "attend-outcome", repo: repo.id, number, outcome });
+      } catch (e) {
+        this.record({ type: "repo-error", repo: repo.id, error: e instanceof Error ? e.message : String(e) });
+      } finally {
+        this.attendingNow.delete(key);
+        this.emit({ type: "changed", what: "pulls" });
+        this.emit({ type: "status", status: this.status() });
+      }
+    })();
+    return { ok: true };
+  }
+
+  /** Give one waiting item another chance at the next check (or the next "answer now"). */
+  retryAttendItem(repo: string, number: number, key: string): boolean {
+    const ok = this.o.store.retryItem(repo, number, key);
+    if (ok) this.emit({ type: "changed", what: "pulls" });
+    return ok;
+  }
+
+  /** You took care of it: the item stops waiting and is never tried again. */
+  dismissAttendItem(repo: string, number: number, key: string): boolean {
+    const known = this.o.store.blockedItems(repo, number).some((b) => b.key === key);
+    if (!known) return false;
+    this.o.store.markItems(repo, number, [key], "handled");
+    this.emit({ type: "changed", what: "pulls" });
+    return true;
+  }
+
   /** Give needs-human/gave-up/trying attend items on a pull request another chance. Returns how many were reset. */
   async resetAttendItems(repo: string, number: number): Promise<number> {
     const count = this.o.store.resetItems(repo, number);
     if (count > 0) {
+      this.emit({ type: "changed", what: "pulls" });
       this.emit({ type: "changed", what: "inbox" });
       this.emit({ type: "status", status: this.status() });
     }

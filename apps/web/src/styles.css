@@ -1292,3 +1292,22 @@ pre.code {
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+/* ---- pull requests page ---- */
+.lead { margin: -4px 0 16px; max-width: 72ch; }
+.pulls { display: flex; flex-direction: column; gap: 12px; }
+.pull { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.pull-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pull-head > a { font-weight: 600; flex: 1 1 320px; min-width: 0; }
+.pull-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pull-actions { display: flex; gap: 8px; margin-left: auto; }
+.blocked { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.blocked-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.blocked-main { flex: 1; min-width: 0; }
+.blocked-main p { margin: 6px 0 0; overflow-wrap: anywhere; }
+.blocked-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.quote { border-left: 3px solid var(--border); color: var(--text-2); padding-left: 8px; }
+@media (max-width: 640px) {
+  .blocked-item { flex-direction: column; }
+  .pull-actions { margin-left: 0; }
+}

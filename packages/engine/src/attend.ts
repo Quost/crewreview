@@ -81,7 +81,8 @@ export interface AttendSync {
 }
 
 export type AttendOutcome =
-  | { kind: "nothing" }
+  /** Nothing new to do. `blocked`: items of this pull request that wait on you or stopped trying. */
+  | { kind: "nothing"; blocked?: number }
   | { kind: "waiting"; reason: "settling" | "fork" | "not-yours" | "busy" }
   | { kind: "pending"; attendId: number; fixed: number; replies: number; forced?: AttendPayload["forcedInbox"]; links?: string[]; left?: LeftItem[] }
   | { kind: "done"; attendId: number; commit?: string; replies: number; resolved: number; unresolved: number; resolveError?: string; reReview: boolean; needsHuman: number; synced?: AttendSync; left?: LeftItem[] }
@@ -259,7 +260,10 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     }
   }
   if (ignored.length && mode !== "dry-run") d.store.markItems(repo.id, number, ignored, "ignored");
-  if (items.length === 0) return { kind: "nothing" };
+  if (items.length === 0) {
+    const blocked = d.store.blockedItems(repo.id, number).filter((b) => b.status === "needs-human" || b.status === "gave-up").length;
+    return blocked ? { kind: "nothing", blocked } : { kind: "nothing" };
+  }
   if (mode !== "dry-run" && !settled(items, now, d.config.attend.quiet)) return { kind: "waiting", reason: "settling" };
 
   // Taking the base in with nothing to resolve is git's job: no agent, so no harness needed either.
