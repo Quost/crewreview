@@ -31,8 +31,8 @@ const ReviewSettings = z
     requireTrusted: z.boolean().optional(),
     /** Above this many changed lines, no automatic approval: over review.policy.approveMaxChangedLines. */
     approveMaxChangedLines: z.number().int().min(0).optional(),
-    /** crewreview (🔴 🟠 🟡 ⚪) or tupi (⛔ ⚠ 💅). */
-    severityStyle: z.enum(["crewreview", "tupi"]).optional(),
+    /** crewreview (🔴 🟠 🟡 ⚪) or signs (⛔ ⚠ 💅). */
+    severityStyle: z.enum(["crewreview", "signs"]).optional(),
     /** At most this many nits inline; the rest listed in the summary. */
     maxNits: z.number().int().min(0).optional(),
     /** More project rules for the reviewers, besides AGENTS.md and the like: paths in the repository; a folder gives its .md files. */

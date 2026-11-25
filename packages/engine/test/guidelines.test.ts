@@ -26,7 +26,7 @@ beforeAll(async () => {
   for (const [k, v] of [["user.email", "t@example.com"], ["user.name", "T"], ["commit.gpgsign", "false"]]) await sh(["config", k!, v!]);
   // A long AGENTS.md, like the one that lost most of its rules at 20,000 characters.
   await put("AGENTS.md", `# Rules\n\n${"Keep migrations reversible. ".repeat(2_000)}\nLAST RULE: money is integer cents.\n`);
-  await put(".kiro/steering/workflow.md", "Every pull request names its WEMOB ticket.\n");
+  await put(".kiro/steering/workflow.md", "Every pull request names its ticket number.\n");
   await put(".kiro/steering/notes.txt", "not a rule file\n");
   await put("docs/review.md", "Screenshots before and after for UI changes.\n");
   await put("docs/rules/adr.md", "Never change an accepted ADR here.\n");
@@ -64,7 +64,7 @@ describe("project rules for the reviewers", () => {
     expect(ctx.guidelinesCut).toEqual([]);
     const text = await readFile(join(root, "job", "ctx", "guidelines.md"), "utf8");
     expect(text).toContain("LAST RULE: money is integer cents.");
-    expect(text).toContain("WEMOB ticket");
+    expect(text).toContain("ticket number");
     expect(text).not.toContain("not a rule file");
   });
 });

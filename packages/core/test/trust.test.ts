@@ -47,8 +47,8 @@ describe("a repository's review settings", () => {
   const global = { profile: "standard" as const, lenses: ["correctness", "contracts", "tests", "docs"], verifierRaise: true, policy: DEFAULT_POLICY, severityStyle: "crewreview" as const, maxNits: 5 };
 
   test("its own values over the global ones; unset follows them", () => {
-    const r = resolveReview(global, { requestChangesAt: "never", allowApprove: true, severityStyle: "tupi", maxNits: 2 });
-    expect(r).toMatchObject({ profile: "standard", lenses: global.lenses, severityStyle: "tupi", maxNits: 2, policy: { requestChangesAt: "never", allowApprove: true, approveBlockedAt: "major" } });
+    const r = resolveReview(global, { requestChangesAt: "never", allowApprove: true, severityStyle: "signs", maxNits: 2 });
+    expect(r).toMatchObject({ profile: "standard", lenses: global.lenses, severityStyle: "signs", maxNits: 2, policy: { requestChangesAt: "never", allowApprove: true, approveBlockedAt: "major" } });
     expect(resolveReview(global)).toEqual(global);
   });
 

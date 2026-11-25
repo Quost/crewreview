@@ -9,7 +9,7 @@ import { crewreviewLink } from "@crewreview/core";
 const ICONS: Record<SeverityStyle, Record<Severity, string>> = {
   crewreview: { blocker: "🔴", major: "🟠", minor: "🟡", nit: "⚪" },
   // ⛔ blocks, ⚠ is worth fixing, 💅 is polish.
-  tupi: { blocker: "⛔", major: "⚠️", minor: "⚠️", nit: "💅" },
+  signs: { blocker: "⛔", major: "⚠️", minor: "⚠️", nit: "💅" },
 };
 
 export interface PostStyle {

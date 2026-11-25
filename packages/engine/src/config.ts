@@ -176,8 +176,8 @@ export const ConfigSchema = z
         verifierRaise: z.boolean().default(true),
         /** fast, standard or gate (see REVIEW_PROFILES). */
         profile: z.enum(REVIEW_PROFILES).default("standard"),
-        /** How severities look in posts: crewreview (🔴 🟠 🟡 ⚪) or tupi (⛔ ⚠ 💅). */
-        severityStyle: z.enum(["crewreview", "tupi"]).default("crewreview"),
+        /** How severities look in posts: crewreview (🔴 🟠 🟡 ⚪) or signs (⛔ ⚠ 💅). */
+        severityStyle: z.enum(["crewreview", "signs"]).default("crewreview"),
         /** At most this many nits go inline; the rest are listed in one line of the summary. */
         maxNits: z.number().int().min(0).default(5),
         /** Language the agents write findings in. Unset: the interface language. */
