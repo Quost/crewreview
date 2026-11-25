@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { api, ApiError, unreachable, type Repo } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Pill } from "../ui.tsx";
+import { Card, Empty, ExternalLink, Pill, SectionHead } from "../ui.tsx";
 
 type SignIn =
   | { state: "idle" }
@@ -12,13 +12,11 @@ type SignIn =
 type Reach = "admin" | "write" | "read" | "none" | "error";
 type Saved = { user: string; account: string; reach: { id: string; permission: Reach; message?: string }[]; accepted: string[]; applied: string[] };
 
-/** The account name a repository posts as, without the keychain prefix. */
 export const accountLabel = (account: string) => account.replace(/^keychain:[^/]+\//, "");
 
 const hostKey = (r: Repo) => `${r.kind}:${r.host.toLowerCase()}`;
 const pathOf = (r: Repo) => new URL(r.webUrl).pathname.replace(/^\/+|\/+$/g, "");
 
-/** Where GitLab makes a token for this group or project; the personal page as the fallback, with the fields filled. */
 export function tokenPages(r: Repo): { place?: string; personal: string } {
   const base = `https://${r.host}`;
   if (r.kind === "github") return { personal: `${base}/settings/tokens/new?scopes=repo&description=Crewreview` };
@@ -47,7 +45,6 @@ function Step({ n, title, done, children }: { n: number; title: string; done?: b
   );
 }
 
-/** Link a repository, organization or group right here, so the page never sends you away to start. */
 function LinkForm({ onLinked, compact }: { onLinked: (id: string) => void; compact?: boolean }) {
   const t = useT();
   const [url, setUrl] = useState("");
@@ -90,7 +87,6 @@ function LinkForm({ onLinked, compact }: { onLinked: (id: string) => void; compa
   );
 }
 
-/** Paste a token: the crew checks who it is and what it can do, keeps it in the keychain and uses it. */
 function TokenForm({ ids, reviewOwnLabel, onSaved }: { ids: string[]; reviewOwnLabel: string; onSaved: (s: Saved) => void }) {
   const t = useT();
   const [token, setToken] = useState("");
@@ -169,11 +165,6 @@ function SavedNotice({ saved, repos }: { saved: Saved; repos: Repo[] }) {
   );
 }
 
-/**
- * A second account to post reviews as, step by step: nobody can approve their own pull request. On GitLab a group or
- * project access token makes the account by itself; on GitHub you create it, the crew invites it and signs it in.
- * Nothing is a dead end: with nothing linked, step 1 links it here.
- */
 export function AccountPage() {
   const t = useT();
   const [repos, setRepos] = useState<Repo[] | undefined>();
@@ -209,9 +200,7 @@ export function AccountPage() {
 
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.account.title")}</h1>
-      </header>
+      <SectionHead title={t.t("web.account.title")} />
       <p className="muted lead">{t.t("web.account.intro")}</p>
 
       <Step n={1} title={t.t("web.account.where")} done={selected.length > 0}>
@@ -280,17 +269,11 @@ function GitLabSteps({ selected, repos, saved, onSaved }: { selected: Repo[]; re
         )}
         <dl className="fields">
           <dt>{t.t("web.account.gl.fName")}</dt>
-          <dd>
-            <code>Crewreview</code>
-          </dd>
+          <dd><code>Crewreview</code></dd>
           <dt>{t.t("web.account.gl.fRole")}</dt>
-          <dd>
-            <code>Developer</code>
-          </dd>
+          <dd><code>Developer</code></dd>
           <dt>{t.t("web.account.gl.fScope")}</dt>
-          <dd>
-            <code>api</code>
-          </dd>
+          <dd><code>api</code></dd>
           <dt>{t.t("web.account.gl.fExpiry")}</dt>
           <dd>{t.t("web.account.gl.fExpiryHint")}</dd>
         </dl>
@@ -326,7 +309,6 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
   useEffect(() => {
     api.get<SignIn>("/api/account/signin").then((s) => (setSignIn(s), s.state !== "idle" && setHow("gh")), () => {});
   }, []);
-  // While the code waits to be typed, follow the sign-in.
   useEffect(() => {
     if (signIn.state !== "waiting") return;
     const id = setInterval(() => api.get<SignIn>("/api/account/signin").then(setSignIn, () => {}), 2000);
@@ -376,7 +358,6 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
     }
   };
   const cancel = () => api.del("/api/account/signin").then(() => setSignIn({ state: "idle" }), () => {});
-  // After the gh sign-in: accept the invitations with the account's own token and point the repositories at it.
   const finish = async () => {
     const who = signIn.state === "done" ? signIn.login : name;
     setBusy(true);
@@ -388,7 +369,6 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
         ok.push(t.t("web.account.accepted", { count: r.accepted.length }));
       } catch (err) {
         const b = err instanceof ApiError ? err.body : undefined;
-        // Already accepted, or nothing to accept: say why, and go on to use the account.
         if (b?.error !== "none") bad.push(b?.error && b.error !== "host" ? t.t(`account.error.${b.error}` as never, { name: b.name ?? who, message: b.message ?? "" }) : problem(err));
       }
     }
@@ -533,14 +513,10 @@ function GitHubSteps({ selected, repos, saved, onSaved, onChanged }: { selected:
               </p>
             )}
             {finished.ok?.map((m) => (
-              <p key={m} className="notice ok">
-                {m}
-              </p>
+              <p key={m} className="notice ok">{m}</p>
             ))}
             {finished.bad?.map((m) => (
-              <p key={m} className="notice warn">
-                {m}
-              </p>
+              <p key={m} className="notice warn">{m}</p>
             ))}
           </>
         )}

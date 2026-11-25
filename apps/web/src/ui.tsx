@@ -59,7 +59,7 @@ export function SeverityPill({ severity, label }: { severity: keyof typeof SEV_T
   return <Pill tone={SEV_TONE[severity]}>{label}</Pill>;
 }
 
-/** Text from a finding or a reply: `code` spans as code, everything else as plain text (never as HTML). */
+/** Texto de achado/resposta: `code` spans como código, tudo o resto como texto simples (nunca HTML). */
 export function Inline({ text }: { text: string }) {
   return (
     <>
@@ -70,24 +70,66 @@ export function Inline({ text }: { text: string }) {
   );
 }
 
+/** Badge leve: rótulo pequeno com tom opcional. */
+export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "ok" | "warn" | "bad" | "accent" | "live" }) {
+  return <span className={`badge-soft ${tone === "neutral" ? "" : tone}`}>{children}</span>;
+}
+
+/** Avatar com iniciais (ou letra) e cor por tom. */
+export function Avatar({ label, size = 30, tone = "accent" }: { label: string; size?: number; tone?: "ok" | "warn" | "bad" | "accent" | "live" }) {
+  const initials = label
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return (
+    <span
+      className={`avatar-simple ${tone}`}
+      aria-label={label}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
+    >
+      {initials}
+    </span>
+  );
+}
+
+/** Card de estatística: número grande + rótulo. */
+export function StatCard({ value, label, tone }: { value: ReactNode; label: ReactNode; tone?: "ok" | "warn" | "bad" | "accent" | "live" }) {
+  return (
+    <div className="stat-card">
+      <span className={`badge-soft ${tone ?? ''}`}>{label}</span>
+      <div className="value">{value}</div>
+    </div>
+  );
+}
+
+/** Título de seção de página com ação à direita. */
+export function SectionHead({ title, actions }: { title: ReactNode; actions?: ReactNode }) {
+  return (
+    <header className="page-head">
+      <h1>{title}</h1>
+      {actions && <div className="card-actions">{actions}</div>}
+    </header>
+  );
+}
+
 /**
- * An agent that must prove its read-only lock before it reviews (ACP and custom ones): the button runs the proof,
- * "proving…" while it runs (the list updates when it's done), or the failed result.
+ * Um agente que deve provar seu lock de leitura antes de revisar (ACP e customizados): o botão roda a prova,
+ * "provando…" enquanto roda (a lista atualiza ao acabar), ou o resultado falhado.
  */
-/**
- * Prove an agent's locks with a real run. Where reviews need the proof it's offered until it passes; with `any`, any
- * agent not proven yet can be (the Harnesses table), since a built-in one is trusted but not yet shown to hold.
- */
+/** Provar os locks de um agente com uma execução real. Onde reviews precisam da prova ela é oferecida até passar; com `any`, qualquer
+ * agente ainda não provado pode sê-lo (a tabela de harnesses), já que um built-in é confiável mas ainda não mostrado como detentor. */
 export function ProveButton({ h, any, write }: { h: { id: string; review?: string; proving?: boolean; capabilities?: { write: boolean }; conformance?: { readOnly?: string; writeScope?: string; at?: string } }; any?: boolean; write?: boolean }) {
   const t = useT();
   const [asked, setAsked] = useState(false);
-  // The click shows "proving" at once; the list takes over from there, and says when it's done.
+  // O clique mostra "proving" de imediato; a lista assume daí, e diz quando acabou.
   useEffect(() => {
     if (h.proving) setAsked(false);
   }, [h.proving]);
   useEffect(() => setAsked(false), [h.conformance?.at]);
   if (write) {
-    // The write test, once the read-only one is on record: a harness that failed it (or never took it) can try again.
+    // O teste de escrita, depois que o de leitura está registrado: um harness que falhou (ou nunca fez) pode tentar de novo.
     if (!h.capabilities?.write || !h.conformance?.readOnly || h.conformance.writeScope === "pass") return null;
     if (h.proving || asked) return <Pill tone="live">{t.t("web.setup.proving")}</Pill>;
   } else {

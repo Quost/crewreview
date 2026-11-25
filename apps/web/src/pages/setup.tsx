@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { api, ApiError, unreachable, type HarnessInfo, type HostAccess, type Limits, type Preview } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, Pill, ProveButton } from "../ui.tsx";
+import { Card, Empty, Pill, ProveButton, Badge, SectionHead } from "../ui.tsx";
 import { PreviewBox } from "./repos.tsx";
 
 type Readiness = "ready" | "signin" | "missing" | "unknown";
@@ -12,7 +12,6 @@ function readiness(h: HarnessInfo): Readiness {
   return h.signIn?.state === "yes" ? "ready" : "unknown";
 }
 
-/** Usable for a review: installed, not known to be signed out, and its read-only lock proven when it has to be. */
 const usable = (h?: HarnessInfo) => !!h && (readiness(h) === "ready" || readiness(h) === "unknown") && (h.review === undefined || h.review === "ok");
 
 function hostLogin(h: HostAccess): string {
@@ -32,7 +31,7 @@ function Step({ n, title, done, children, actions }: { n: number; title: string;
             {done ? "✓" : n}
           </span>
           {title}
-          {done !== undefined && <Pill tone={done ? "ok" : "warn"}>{done ? t.t("web.setup.done") : t.t("web.setup.todo")}</Pill>}
+          {done !== undefined && <Badge tone={done ? "ok" : "warn"}>{done ? t.t("web.setup.done") : t.t("web.setup.todo")}</Badge>}
         </>
       }
       actions={actions}
@@ -58,7 +57,6 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
     setHarnesses(undefined);
     api.get<HarnessInfo[]>("/api/harnesses").then(setHarnesses, () => setHarnesses([]));
   };
-  // A recheck keeps what's shown until the answer comes; a failed one keeps it too, rather than claim no login.
   const loadHosts = () => {
     api.get<HostAccess[]>("/api/hosts").then(setHosts, () => setHosts((h) => h ?? []));
   };
@@ -67,7 +65,6 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
     loadHosts();
     api.get<Limits>("/api/limits").then(setLimits, () => {});
   }, []);
-  // A proof finished (or started): show it without the loading flash.
   useEffect(() => {
     if (agentsVersion) api.get<HarnessInfo[]>("/api/harnesses").then(setHarnesses, () => {});
   }, [agentsVersion]);
@@ -95,7 +92,6 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
     if (!url.trim()) return;
     setBusy(true);
     setError(undefined);
-    // A preview that failed says nothing about this attempt.
     if (preview && preview !== "loading" && "failed" in preview) setPreview(undefined);
     try {
       const r = await api.post<{ id: string }>("/api/repos", { url: url.trim(), mode: "inbox" });
@@ -111,7 +107,6 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
   };
 
   const chosenInfo = harnesses?.find((h) => h.chosen);
-  // Pick the agent for reviews here: it's harness.default in config.toml, used from the next review on.
   const choose = async (id: string) => {
     setBusy(true);
     try {
@@ -126,16 +121,22 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
   const agentsDone = harnesses ? usable(chosenInfo) : undefined;
   const hostsDone = hosts ? hosts.some((h) => h.user) : undefined;
   const recheck = (onClick: () => void) => (
-    <button className="btn ghost" onClick={onClick}>
+    <button className="btn ghost sm" onClick={onClick}>
       {t.t("web.setup.recheck")}
     </button>
   );
 
+  const harnessStatus = (h: HarnessInfo) => {
+    const r = readiness(h);
+    if (r === "ready") return <Badge tone="ok">{t.t("web.setup.ready")}</Badge>;
+    if (r === "unknown") return <Badge>{t.t("web.setup.installed")}</Badge>;
+    if (r === "signin") return <Badge tone="warn">{t.t("web.setup.signIn")}</Badge>;
+    return <span className="muted small">{t.t("web.setup.missing")}</span>;
+  };
+
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.setup")}</h1>
-      </header>
+      <SectionHead title={t.t("web.nav.setup")} />
       <p className="muted lead">{t.t("web.setup.intro")}</p>
 
       <Step n={1} title={t.t("web.setup.agents")} done={agentsDone} actions={recheck(loadAgents)}>
@@ -149,7 +150,7 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
               return (
                 <li key={h.id}>
                   <span>
-                    <strong>{h.name}</strong> <code>{h.id}</code> {h.chosen && <Pill tone="accent">{t.t("web.setup.default")}</Pill>}
+                    <strong>{h.name}</strong> <code>{h.id}</code> {h.chosen && <Badge tone="accent">{t.t("web.setup.default")}</Badge>}
                   </span>
                   <span className="check-state">
                     {usable(h) && !h.chosen && (
@@ -158,16 +159,9 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
                       </button>
                     )}
                     <ProveButton h={h} />
-                    {r === "ready" && <Pill tone="ok">{t.t("web.setup.ready")}</Pill>}
+                    {harnessStatus(h)}
                     {r === "ready" && h.signIn?.expiresAt && <span className="muted small">{t.t("doctor.until", { date: new Date(h.signIn.expiresAt).toLocaleDateString(t.locale, { month: "short", day: "numeric" }) })}</span>}
-                    {r === "unknown" && <Pill>{t.t("web.setup.installed")}</Pill>}
-                    {r === "signin" && (
-                      <>
-                        <Pill tone="warn">{t.t("web.setup.signIn")}</Pill>
-                        <code>{h.loginCommand}</code>
-                      </>
-                    )}
-                    {r === "missing" && <span className="muted small">{t.t("web.setup.missing")}</span>}
+                    {r === "signin" && <code className="small mono">{h.loginCommand}</code>}
                   </span>
                 </li>
               );
@@ -197,13 +191,13 @@ export function SetupPage({ onCheckNow, repos, agentsVersion }: { onCheckNow: ()
                 </span>
                 <span className="check-state">
                   {h.user ? (
-                    <Pill tone="ok">{t.t("web.setup.hostAs", { user: h.user })}</Pill>
+                    <Badge tone="ok">{t.t("web.setup.hostAs", { user: h.user })}</Badge>
                   ) : h.source ? (
-                    <Pill tone="bad">{t.t("web.setup.hostError", { error: h.error ?? "" })}</Pill>
+                    <Badge tone="bad">{t.t("web.setup.hostError", { error: h.error ?? "" })}</Badge>
                   ) : (
                     <>
                       <span className="muted small">{t.t("web.setup.hostNone")}</span>
-                      <code>{hostLogin(h)}</code>
+                      <code className="small mono">{hostLogin(h)}</code>
                     </>
                   )}
                 </span>

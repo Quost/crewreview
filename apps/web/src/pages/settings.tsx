@@ -1,14 +1,13 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { api, ApiError, unreachable } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, Toggle } from "../ui.tsx";
+import { Card, Empty, Toggle, SectionHead } from "../ui.tsx";
 
 type Values = Record<string, string | number | boolean | null>;
 interface Settings {
   values: Values;
   harnesses: string[];
   configPath?: string;
-  /** Only inside the desktop app. */
   desktop: { autostart: boolean | null } | null;
 }
 
@@ -20,7 +19,6 @@ interface Field {
   hint?: string;
 }
 
-/** config.toml's settings, edited here and used by the crew at once; open at login when it's the desktop app. */
 export function SettingsCard({ version }: { version: number }) {
   const t = useT();
   const [s, setS] = useState<Settings | undefined>();
@@ -90,7 +88,6 @@ export function SettingsCard({ version }: { version: number }) {
     setBusy(true);
     setResult({});
     try {
-      // Empty text means "back to the default" for the optional ones.
       await api.patch("/api/settings", { values: Object.fromEntries(Object.entries(changed).map(([k, v]) => [k, v === "" ? null : v])) });
       setResult({ ok: t.t("web.settings.saved", { path: s.configPath ?? "config.toml" }) });
       await load();
@@ -104,7 +101,6 @@ export function SettingsCard({ version }: { version: number }) {
   const setApp = async (body: Record<string, unknown>) => {
     try {
       await api.patch("/api/settings", body);
-      // The app answers with its new state a moment later.
       setTimeout(load, 600);
     } catch (err) {
       setResult({ bad: unreachable(err) ? t.t("web.setup.unreachable") : t.t("web.settings.failed", { error: String(err) }) });
@@ -141,7 +137,8 @@ export function SettingsCard({ version }: { version: number }) {
 
   return (
     <>
-      <Card title={t.t("web.settings.title")}>
+      <SectionHead title={t.t("web.settings.title")} />
+      <Card>
         <form className="settings-form" onSubmit={save}>
           {sections.map((sec) => (
             <fieldset key={sec.title}>

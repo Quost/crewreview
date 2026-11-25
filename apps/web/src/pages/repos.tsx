@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, unreachable, type Preview, type Repo } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Card, Empty, ExternalLink, Segmented, Toggle, Pill } from "../ui.tsx";
+import { Card, Empty, ExternalLink, Segmented, Toggle, Pill, SectionHead } from "../ui.tsx";
 
 type Mode = Repo["review"]["mode"];
 
@@ -60,18 +60,11 @@ export function ReposPage({ version }: { version: number }) {
 
   return (
     <>
-      <header className="page-head">
-        <h1>{t.t("web.nav.repos")}</h1>
-        <a className="btn ghost" href="#/setup">
-          {t.t("web.repos.setup")}
-        </a>
-      </header>
+      <SectionHead title={t.t("web.nav.repos")} actions={<a className="btn ghost" href="#/setup">{t.t("web.repos.setup")}</a>} />
       <Card title={t.t("web.repos.add")}>
         <form className="add" onSubmit={add}>
           <input type="url" required placeholder="https://github.com/owner/repo · https://github.com/org" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t.t("repo.col.url")} />
-          <button className="btn primary" disabled={busy}>
-            {t.t("web.repos.addButton")}
-          </button>
+          <button className="btn primary" disabled={busy}>{t.t("web.repos.addButton")}</button>
         </form>
         <p className="muted small">{t.t("web.repos.addHint")}</p>
         {error && <p className="notice bad">{error}</p>}
@@ -207,7 +200,6 @@ export function ReposPage({ version }: { version: number }) {
   );
 }
 
-/** Who posts this repository's reviews. The daemon checks an account before it saves it. */
 function AccountField({ repo }: { repo: Repo }) {
   const t = useT();
   const [value, setValue] = useState(repo.review.account ?? "");
