@@ -120,7 +120,7 @@ export function reviewKnobs(config: Config, repo?: LinkedRepo): ReviewKnobs {
   const g = repo?.review;
   return resolveReview(
     { profile: r.profile, lenses: r.lenses, verifierRaise: r.verifierRaise, policy: r.policy, severityStyle: r.severityStyle, maxNits: r.maxNits },
-    g ? { profile: g.profile, lenses: g.lenses, allowApprove: g.allowApprove, requestChangesAt: g.requestChangesAt, requireTrusted: g.requireTrusted, severityStyle: g.severityStyle, maxNits: g.maxNits } : {},
+    g ? { profile: g.profile, lenses: g.lenses, allowApprove: g.allowApprove, requestChangesAt: g.requestChangesAt, requireTrusted: g.requireTrusted, approveMaxChangedLines: g.approveMaxChangedLines, severityStyle: g.severityStyle, maxNits: g.maxNits } : {},
   );
 }
 

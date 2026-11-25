@@ -123,7 +123,7 @@ export const ConfigSchema = z
         maxConcurrentAgents: z.number().int().min(1).max(32).optional(),
         agentTimeout: Duration.default(20 * 60_000),
         stallTimeout: Duration.default(8 * 60_000),
-        maxDiffLines: z.number().int().min(1).default(4000),
+        maxDiffLines: z.number().int().min(1).default(50_000),
         /** Most agent runs a day (each lens, verifier and attendant run counts one). Unset: no limit. */
         dailyRuns: z.number().int().min(1).optional(),
       })

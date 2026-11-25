@@ -12,8 +12,11 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 - The agents get `ctx/docs.md`, found by code: the environment variables the change starts or stops reading and where each is written down (or not), and the docs outside the change that name the changed files or functions.
 - The summary lists, folded, the claims and rules the review checked: those that hold, those that don't and those it couldn't confirm. A claim said to hold or fail without a real place in the code is posted as not confirmed.
 
+- A repository can set its own `approveMaxChangedLines` in `[repo.review]`, over `review.policy.approveMaxChangedLines`.
+
 ### Changed
 
+- A change can be approved up to 50,000 changed lines by default (it was 1,500), and the same size no longer makes the trust seal say "don't rely on it alone". `limits.maxDiffLines` now defaults to 50,000 too (it was 4,000), so large changes are reviewed instead of skipped.
 - The tests lens asks what each new test would assert if the fix were reverted, and why the existing tests missed a bug that is being fixed.
 
 ### Fixed

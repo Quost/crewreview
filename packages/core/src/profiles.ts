@@ -27,6 +27,8 @@ export interface RepoReviewKnobs {
   allowApprove?: boolean;
   requestChangesAt?: Severity | "never";
   requireTrusted?: boolean;
+  /** Above this many changed lines, no automatic approval. */
+  approveMaxChangedLines?: number;
   severityStyle?: SeverityStyle;
   maxNits?: number;
 }
@@ -40,6 +42,7 @@ export function resolveReview(global: ReviewKnobs, repo: RepoReviewKnobs = {}): 
     ...(repo.allowApprove !== undefined ? { allowApprove: repo.allowApprove } : {}),
     ...(repo.requestChangesAt !== undefined ? { requestChangesAt: repo.requestChangesAt } : {}),
     ...(repo.requireTrusted !== undefined ? { requireTrusted: repo.requireTrusted } : {}),
+    ...(repo.approveMaxChangedLines !== undefined ? { approveMaxChangedLines: repo.approveMaxChangedLines } : {}),
   };
   const out: ReviewKnobs = {
     profile,
