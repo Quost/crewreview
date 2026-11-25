@@ -12,7 +12,7 @@
       "name": "crewreview",
       "source": "./plugins/crewreview",
       "description": "Review your branch and pull requests with a crew of read-only AI lenses and a verifier; answer the reviews on yours.",
-      "version": "0.22.0",
+      "version": "0.23.0",
       "category": "development"
     }
   ]

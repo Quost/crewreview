@@ -4,6 +4,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.23.0 — 2026-11-25
+
 ### Fixed
 
 - The footer of reviews and replies shows "Crewreview" as a link to the site, instead of a bare address that didn't open.
