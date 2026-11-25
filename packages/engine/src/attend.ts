@@ -65,6 +65,8 @@ export interface AttendPayload {
   links?: string[];
   /** The base was merged in to keep a stack in line, not because someone asked. */
   sync?: AttendSync;
+  /** Fixes undone with a merge that couldn't finish: tried again on their own next time, not left for you. */
+  retry?: string[];
 }
 
 /** Why a stacked branch took its base in: the pull request below moved (`stacked`) or was merged (`restack`). */
@@ -339,6 +341,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     }
 
     let decisions = parsed.decisions;
+    let retry: string[] = [];
     if (items.some((i) => i.kind === "conflict")) {
       const conflictKey = items.find((i) => i.kind === "conflict")!.key;
       const unresolved: string[] = [];
@@ -350,7 +353,9 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
         // Half a merge is worse than none: undo all of it, and leave the conflict to you.
         if (merging) await git(["merge", "--abort"], worktree);
         merging = undefined;
-        decisions = decisions.map((x) => (x.action === "fixed" || x.key === conflictKey ? { ...x, action: "needs-human" as const, reply: "" } : x));
+        // Only the conflict is yours. The other fixes went with the merge: they're tried again by themselves.
+        retry = decisions.filter((x) => x.action === "fixed" && x.key !== conflictKey).map((x) => x.key);
+        decisions = decisions.filter((x) => !retry.includes(x.key)).map((x) => (x.key === conflictKey ? { ...x, action: "needs-human" as const, reply: "" } : x));
         changed = [];
       } else {
         decisions = decisions.map((x) => (x.key === conflictKey ? { ...x, action: "fixed" as const } : x));
@@ -364,7 +369,8 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       // The merge itself is the fix for the conflict, whatever else changed.
     } else if (claimsFix && changed.length === 0) {
       // "Fixed" with nothing changed isn't fixed.
-      decisions = decisions.map((x) => (x.action === "fixed" ? { ...x, action: "needs-human" as const } : x));
+      // Its reply says what changed, which isn't true: it goes out with no reply.
+      decisions = decisions.map((x) => (x.action === "fixed" ? { ...x, action: "needs-human" as const, reply: "" } : x));
     } else if (!claimsFix && changed.length > 0) {
       await discardChanges(worktree);
       changed = [];
@@ -393,7 +399,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       commitSha = await commitAll(worktree, message, { signing: d.signing, identity: d.identity });
     }
 
-    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: paths, sensitive, validation, harness: harnessId, forcedInbox, ...(links.length ? { links } : {}), ...(sync ? { sync } : {}) };
+    const payload: AttendPayload = { items, decisions, summary: parsed.summary, changed: paths, sensitive, validation, harness: harnessId, forcedInbox, ...(links.length ? { links } : {}), ...(sync ? { sync } : {}), ...(retry.length ? { retry } : {}) };
     await writeFile(join(jobDir, "attend.json"), JSON.stringify(payload, null, 2));
     const diff = commitSha ? (await git(["show", "--no-color", "--stat", "--patch", commitSha], worktree)).stdout : "";
     await writeFile(join(jobDir, "diff.patch"), diff);
@@ -405,7 +411,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     d.store.updateAttend(attendId!, { jobDir, worktree, commitSha: commitSha ?? null, payload: JSON.stringify(payload), note: forcedInbox ?? null });
     if (mode === "inbox" || forcedInbox) {
       d.store.updateAttend(attendId!, { status: "pending" });
-      const replies = decisions.filter((x) => x.action !== "needs-human" && x.reply).length;
+      const replies = decisions.filter((x) => x.reply.trim()).length;
       const left = leftForOwner(items, decisions);
       return { kind: "pending", attendId: attendId!, fixed: decisions.filter((x) => x.action === "fixed").length, replies, forced: forcedInbox, ...(links.length ? { links } : {}), ...(left.length ? { left } : {}) };
     }
@@ -523,7 +529,8 @@ export async function publishAttend(d: AttendDeps, x: PrTarget, attendId: number
     let resolved = 0;
     const unresolved: string[] = [];
     for (const dec of payload.decisions) {
-      if (dec.action === "needs-human" || !dec.reply.trim()) continue;
+      // A needs-human item still gets its one-line reason, so the reviewer isn't left with silence; it stays open.
+      if (!dec.reply.trim()) continue;
       const item = payload.items.find((i) => i.key === dec.key);
       if (!item) continue;
 if (!posted.has(dec.key)) {
@@ -550,6 +557,8 @@ if (!posted.has(dec.key)) {
     const human = payload.decisions.filter((x) => x.action === "needs-human").map((x) => x.key);
     d.store.markItems(repo.id, row.number, handled, "handled");
     d.store.markItems(repo.id, row.number, human, "needs-human");
+    // Undone with a merge that couldn't finish: an attempt, not a verdict; given up after maxAttempts like a failure.
+    if (payload.retry?.length) d.store.failItems(repo.id, row.number, payload.retry, s.maxAttempts);
 
     let reReview = false;
     if (s.reReview && (row.commitSha || replies > 0)) {

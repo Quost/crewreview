@@ -4,6 +4,13 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- A conflict with the base the attendant couldn't finish no longer takes the other fixes of the same round with it. The merge is still undone and the conflict left for you, but those fixes are tried again on their own at the next check, instead of being left for you for good.
+- An item left for you gets a one-sentence reply in its thread saying what has to be decided, and the thread stays open. Before, nothing was posted, and the reviewer saw no answer.
+- The attendant fixes or declines a nit or a suggestion with a clear change, and leaves for you only what needs your decision.
+- Trying a pull request's items again (`crewreview attend <repo> <number> --retry`, or `POST /api/repos/<id>/attend/<number>/reset-items`) also gives another chance to items left for you.
+
 ## 0.23.0 — 2026-11-25
 
 ### Fixed

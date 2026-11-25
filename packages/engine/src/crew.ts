@@ -716,7 +716,7 @@ export class CrewDaemon {
     return ok;
   }
 
-  /** Give ignored/gave-up/trying attend items on a pull request another chance. Returns how many were reset. */
+  /** Give needs-human/gave-up/trying attend items on a pull request another chance. Returns how many were reset. */
   async resetAttendItems(repo: string, number: number): Promise<number> {
     const count = this.o.store.resetItems(repo, number);
     if (count > 0) {

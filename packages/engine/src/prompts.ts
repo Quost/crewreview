@@ -174,13 +174,13 @@ export function attendPrompt(c: AttendPromptContext): string {
         "- fixed: you changed the code to address it. Keep the change small and in the style of the code around it.",
         "- replied: no code change is needed: answer the question or explain, briefly.",
         "- declined: the suggestion would be wrong or out of scope: say why, politely and specifically.",
-        `- needs-human: it needs a decision only ${c.owner} can make (product, priorities, trade-offs), or you aren't sure.`,
+        `- needs-human: it needs a decision only ${c.owner} can make (product, priorities, scope of a refactor). A nit or a suggestion with a clear change is fixed or declined, not left. Reply with one sentence saying what has to be decided; the thread stays open.`,
       ]
     : [
         "In this run you can't change files: answer each item with replied, declined or needs-human.",
         "- replied: answer the question or explain, briefly.",
         "- declined: the suggestion would be wrong or out of scope: say why, politely and specifically.",
-        `- needs-human: it needs a code change or a decision by ${c.owner}.`,
+        `- needs-human: it needs a code change or a decision by ${c.owner}. Reply with one sentence saying which; the thread stays open.`,
       ];
   return [
     `You are the attendant of Crewreview, working on ${c.owner}'s pull request. Your current directory is a checkout of its branch.`,
@@ -199,7 +199,7 @@ export function attendPrompt(c: AttendPromptContext): string {
     ...(c.failedCheck ? ["", "The project's checks failed after your first attempt. Fix what broke without undoing the review fixes:", "```", c.failedCheck, "```"] : []),
     "",
     "Reply with one JSON object and nothing else, one entry per item key:",
-    '{"items": [{"key": "…", "action": "fixed | replied | declined | needs-human", "reply": "text to post (empty for needs-human)"}], "summary": "one line for the commit message"}',
+    '{"items": [{"key": "…", "action": "fixed | replied | declined | needs-human", "reply": "text to post (for needs-human: the one sentence of what is left)"}], "summary": "one line for the commit message"}',
   ].join("\n");
 }
 
