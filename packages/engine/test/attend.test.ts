@@ -381,6 +381,49 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(JSON.parse(row.payload!).decisions[0]).toMatchObject({ key: `conflict:${sha}`, action: "needs-human" });
   });
 
+  test("a nit fixed in the same round as a conflict left half-resolved isn't left for you: it's tried again", async () => {
+    await sh(["checkout", "-q", "-B", "conflict-c", "main~1"], work);
+    await writeFile(join(work, "src", "cart.ts"), "export const half = 2;\n");
+    await sh(["commit", "-qam", "half"], work);
+    await sh(["push", "-q", "-f", "origin", "conflict-c:refs/heads/conflict-c"], work);
+    const sha = await sh(["rev-parse", "conflict-c"], work);
+    await sh(["update-ref", "refs/pull/23/head", sha], remote);
+    // The agent fixes the nit but leaves the conflict markers in place.
+    const h = writer(async (req, items) => {
+      await writeFile(join(req.cwd, "README.md"), "Fixed the nit.\n");
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "done" })), summary: "x" });
+    });
+    const { d, repo, ref, store } = await setup(h, { mode: "auto", conflicts: true });
+    const host = new FakeHost(ref, mkPr(23, sha, "conflict-c", { conflicts: true }), [thread("T1", "bia", "NIT: fix the comment.", "README.md")]);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 23, "auto");
+    expect(o).toMatchObject({ kind: "done", replies: 0, needsHuman: 1 });
+    const row = store.getAttend((o as { attendId: number }).attendId)!;
+    expect(row.commitSha).toBeNull();
+    const payload = JSON.parse(row.payload!);
+    expect(payload.decisions.map((x: { key: string }) => x.key)).toEqual([`conflict:${sha}`]);
+    expect(payload.retry).toEqual(["thread:T1:T1-c1"]);
+    const done = store.attendDone(repo.id, 23);
+    expect(done.has(`conflict:${sha}`)).toBe(true);
+    // The nit wasn't decided: the next check offers it again.
+    expect(done.has("thread:T1:T1-c1")).toBe(false);
+    expect(host.replies).toEqual([]);
+  });
+
+  test("a needs-human item says in its thread what is left, and the thread stays open", async () => {
+    const sha = await branchAt("needs-human-reply", 24);
+    const h = writer(async (_req, items) => JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "needs-human", reply: "This changes the product rule: your call." })), summary: "" }));
+    const { d, repo, ref, store } = await setup(h, { mode: "auto" });
+    const host = new FakeHost(ref, mkPr(24, sha, "needs-human-reply"), [thread("T1", "bia", "Should the discount stack?")]);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 24, "auto");
+    expect(o).toMatchObject({ kind: "done", replies: 1, resolved: 0, needsHuman: 1 });
+    expect(host.replies[0]!.body).toContain("your call");
+    expect(host.resolved).toEqual([]);
+    // Left for you, until you ask for another try.
+    expect(store.attendDone(repo.id, 24).has("thread:T1:T1-c1")).toBe(true);
+    expect(store.resetItems(repo.id, 24)).toBe(1);
+    expect(store.attendDone(repo.id, 24).has("thread:T1:T1-c1")).toBe(false);
+  });
+
   test("a red CI reaches the agent with the failing job's log", async () => {
     const sha = await branchAt("ci-red", 22);
     let seen = "";

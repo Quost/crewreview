@@ -225,9 +225,9 @@ export class Store {
     return gaveUp;
   }
 
-  /** Give items that were given up (or half-tried) another chance. Returns how many. */
+  /** Give items left for you, given up or half-tried another chance. Handled and ignored ones stay. Returns how many. */
   resetItems(repo: string, number: number): number {
-    return this.db.query("DELETE FROM attend_items WHERE repo = ? AND number = ? AND status IN ('gave-up', 'trying')").run(repo, number).changes;
+    return this.db.query("DELETE FROM attend_items WHERE repo = ? AND number = ? AND status IN ('needs-human', 'gave-up', 'trying')").run(repo, number).changes;
   }
 
   /** An answer for this pull request is being prepared right now (in this or another process). */
