@@ -494,6 +494,12 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     await sh(["checkout", "-q", "-B", name, "main"], work);
     await mkdir(join(work, "gen"), { recursive: true });
     await writeFile(join(work, "gen", "catalog.txt"), `branch ${name}\n`);
+    // The project's generator, as a script in the repository: called with no quotes, the same under sh and cmd.
+    await mkdir(join(work, "tools"), { recursive: true });
+    await writeFile(
+      join(work, "tools", "rebuild.mjs"),
+      'import { writeFileSync } from "node:fs";\nif (process.env.CREWREVIEW_FILES !== "gen/catalog.txt" || !process.env.CREWREVIEW_BASE) process.exit(4);\nwriteFileSync("gen/catalog.txt", "rebuilt\\n");\n',
+    );
     await sh(["add", "-A"], work);
     await sh(["commit", "-qm", `catalog ${name}`], work);
     await sh(["push", "-q", "-f", "origin", `${name}:refs/heads/${name}`], work);
@@ -519,8 +525,7 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     const { d, repo, ref, store } = await setup(h, {
       mode: "auto",
       conflicts: true,
-      // The same command under sh and cmd: Bun itself checks what it was given and rebuilds the file.
-      regenerate: [{ paths: ["gen/**"], run: `bun -e "if (process.env.CREWREVIEW_FILES !== 'gen/catalog.txt' || !process.env.CREWREVIEW_BASE) process.exit(4); require('fs').writeFileSync('gen/catalog.txt', 'rebuilt' + String.fromCharCode(10))"` }],
+      regenerate: [{ paths: ["gen/**"], run: "bun tools/rebuild.mjs" }],
     });
     const host = new FakeHost(ref, mkPr(28, sha, "regen-ok", { conflicts: true }), []);
     const o = await attendPullRequest(d, { repo, host, token: "t" }, 28, "auto");
