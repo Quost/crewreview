@@ -4,6 +4,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.26.0 — 2026-11-26
+
 ### Added
 
 - `attend.autonomy = "full"` (`crewreview repo set --autonomy full`, or the toggle on the repositories page) gives the attendant the whole review, whatever its size. It may run the repository's `validate` commands itself to check its work, held to exactly those by its harness (Kiro, with no secret in its environment; Codex keeps its own sandbox; Claude Code doesn't run commands yet, since it can't be held to a list), and deletes files by naming them in its answer: Crewreview removes only tracked files inside the checkout, never secrets or its own folder. A round gets `limits.fullTimeout` (90 minutes by default). Check output given back to the agent is now fenced as untrusted. It still never gets the git host token, never commits, pushes or posts, and declines comments that ask it to run other commands, reach the network, or touch credentials, CI or deployment. The default stays `standard`.
