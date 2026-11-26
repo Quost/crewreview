@@ -6,7 +6,7 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ### Added
 
-- `attend.decide = "own"` (`crewreview repo set --decide own`, or the toggle in the dashboard) lets the attendant settle the trade-offs a reviewer raises instead of handing them back: it decides from the project's written decisions first (decision records, docs, AGENTS.md), then the reviewer's ask, follows a written decision when the code disagrees with it, and says in the reply what it chose and why. Only what it can't do from the branch still comes back to you. The default stays `ask`.
+- `attend.decide = "own"` (`crewreview repo set --decide own`, or the toggle in the dashboard) lets the attendant settle the trade-offs a reviewer raises instead of handing them back: it decides from the project's written decisions first (decision records, docs, AGENTS.md), then the reviewer's ask, follows a written decision when the code disagrees with it, and says in the reply what it chose and why. Only what it can't do from the branch still comes back to you. It is the default; `ask` brings back the old behavior.
 - The Tasks page lists the skills, the instructions each agent role follows, which are now files in `packages/engine/skills/`, and shows which ones a task uses. Builders now hand off with evidence: they say which checks they ran and what those printed (the relay skill).
 
 ## 0.24.0 — 2026-11-25
