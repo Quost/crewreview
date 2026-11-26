@@ -118,7 +118,7 @@ export interface Repo {
   paused?: boolean;
   /** `account`: reviews post as this account (a gh login, or env:VARIABLE) instead of you. `allowApprove` unset: the setting for all. */
   review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine"; account?: string; allowApprove?: boolean };
-  attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean; protectedFiles: "approve" | "auto" };
+  attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean; protectedFiles: "approve" | "auto"; decide: "ask" | "own" };
 }
 
 /** A crew mode task, as the daemon keeps it (tasks/<id>/state.json). */

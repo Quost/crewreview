@@ -68,6 +68,11 @@ const AttendSettings = z
      * approve: that change waits for you, even in auto mode. auto: it goes out like any fix. Secrets never change.
      */
     protectedFiles: z.enum(["approve", "auto"]).default("approve"),
+    /**
+     * ask: a trade-off a reviewer raised goes back to you. own: the attendant decides it from the project's written
+     * decisions and says why in the reply; only what it can't do (forbidden files, git host actions) comes back.
+     */
+    decide: z.enum(["ask", "own"]).default("ask"),
     /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
     validate: z.array(z.string()).default([]),
     /**

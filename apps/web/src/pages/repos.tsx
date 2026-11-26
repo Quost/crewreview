@@ -193,6 +193,17 @@ export function ReposPage({ version }: { version: number }) {
                 onChange={(on) => patch(r.id, { attend: { protectedFiles: on ? "auto" : "approve" } })}
               />
             </div>
+            <div className="setting">
+              <div>
+                <strong>{t.t("web.repos.decide")}</strong>
+                <p className="muted small">{t.t("web.repos.decideHint")}</p>
+              </div>
+              <Toggle
+                label={r.attend.decide === "own" ? t.t("web.on") : t.t("web.off")}
+                checked={r.attend.decide === "own"}
+                onChange={(on) => patch(r.id, { attend: { decide: on ? "own" : "ask" } })}
+              />
+            </div>
           </div>
         </Card>
       ))}
