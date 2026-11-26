@@ -18,6 +18,11 @@ export interface RunRequest {
   timeoutMs: number;
   /** Kill the run when it prints nothing for this long. */
   stallMs?: number;
+  /**
+   * Write runs only: the exact commands the agent may run in its folder (the project's checks), when the harness can
+   * hold it to them. Nothing else runs; an empty or absent list means no shell at all.
+   */
+  commands?: readonly string[];
   signal?: AbortSignal;
   onEvent?: (event: HarnessEvent) => void;
 }
@@ -48,6 +53,11 @@ export interface Capabilities {
   streaming: boolean;
   costReport: boolean;
   modelSelect: boolean;
+  /**
+   * The harness can run `RunRequest.commands` and nothing else. Absent: it can't be held to a list, so it gets no
+   * commands (Codex runs its own shell inside its sandbox either way).
+   */
+  commands?: boolean;
 }
 
 export type HarnessKind = "native" | "acp" | "custom";

@@ -424,7 +424,7 @@ export class CrewDaemon {
 
   async updateRepo(
     id: string,
-    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null; allowApprove?: boolean | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci" | "protectedFiles" | "decide">>; paused?: boolean },
+    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null; allowApprove?: boolean | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci" | "protectedFiles" | "decide" | "autonomy">>; paused?: boolean },
   ): Promise<LinkedRepo | undefined> {
     const repos = await this.repos();
     const idx = repos.findIndex((r) => r.id === id);
@@ -484,6 +484,7 @@ export class CrewDaemon {
       "limits.maxConcurrentAgents": c.limits.maxConcurrentAgents ?? null,
       "limits.agentTimeout": durationText(c.limits.agentTimeout),
       "limits.stallTimeout": durationText(c.limits.stallTimeout),
+      "limits.fullTimeout": durationText(c.limits.fullTimeout),
       "limits.maxDiffLines": c.limits.maxDiffLines,
       "limits.dailyRuns": c.limits.dailyRuns ?? null,
       "review.settle": durationText(c.review.settle),

@@ -17,6 +17,7 @@ export interface RepoArgs {
   ci?: string;
   protected?: string;
   decide?: string;
+  autonomy?: string;
   account?: string;
   paused?: string;
   guidelines?: string;
@@ -73,6 +74,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
     check(c, "--ci", a.ci, ["on", "off"]) ??
     check(c, "--protected", a.protected, ["approve", "auto"]) ??
     check(c, "--decide", a.decide, ["ask", "own"]) ??
+    check(c, "--autonomy", a.autonomy, ["standard", "full"]) ??
     check(c, "--paused", a.paused, ["on", "off"]) ??
     check(c, "--approve", a.approve, ["on", "off", "default"]);
   if (bad) return (c.err(bad), 2);
@@ -185,6 +187,7 @@ export async function repo(c: Ctx, sub: string | undefined, rest: string[], a: R
       ci: onOff(a.ci, e.attend.ci),
       protectedFiles: (a.protected as RepoEntry["attend"]["protectedFiles"] | undefined) ?? e.attend.protectedFiles,
       decide: (a.decide as RepoEntry["attend"]["decide"] | undefined) ?? e.attend.decide,
+      autonomy: (a.autonomy as RepoEntry["attend"]["autonomy"] | undefined) ?? e.attend.autonomy,
     },
   };
   await saveRepos(file, list);

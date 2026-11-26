@@ -118,7 +118,7 @@ export interface Repo {
   paused?: boolean;
   /** `account`: reviews post as this account (a gh login, or env:VARIABLE) instead of you. `allowApprove` unset: the setting for all. */
   review: { mode: "off" | "inbox" | "auto"; authors: "others" | "all" | "mine"; account?: string; allowApprove?: boolean };
-  attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean; protectedFiles: "approve" | "auto"; decide: "ask" | "own" };
+  attend: { mode: "off" | "inbox" | "auto"; fromCrew: boolean; maxPolishRounds: number; validate: string[]; conflicts: boolean; ci: boolean; protectedFiles: "approve" | "auto"; decide: "ask" | "own"; autonomy: "standard" | "full" };
 }
 
 /** A crew mode task, as the daemon keeps it (tasks/<id>/state.json). */
@@ -304,7 +304,7 @@ export interface HarnessInfo {
 }
 
 export interface Limits {
-  limits: { maxConcurrentAgents?: number; agentTimeout: number; stallTimeout: number; maxDiffLines: number; dailyRuns?: number };
+  limits: { maxConcurrentAgents?: number; agentTimeout: number; stallTimeout: number; fullTimeout: number; maxDiffLines: number; dailyRuns?: number };
   schedule: { interval: number; offHoursInterval: number; peakHours: string; maxReviewsPerCycle: number };
   review: { settle: number; ciMaxWait: number; maxFailures: number; lenses: string[]; policy: { allowApprove: boolean; requestChangesAt: string } };
   attend: { quiet: number; validateTimeout: number; maxPerCycle: number };

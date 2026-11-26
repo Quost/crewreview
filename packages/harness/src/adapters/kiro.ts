@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { allowableCommand } from "../forbidden.ts";
 import { nativeHarness, textParser, type NativeOptions } from "../native.ts";
 import type { RunRequest } from "../types.ts";
 
@@ -18,17 +19,23 @@ const GLOB = /[*?[\]{}]/;
  * folder it works in. Writing anywhere else needs an approval nobody can give without a terminal, so it's denied.
  * `--trust-tools=fs_write` would trust writes on every path, outside the folder too.
  */
-export function writeAgent(name: string, folders: readonly string[]): object {
+export function writeAgent(name: string, folders: readonly string[], commands: readonly string[] = []): object {
+  const allowed = commands.filter(allowableCommand);
   return {
     name,
     description: "Crewreview: writes only inside the folder it works in. Made for one run and removed after it.",
     prompt: null,
     mcpServers: {},
-    tools: ["read", "write", "grep", "glob"],
+    tools: ["read", "write", "grep", "glob", ...(allowed.length ? ["shell"] : [])],
     toolAliases: {},
     allowedTools: ["read", "grep", "glob"],
     resources: [],
-    toolsSettings: { write: { allowedPaths: folders.flatMap((f) => [f, join(f, "**")]) } },
+    // Each command matches whole (Kiro reads these as anchored patterns, and splits `;`, `&&` and `|` to check each
+    // part), so only the project's checks run. Anything else needs an approval nobody gives: it's denied.
+    toolsSettings: {
+      write: { allowedPaths: folders.flatMap((f) => [f, join(f, "**")]) },
+      ...(allowed.length ? { shell: { allowedCommands: allowed.map((c) => `^${c.replace(/[.+()[\]{}^$|?*\\]/g, "\\$&")}$`) } } : {}),
+    },
     includeMcpJson: false,
     model: null,
   };
@@ -45,7 +52,7 @@ export function kiroHarness(options: KiroOptions = {}) {
       id: "kiro",
       name: "Kiro CLI",
       executable: "kiro-cli",
-      capabilities: { readOnly: "enforced", write: true, streaming: false, costReport: false, modelSelect: true },
+      capabilities: { readOnly: "enforced", write: true, streaming: false, costReport: false, modelSelect: true, commands: true },
       authEnv: [/^KIRO_/],
       signInArgs: ["whoami"],
       loginCommand: "kiro-cli login",
@@ -64,7 +71,7 @@ export function kiroHarness(options: KiroOptions = {}) {
         const name = `crewreview-write-${randomUUID()}`;
         const file = join(agentsDir, `${name}.json`);
         await mkdir(agentsDir, { recursive: true });
-        await writeFile(file, JSON.stringify(writeAgent(name, folders), null, 2) + "\n", { mode: 0o600 });
+        await writeFile(file, JSON.stringify(writeAgent(name, folders, req.commands), null, 2) + "\n", { mode: 0o600 });
         // Kiro may rewrite the file to its newer format and keep a .bak beside it: both go.
         const cleanup = async () => {
           const left = (await readdir(agentsDir).catch(() => [])).filter((f) => f.startsWith(`${name}.`));

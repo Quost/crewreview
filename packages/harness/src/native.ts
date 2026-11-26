@@ -118,7 +118,9 @@ export function nativeHarness(spec: NativeSpec, options: NativeOptions = {}): Co
         const r = await runProcess({
           argv: cmd.argv,
           cwd: req.cwd,
-          env: scrubEnv(process.env, { keep: spec.authEnv, passthrough: options.envPassthrough }),
+          // A run that may execute the project's checks runs code from the pull request with this environment: it keeps
+          // no secret, not even the harness's own key (it then signs in from its saved login).
+          env: scrubEnv(process.env, req.access === "write" && req.commands?.length && spec.capabilities.commands ? { passthrough: options.envPassthrough } : { keep: spec.authEnv, passthrough: options.envPassthrough }),
           stdin: cmd.stdin,
           timeoutMs: req.timeoutMs,
           stallMs: req.stallMs,

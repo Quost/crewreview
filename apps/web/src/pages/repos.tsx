@@ -204,6 +204,17 @@ export function ReposPage({ version }: { version: number }) {
                 onChange={(on) => patch(r.id, { attend: { decide: on ? "own" : "ask" } })}
               />
             </div>
+            <div className="setting">
+              <div>
+                <strong>{t.t("web.repos.autonomy")}</strong>
+                <p className="muted small">{t.t("web.repos.autonomyHint")}</p>
+              </div>
+              <Toggle
+                label={r.attend.autonomy === "full" ? t.t("web.on") : t.t("web.off")}
+                checked={r.attend.autonomy === "full"}
+                onChange={(on) => patch(r.id, { attend: { autonomy: on ? "full" : "standard" } })}
+              />
+            </div>
           </div>
         </Card>
       ))}
