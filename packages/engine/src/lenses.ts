@@ -40,6 +40,11 @@ const BUILTIN: Lens[] = [
 
 export const BUILTIN_LENS_IDS = BUILTIN.map((l) => l.id);
 
+/** The built-in lenses as plain data, for the skills catalog. */
+export function builtinLenses(): { id: string; title: string; rubric: string }[] {
+  return BUILTIN.map(({ id, title, rubric }) => ({ id, title, rubric }));
+}
+
 const LENS_DIR = ".crewreview/lenses";
 
 function titleOf(id: string, rubric: string): string {

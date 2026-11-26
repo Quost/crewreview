@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, unreachable, type Repo, type TaskInfo } from "../api.ts";
+import { api, ApiError, unreachable, type Repo, type SkillsCatalog, type TaskInfo } from "../api.ts";
 import { relative, useT } from "../i18n.ts";
 import { Card, Empty, ExternalLink, Pill, SectionHead } from "../ui.tsx";
 
@@ -22,6 +22,11 @@ export function TasksPage({ version }: { version: number }) {
   const [current, setCurrent] = useState<TaskInfo>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "bad"; text: string }>();
+  const [catalog, setCatalog] = useState<SkillsCatalog>();
+
+  useEffect(() => {
+    api.get<SkillsCatalog>("/api/skills").then(setCatalog, () => {});
+  }, []);
 
   useEffect(() => {
     api.get<TaskInfo[]>("/api/tasks").then(
@@ -58,6 +63,7 @@ export function TasksPage({ version }: { version: number }) {
       <p className="muted lead">{t.t("web.tasks.intro")}</p>
       <NewTask onCreated={(id) => (setSelected(id), setMessage({ tone: "ok", text: t.t("web.tasks.started") }))} />
       {message && <p className={`notice ${message.tone}`}>{message.text}</p>}
+      {catalog && <SkillsCard catalog={catalog} />}
       {tasks && tasks.length > 0 && (
         <div className="split">
           <Card className="list">
@@ -108,7 +114,7 @@ export function TasksPage({ version }: { version: number }) {
               )
             }
           >
-            {!current ? <Empty>{t.t("web.loading")}</Empty> : <TaskDetail k={current} />}
+            {!current ? <Empty>{t.t("web.loading")}</Empty> : <TaskDetail k={current} catalog={catalog} />}
           </Card>
         </div>
       )}
@@ -116,8 +122,9 @@ export function TasksPage({ version }: { version: number }) {
   );
 }
 
-function TaskDetail({ k }: { k: TaskInfo }) {
+function TaskDetail({ k, catalog }: { k: TaskInfo; catalog?: SkillsCatalog }) {
   const t = useT();
+  const used = catalog?.tasks.map((id) => catalog.skills.find((s) => s.id === id)?.title).filter(Boolean);
   return (
     <div className="task">
       <p>{k.text}</p>
@@ -128,6 +135,7 @@ function TaskDetail({ k }: { k: TaskInfo }) {
         <Pill tone={stageTone(k.stage)}>{t.t(`task.stage.${k.stage}` as never)}</Pill>
         {k.waitingUntil && k.waitingUntil > Date.now() && <span className="muted small"> {t.t("web.tasks.waiting", { when: new Date(k.waitingUntil).toLocaleTimeString(t.locale, { hour: "2-digit", minute: "2-digit" }) })}</span>}
       </p>
+      {used && used.length > 0 && <p className="muted small">{t.t("web.tasks.skills", { names: used.join(" · ") })}</p>}
       {k.error && <p className="notice bad">{k.error}</p>}
       {k.stage === "approval" && <p className="notice warn">{t.t("web.tasks.approvalHint")}</p>}
       {k.stage === "ready" && <p className="notice warn">{t.t("web.tasks.readyHint", { branch: k.branch })}</p>}
@@ -192,6 +200,38 @@ function TaskDetail({ k }: { k: TaskInfo }) {
       )}
       <p className="muted small">{t.t("web.tasks.ledger", { id: k.id })}</p>
     </div>
+  );
+}
+
+/** The skills catalog: what each agent role is told to do, in full. Lenses come after the rest. */
+function SkillsCard({ catalog }: { catalog: SkillsCatalog }) {
+  const t = useT();
+  const ordered = [...catalog.skills.filter((s) => s.kind !== "lens"), ...catalog.skills.filter((s) => s.kind === "lens")];
+  return (
+    <Card title={t.t("web.skills.title")}>
+      <p className="muted small">{t.t("web.skills.intro")}</p>
+      <div className="skills">
+        {ordered.map((s) => {
+          const used = catalog.tasks.includes(s.id) || (s.kind === "lens" && catalog.tasks.includes("review"));
+          return (
+            <details key={s.id} className="skill">
+              <summary>
+                <strong>{s.title}</strong> <Pill>{t.t(`web.skills.kind.${s.kind}` as never)}</Pill>
+                {used && (
+                  <>
+                    {" "}
+                    <Pill tone="accent">{t.t("web.skills.usedByTasks")}</Pill>
+                  </>
+                )}
+                <span className="muted small skill-desc">{s.description}</span>
+              </summary>
+              <p className="muted small">{t.t("web.skills.roles", { roles: s.roles.map((r) => t.t(`web.team.role.${r}` as never)).join(", ") })}</p>
+              <pre className="skill-body">{s.body}</pre>
+            </details>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

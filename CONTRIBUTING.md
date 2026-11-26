@@ -22,6 +22,7 @@ bun run dev help   # run the CLI from source
 | `packages/harness` | Adapters for each harness, the ACP client, the flag deny-list, the conformance test. |
 | `packages/hosts` | GitHub and GitLab adapters over one normalized model, the HTTP transport, token lookup. Contract tests run on recorded answers. |
 | `packages/engine` | Config, linked repositories, state (SQLite), the git mirror, the review pipeline, the attendant, prompts, lens rubrics, posting, the daemon and its local API, services and signed updates. |
+| `packages/engine/skills` | The instructions each agent role follows, one folder per skill with a `SKILL.md`; the registry in `packages/engine/src/skills.ts` loads them into the prompts and the Tasks page. |
 | `packages/i18n` | Interface strings in every language. |
 | `apps/cli` | The `crewreview` command. |
 | `apps/web` | The dashboard (React, bundled by Bun into the binary). `bun run dev run --port 47811` serves it. |

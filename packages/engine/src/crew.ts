@@ -4,7 +4,7 @@ import { resolveHarness, runConformance, type Harness, type HarnessEvent } from 
 import { acceptInvitations, createHost, githubUser, hostTransport, inviteCollaborator, repoRef, resolveAccountToken, resolveToken } from "@crewreview/hosts";
 import type { Translator } from "@crewreview/i18n";
 import { attendPullRequest, discardAttend, publishAttend, type AttendDeps, type AttendOutcome, type AttendPayload } from "./attend.ts";
-import { stackParents, type AttendItem } from "@crewreview/core";
+import { stackParents, TASK_SKILLS, type AttendItem, type Skill } from "@crewreview/core";
 import type { Config } from "./config.ts";
 import type { ConformanceStore } from "./conformance-store.ts";
 import { hostAccess, resolveLink, type HostAccess } from "./access.ts";
@@ -19,6 +19,7 @@ import { configFile, type AppDirs } from "./paths.ts";
 import { postReview, type JobRef, type PrOutcome } from "./pr.ts";
 import { previewLink, type Preview } from "./preview.ts";
 import { QuotaBook } from "./quota.ts";
+import { builtinSkills } from "./skills.ts";
 import { roleRoute, SeatBook, seatSpec, type Role, type SeatSpec } from "./seats.ts";
 import { approveTask, cancelTask, createTask, listTasks, loadTask, runTask, saveTask, type TaskDeps, type TaskEvent, type TaskRecord } from "./tasks.ts";
 
@@ -358,6 +359,11 @@ export class CrewDaemon {
     }
     this.record({ type: "task", repo: job.repo, task: job.task!, title: job.title, event: e });
     this.emit({ type: "changed", what: "tasks" });
+  }
+
+  /** The skills catalog, and the ids a crew mode task uses. */
+  skills(): { skills: Skill[]; tasks: string[] } {
+    return { skills: builtinSkills(), tasks: [...TASK_SKILLS] };
   }
 
   async tasks(): Promise<TaskRecord[]> {
