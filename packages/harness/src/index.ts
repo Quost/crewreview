@@ -2,6 +2,7 @@ export * from "./types.ts";
 export * from "./env.ts";
 export * from "./forbidden.ts";
 export * from "./process.ts";
+export * from "./stall.ts";
 export * from "./failure.ts";
 export * from "./native.ts";
 export * from "./conformance.ts";
