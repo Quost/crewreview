@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Fixed
+
+- An agent is no longer killed as stalled because the computer slept: time the process spent suspended doesn't count as silence. On a Mac, Crewreview also holds off system sleep on power while the crew works, so a run that starts during Power Nap isn't suspended seconds later.
+
 ## 0.25.0 — 2026-11-26
 
 ### Added

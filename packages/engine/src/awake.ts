@@ -17,8 +17,10 @@ export interface KeepAwake {
 export function awakeCommand(platform: string, pid: number, find: (name: string) => string | undefined = (n) => which(n)): string[] | undefined {
   if (platform === "darwin") {
     const exe = find("caffeinate");
-    // -i: no idle sleep (the display may still sleep); -w: until this process ends.
-    return exe ? [exe, "-i", "-w", String(pid)] : undefined;
+    // -i: no idle sleep (the display may still sleep). -s: no system sleep on power, which macOS also honors
+    // during a dark wake (Power Nap); without it a run begun in one is suspended seconds later. -w: until this
+    // process ends.
+    return exe ? [exe, "-i", "-s", "-w", String(pid)] : undefined;
   }
   if (platform === "linux") {
     const inhibit = find("systemd-inhibit");
