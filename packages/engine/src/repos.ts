@@ -69,10 +69,10 @@ const AttendSettings = z
      */
     protectedFiles: z.enum(["approve", "auto"]).default("approve"),
     /**
-     * ask: a trade-off a reviewer raised goes back to you. own: the attendant decides it from the project's written
-     * decisions and says why in the reply; only what it can't do (forbidden files, git host actions) comes back.
+     * own (default): the attendant decides a trade-off a reviewer raised from the project's written decisions and
+     * says why in the reply; only what it can't do (forbidden files, git host actions) comes back. ask: it goes back.
      */
-    decide: z.enum(["ask", "own"]).default("ask"),
+    decide: z.enum(["ask", "own"]).default("own"),
     /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
     validate: z.array(z.string()).default([]),
     /**

@@ -443,6 +443,11 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(owns.prompts[0]).not.toContain("needs a decision only quost can make");
   });
 
+  test("a repository linked without saying decides trade-offs itself (decide = own)", () => {
+    const ref = repoRef("github", "example.test", "acme/shop");
+    expect(newRepoEntry(ref).attend.decide).toBe("own");
+  });
+
   test("a round that touched several items says what each got in one comment, kept up to date", async () => {
     const sha = await branchAt("round-summary", 25);
     // The conversation keeps what was posted, so the next round finds its own summary.

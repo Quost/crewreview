@@ -4,7 +4,7 @@ import { attendPrompt } from "../src/prompts.ts";
 const base = { language: "English", owner: "quost", fix: true, dir: ".crewreview-attend" };
 
 describe("attendant prompt: who decides trade-offs", () => {
-  test("ask (the default) leaves a trade-off to the owner", () => {
+  test("ask leaves a trade-off to the owner", () => {
     const p = attendPrompt(base);
     expect(p).toContain("needs a decision only quost can make");
     expect(p).not.toContain("You make the decisions");
