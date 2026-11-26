@@ -1,3 +1,4 @@
+import { stallWatch } from "./stall.ts";
 export interface ProcessOptions {
   argv: string[];
   cwd: string;
@@ -52,7 +53,8 @@ export async function runProcess(o: ProcessOptions): Promise<ProcessResult> {
   let stdout = "";
   let stderr = "";
   let pending = "";
-  let lastOutput = Date.now();
+  const tickMs = o.stallMs ? Math.min(o.stallMs, 5000) : 5000;
+  const watch = stallWatch(o.stallMs ?? 0, tickMs);
   let timedOut = false;
   let stalled = false;
   let aborted = false;
@@ -74,11 +76,11 @@ export async function runProcess(o: ProcessOptions): Promise<ProcessResult> {
   }, o.timeoutMs);
   const stallTimer = o.stallMs
     ? setInterval(() => {
-        if (Date.now() - lastOutput > o.stallMs!) {
+        if (watch.check()) {
           stalled = true;
           stop();
         }
-      }, Math.min(o.stallMs, 5000))
+      }, tickMs)
     : undefined;
   const onAbort = () => {
     aborted = true;
@@ -87,7 +89,7 @@ export async function runProcess(o: ProcessOptions): Promise<ProcessResult> {
   o.signal?.addEventListener("abort", onAbort, { once: true });
 
   const out = pump(proc.stdout as ReadableStream<Uint8Array>, (text) => {
-    lastOutput = Date.now();
+    watch.activity();
     stdout += text;
     if (!o.onStdoutLine) return;
     pending += text;
@@ -98,7 +100,7 @@ export async function runProcess(o: ProcessOptions): Promise<ProcessResult> {
     }
   });
   const err = pump(proc.stderr as ReadableStream<Uint8Array>, (text) => {
-    lastOutput = Date.now();
+    watch.activity();
     stderr += text;
     o.onStderr?.(text);
   });

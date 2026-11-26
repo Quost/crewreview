@@ -5,7 +5,7 @@ const found = (name: string) => `/bin/${name}`;
 
 describe("keeping the computer awake", () => {
   test("each system's own tool, tied to the daemon's process", () => {
-    expect(awakeCommand("darwin", 42, found)).toEqual(["/bin/caffeinate", "-i", "-w", "42"]);
+    expect(awakeCommand("darwin", 42, found)).toEqual(["/bin/caffeinate", "-i", "-s", "-w", "42"]);
     expect(awakeCommand("linux", 42, found)).toEqual(["/bin/systemd-inhibit", "--what=idle:sleep", "--who=Crewreview", "--why=Reviewing pull requests", "--mode=block", "/bin/tail", "--pid=42", "-f", "/dev/null"]);
     const win = awakeCommand("win32", 42, found)!;
     expect(win[0]).toBe("/bin/powershell");

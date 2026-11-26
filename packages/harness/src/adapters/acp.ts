@@ -6,6 +6,7 @@ import { scrubEnv } from "../env.ts";
 import { lastLines } from "../failure.ts";
 import { versionOf, which } from "../process.ts";
 import type { Access, Detection, Harness, HarnessEvent, RunRequest, RunResult } from "../types.ts";
+import { stallWatch } from "../stall.ts";
 
 export interface AcpAgentConfig {
   id: string;
@@ -88,17 +89,17 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
       });
       const emit = (e: HarnessEvent) => req.onEvent?.(e);
       let text = "";
-      let lastActivity = Date.now();
+      const watch = stallWatch(req.stallMs ?? 0, 5000);
 
       const app = client({ name: "crewreview" })
         .onRequest(methods.client.session.requestPermission, ({ params }) => {
-          lastActivity = Date.now();
+          watch.activity();
           const decision = decidePermission(params, req.access, root);
           emit({ type: "tool", text: `${params.toolCall.title ?? params.toolCall.kind ?? "tool"} → ${decision.outcome.outcome === "selected" && params.options.find((o) => o.optionId === (decision.outcome as { optionId: string }).optionId)?.kind.startsWith("allow") ? "allowed" : "denied"}`, at: Date.now() });
           return decision;
         })
         .onRequest(methods.client.fs.readTextFile, async ({ params }) => {
-          lastActivity = Date.now();
+          watch.activity();
           if (!inside(root, params.path)) throw RequestError.invalidParams({ path: params.path }, "outside the workspace");
           const full = await readFile(resolve(root, params.path), "utf8");
           if (params.line == null && params.limit == null) return { content: full };
@@ -107,7 +108,7 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
           return { content: lines.slice(start, params.limit == null ? undefined : start + params.limit).join("\n") };
         })
         .onRequest(methods.client.fs.writeTextFile, async ({ params }) => {
-          lastActivity = Date.now();
+          watch.activity();
           if (req.access !== "write" || !inside(root, params.path)) {
             throw RequestError.invalidParams({ path: params.path }, "writing is not allowed");
           }
@@ -115,7 +116,7 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
           emit({ type: "tool", text: `write ${params.path}`, at: Date.now() });
         })
         .onNotification(methods.client.session.update, ({ params }) => {
-          lastActivity = Date.now();
+          watch.activity();
           const u = params.update;
           if (u.sessionUpdate === "agent_message_chunk" && u.content.type === "text") {
             text += u.content.text;
@@ -133,7 +134,7 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
       }, req.timeoutMs);
       const stall = req.stallMs
         ? setInterval(() => {
-            if (Date.now() - lastActivity > req.stallMs!) {
+            if (watch.check()) {
               failure = "stalled";
               proc.kill();
             }
