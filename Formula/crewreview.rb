@@ -2,28 +2,28 @@
 class Crewreview < Formula
   desc "Crew of AI agents that reviews pull requests and answers the reviews on yours"
   homepage "https://crewreview.pururucos.com.br/?ref=homebrew"
-  version "0.25.0"
+  version "0.26.0"
   license "AGPL-3.0-only"
 
   on_macos do
     on_arm do
-      url "https://github.com/Quost/crewreview/releases/download/v0.25.0/crewreview-darwin-arm64"
-      sha256 "1acb758071bd7cb71e69db22a37b8b146fc29bed36913b2492ad1cedb7bc29a9"
+      url "https://github.com/Quost/crewreview/releases/download/v0.26.0/crewreview-darwin-arm64"
+      sha256 "17b19aadd4ddb1c1e7f84151a5ec09644c3bad0957196f359fef4f553020a646"
     end
     on_intel do
-      url "https://github.com/Quost/crewreview/releases/download/v0.25.0/crewreview-darwin-x64"
-      sha256 "2630a38d6dd7c050b399634c405bce471cbf9f2dba55f84a66ae8fbd8d014da3"
+      url "https://github.com/Quost/crewreview/releases/download/v0.26.0/crewreview-darwin-x64"
+      sha256 "0d63dc400b1843234a97f87a0f976e3bae0572f7f6facd739ed5cf968ff58f62"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/Quost/crewreview/releases/download/v0.25.0/crewreview-linux-arm64"
-      sha256 "0b0d8e01e31d1a3c9c7bee66028921245fa173836cf9575b5a7f6afdc9b7ee64"
+      url "https://github.com/Quost/crewreview/releases/download/v0.26.0/crewreview-linux-arm64"
+      sha256 "47d59ca6d1d43d97113b6608358e02bc26b10647d271fadfd58b7a39c0b421cf"
     end
     on_intel do
-      url "https://github.com/Quost/crewreview/releases/download/v0.25.0/crewreview-linux-x64"
-      sha256 "c1b479f965f7dca68357f6757b250ac1a671be3f520ce6e55406553646dd9a88"
+      url "https://github.com/Quost/crewreview/releases/download/v0.26.0/crewreview-linux-x64"
+      sha256 "5e80d732174a39f1bd9d260d6dcaa30a42705a79e751f2a111776af7b7f04376"
     end
   end
 
