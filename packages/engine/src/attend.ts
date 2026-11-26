@@ -374,7 +374,7 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     const { language } = languageFor(repo, d);
     const access = s.fix ? "write" : "read";
     const commented = protectedFilesToEdit(items, merging?.conflicted.filter((f) => !regenerated.includes(f)) ?? []);
-    const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR, protectedFiles: commented, protectedMode: s.protectedFiles };
+    const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR, protectedFiles: commented, protectedMode: s.protectedFiles, decide: s.decide };
     let parsed: { decisions: AttendDecision[]; summary: string } | undefined;
     if (seat) {
       const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base));

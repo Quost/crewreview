@@ -424,7 +424,7 @@ export class CrewDaemon {
 
   async updateRepo(
     id: string,
-    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null; allowApprove?: boolean | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci" | "protectedFiles">>; paused?: boolean },
+    patch: { review?: Partial<Pick<RepoEntry["review"], "mode" | "authors">> & { account?: string | null; allowApprove?: boolean | null }; attend?: Partial<Pick<RepoEntry["attend"], "mode" | "fromCrew" | "conflicts" | "ci" | "protectedFiles" | "decide">>; paused?: boolean },
   ): Promise<LinkedRepo | undefined> {
     const repos = await this.repos();
     const idx = repos.findIndex((r) => r.id === id);

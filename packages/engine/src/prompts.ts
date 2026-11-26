@@ -154,6 +154,8 @@ export interface AttendPromptContext {
   protectedFiles?: string[];
   /** approve: such a change waits for the owner. auto: it goes out like any fix. */
   protectedMode?: "approve" | "auto";
+  /** ask: a trade-off goes back to the owner. own: the attendant makes the call and says why. */
+  decide?: "ask" | "own";
 }
 
 /** The exception to rule 1 for protected files a reviewer commented on: only to do what that comment asks. */
@@ -164,13 +166,26 @@ function protectedException(c: AttendPromptContext): string {
   return ` The one exception: ${files} had a reviewer's comment or a conflict with the base, so you may change it to do what that comment asks or to resolve that conflict, and nothing else in it.${review}`;
 }
 
+/** decide = own: the attendant settles trade-offs itself, from what the project wrote down, and says what it chose. */
+function ownDecisions(c: AttendPromptContext): string {
+  return [
+    `You make the decisions on this pull request; ${c.owner} reads your replies and overrules you if needed.`,
+    "When a comment raises a trade-off (two designs, the code against a decision record, whether a test belongs here), choose and act.",
+    "Decide from, in this order: what the project wrote down (decision records, docs, AGENTS.md, the pull request description), what the reviewer asked, what the code around it does.",
+    "When the code and a written decision disagree, follow the written decision. When you're unsure, take the smaller change that is easier to undo.",
+    "Then mark it fixed or declined, never needs-human, and say in the reply what you chose and why, in one or two sentences.",
+  ].join(" ");
+}
+
 export function attendPrompt(c: AttendPromptContext): string {
   const actions = c.fix
     ? [
         "- fixed: you changed the code to address it. Keep the change small and in the style of the code around it.",
         "- replied: no code change is needed: answer the question or explain, briefly.",
         "- declined: the suggestion would be wrong or out of scope: say why, politely and specifically.",
-        `- needs-human: it needs a decision only ${c.owner} can make (product, priorities, scope of a refactor). A nit or a suggestion with a clear change is fixed or declined, not left. Reply with one sentence saying what has to be decided; the thread stays open.`,
+        c.decide === "own"
+          ? `- needs-human: only what you can't do from here: a change rule 1 forbids, or an action on the git host (rewriting history, leaving draft, merging). A trade-off is not a reason: decide it as below. Reply with one sentence saying what is left; the thread stays open.`
+          : `- needs-human: it needs a decision only ${c.owner} can make (product, priorities, scope of a refactor). A nit or a suggestion with a clear change is fixed or declined, not left. Reply with one sentence saying what has to be decided; the thread stays open.`,
       ]
     : [
         "In this run you can't change files: answer each item with replied, declined or needs-human.",
@@ -185,6 +200,7 @@ export function attendPrompt(c: AttendPromptContext): string {
     "",
     "For every item, decide and act:",
     ...actions,
+    ...(c.fix && c.decide === "own" ? ["", ownDecisions(c)] : []),
     "",
     "Rules:",
     `1. Only edit files inside the current directory, and never anything under ./${c.dir}/, CI configuration, secrets, deployment files, AGENTS.md/CLAUDE.md, .claude/, .mcp.json, .gitattributes or .gitmodules. Never add, change or remove a symlink or a submodule.${protectedException(c)}`,

@@ -426,6 +426,23 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(store.attendDone(repo.id, 24).has("thread:T1:T1-c1")).toBe(false);
   });
 
+  test("decide = own: the repository setting reaches the attendant, which owns trade-offs", async () => {
+    const sha = await branchAt("decide-own", 26);
+    const reply = async () => JSON.stringify({ items: [], summary: "" });
+    const asks = writer(reply);
+    const owns = writer(reply);
+    for (const [h, decide, branch, n] of [[asks, "ask", "decide-own", 26], [owns, "own", "decide-own", 26]] as const) {
+      const { d, repo, ref } = await setup(h, { mode: "auto", decide });
+      const host = new FakeHost(ref, mkPr(n, sha, branch), [thread("T1", "bia", "Follow the ADR or amend it?")]);
+      await attendPullRequest(d, { repo, host, token: "t" }, n, "auto");
+    }
+    expect(asks.prompts[0]).toContain("needs a decision only quost can make");
+    expect(asks.prompts[0]).not.toContain("You make the decisions");
+    expect(owns.prompts[0]).toContain("You make the decisions on this pull request");
+    expect(owns.prompts[0]).toContain("A trade-off is not a reason");
+    expect(owns.prompts[0]).not.toContain("needs a decision only quost can make");
+  });
+
   test("a round that touched several items says what each got in one comment, kept up to date", async () => {
     const sha = await branchAt("round-summary", 25);
     // The conversation keeps what was posted, so the next round finds its own summary.
