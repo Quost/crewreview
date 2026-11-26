@@ -12,6 +12,7 @@ import {
   makeMarker,
   parseMarker,
   parseAttendOutput,
+  removablePaths,
   pendingItems,
   pickFailingJobs,
   redactSecrets,
@@ -29,7 +30,7 @@ import {
   type LeftItem,
   type SyncPlan,
 } from "@crewreview/core";
-import { lastLines, runProcess, scrubEnv, type Harness } from "@crewreview/harness";
+import { allowableCommand, lastLines, runProcess, scrubEnv, type Harness } from "@crewreview/harness";
 import { gitAuthEnv, type Permission } from "@crewreview/hosts";
 import { createTranslator, languageName, matchLocale, type Translator } from "@crewreview/i18n";
 import { crewreviewLink } from "@crewreview/core";
@@ -182,20 +183,39 @@ export function commitLine(item: AttendItem | undefined, reply: string): string 
   return shorten(`- ${where} ${plain || reply}`, 100);
 }
 
+/** Delete the files the agent named, the ones code lets go (tracked, inside, not a secret). Returns what went. */
+async function removeRequested(dir: string, requested: readonly string[]): Promise<string[]> {
+  if (!requested.length) return [];
+  const tracked = new Set((await gitOk(["ls-files", "-z"], dir)).split("\0").filter(Boolean));
+  const { remove } = removablePaths(requested, tracked, ATTEND_DIR);
+  // Literal: a tracked file named "*" deletes that file, not the whole tree.
+  if (remove.length) await gitOk(["--literal-pathspecs", "rm", "-q", "--", ...remove], dir);
+  return remove;
+}
+
 async function discardChanges(dir: string): Promise<void> {
   await git(["checkout", "--", "."], dir);
   await git(["clean", "-fdq", "-e", ATTEND_DIR], dir);
 }
 
-async function runAgent(c: SeatChoice, routed: boolean, d: AttendDeps, cwd: string, access: "read" | "write", prompt: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+async function runAgent(
+  c: SeatChoice,
+  routed: boolean,
+  d: AttendDeps,
+  cwd: string,
+  access: "read" | "write",
+  prompt: string,
+  extra: { commands?: readonly string[]; timeoutMs?: number } = {},
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   const h = c.harness;
   d.onEvent?.({ type: "attendant-start", harness: h.id, ...(routed ? { seat: c.seat } : {}) });
   const r = await h.run({
     prompt,
     cwd,
     access,
-    timeoutMs: d.config.limits.agentTimeout,
+    timeoutMs: extra.timeoutMs ?? d.config.limits.agentTimeout,
     stallMs: d.config.limits.stallTimeout,
+    ...(extra.commands?.length ? { commands: extra.commands } : {}),
     model: c.model,
     effort: c.effort,
     signal: d.signal,
@@ -374,16 +394,23 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
     const { language } = languageFor(repo, d);
     const access = s.fix ? "write" : "read";
     const commented = protectedFilesToEdit(items, merging?.conflicted.filter((f) => !regenerated.includes(f)) ?? []);
-    const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR, protectedFiles: commented, protectedMode: s.protectedFiles, decide: s.decide };
-    let parsed: { decisions: AttendDecision[]; summary: string } | undefined;
+    // Full autonomy: the project's checks are the only commands the agent may run, and only where its harness can
+    // be held to that list. They come from your repository settings, never from the pull request.
+    const full = s.fix && s.autonomy === "full";
+    const commands = full && seat?.harness.capabilities.commands ? s.validate.filter(allowableCommand) : [];
+    const extra = full ? { commands, timeoutMs: d.config.limits.fullTimeout } : {};
+    const base = { language, owner: me, fix: s.fix, dir: ATTEND_DIR, protectedFiles: commented, protectedMode: s.protectedFiles, decide: s.decide, autonomy: s.autonomy, commands };
+    let parsed: { decisions: AttendDecision[]; summary: string; remove: string[] } | undefined;
+    let removed: string[] = [];
     if (seat) {
-      const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base));
+      const first = await runAgent(seat, routed, d, worktree, access, attendPrompt(base), extra);
       if (!first.ok) throw new Error(first.error);
       parsed = parseAttendOutput(extractJson(first.text), items);
       if (!parsed) throw new Error("parse: the answer wasn't valid JSON");
+      if (full) removed = await removeRequested(worktree, parsed.remove);
     } else {
       // A clean merge of the base is the whole answer; the checks below still have to pass.
-      parsed = { decisions: items.map((i) => ({ key: i.key, action: "fixed" as const, reply: "" })), summary: "" };
+      parsed = { decisions: items.map((i) => ({ key: i.key, action: "fixed" as const, reply: "" })), summary: "", remove: [] };
     }
 
     let changed = s.fix ? await changedPaths(worktree) : [];
@@ -394,8 +421,9 @@ export async function attendPullRequest(d: AttendDeps, x: PrTarget, number: numb
       const failed = validation.find((v) => !v.ok);
       if (failed && seat) {
         // One more try with the failure in hand; then it's yours to look at.
-        const second = await runAgent(seat, routed, d, worktree, access, attendPrompt({ ...base, failedCheck: `$ ${failed.command}\n${failed.output}` }));
+        const second = await runAgent(seat, routed, d, worktree, access, attendPrompt({ ...base, failedCheck: `$ ${failed.command}\n${failed.output}` }), extra);
         if (second.ok) parsed = parseAttendOutput(extractJson(second.text), items) ?? parsed;
+        if (second.ok && full) removed = [...new Set([...removed, ...(await removeRequested(worktree, parsed.remove))])];
         changed = await changedPaths(worktree);
         validation = await runChecks(s.validate, worktree, d.config.attend.validateTimeout);
       }

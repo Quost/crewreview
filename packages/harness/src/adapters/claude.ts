@@ -63,6 +63,8 @@ export function claudeHarness(options: NativeOptions = {}) {
         return { loggedIn: typeof j.loggedIn === "boolean" ? j.loggedIn : undefined, expiresAt: typeof j.loginExpiresAt === "string" ? j.loginExpiresAt : undefined };
       },
       build(req) {
+        // No shell, even with commands: under acceptEdits Claude Code also approves rm, mv, cp and the like by itself,
+        // so it couldn't be held to the project's checks. Crewreview runs those after it.
         const tools = req.access === "read" ? "Read,Grep,Glob" : "Read,Grep,Glob,Edit,Write";
         const flags = [
           "-p",

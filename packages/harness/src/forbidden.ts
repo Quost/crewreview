@@ -15,7 +15,7 @@ const ALWAYS_FORBIDDEN = [
 ];
 
 /** Also forbidden in read mode: these grant write access or widen what the agent can reach. */
-const READ_FORBIDDEN = [/workspace-write/, /acceptEdits/, /^--add-dir$/, /fs_write/, /execute_bash/, /^--permission-mode$/, /^--agent$/];
+const READ_FORBIDDEN = [/workspace-write/, /acceptEdits/, /^--add-dir$/, /fs_write/, /execute_bash/, /^--permission-mode$/, /^--agent$/, /^Bash/, /^--allowedTools$/];
 
 export class ForbiddenFlagError extends Error {
   constructor(readonly flag: string) {
@@ -24,6 +24,14 @@ export class ForbiddenFlagError extends Error {
 }
 
 /** Check the flags (not the prompt) of a command line. Throws on the first forbidden flag. */
+/**
+ * A command the agent may be allowed to run: one plain command, no shell syntax, so the harness's exact match can't
+ * be widened. A list entry with a glob or a chain is left out (Crewreview still runs it itself, after the agent).
+ */
+export function allowableCommand(command: string): boolean {
+  return command.length > 0 && command.length <= 200 && /^[A-Za-z0-9_./:=@+,% -]+$/.test(command) && !/^\s|\s$/.test(command);
+}
+
 export function assertSafeFlags(flags: readonly string[], access: Access): void {
   for (const raw of flags) {
     for (const part of raw.split("=")) {

@@ -98,7 +98,7 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       const pick = <T extends string>(v: unknown, list: readonly T[]) => (list.includes(v as T) ? (v as T) : undefined);
       const review = { mode: pick(b.review?.mode, REVIEW_MODES), authors: pick(b.review?.authors, ["others", "all", "mine"] as const) };
       const flag = (v: unknown) => (typeof v === "boolean" ? v : undefined);
-      const attend = { mode: pick(b.attend?.mode, REVIEW_MODES), fromCrew: flag(b.attend?.fromCrew), conflicts: flag(b.attend?.conflicts), ci: flag(b.attend?.ci), protectedFiles: pick(b.attend?.protectedFiles, ["approve", "auto"] as const), decide: pick(b.attend?.decide, ["ask", "own"] as const) };
+      const attend = { mode: pick(b.attend?.mode, REVIEW_MODES), fromCrew: flag(b.attend?.fromCrew), conflicts: flag(b.attend?.conflicts), ci: flag(b.attend?.ci), protectedFiles: pick(b.attend?.protectedFiles, ["approve", "auto"] as const), decide: pick(b.attend?.decide, ["ask", "own"] as const), autonomy: pick(b.attend?.autonomy, ["standard", "full"] as const) };
       const clean = <T extends object>(x: T) => Object.fromEntries(Object.entries(x).filter(([, v]) => v !== undefined)) as Partial<T>;
       // A review account is checked before it's saved: its token is found and it isn't you. "" goes back to you.
       let account: string | null | undefined;

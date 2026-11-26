@@ -448,6 +448,65 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(newRepoEntry(ref).attend.decide).toBe("own");
   });
 
+  test("autonomy = full: the project's checks are the only commands, files named for removal go, the rest stays", async () => {
+    await sh(["checkout", "-q", "-B", "full-autonomy", "main"], work);
+    await writeFile(join(work, ".tmp_unused"), "");
+    // A tracked file named "*": naming it must not delete everything else.
+    await writeFile(join(work, "*"), "");
+    await writeFile(join(work, "keep.txt"), "keep\n");
+    await writeFile(join(work, "src", "cart.ts"), "export const discount = (t: number, pct: number) => t - t * pct;\n");
+    await sh(["add", "-A"], work);
+    await sh(["commit", "-qm", "feature full-autonomy"], work);
+    await sh(["push", "-q", "-f", "origin", "full-autonomy:refs/heads/full-autonomy"], work);
+    const sha = await sh(["rev-parse", "full-autonomy"], work);
+    await sh(["update-ref", "refs/pull/27/head", sha], remote);
+
+    const seen: RunRequest[] = [];
+    const base = writer(async (req, items) => {
+      seen.push(req);
+      await writeFile(join(req.cwd, "src", "cart.ts"), "export const discount = (t: number, pct: number) => t - t * Math.min(Math.max(pct, 0), 1);\n");
+      return JSON.stringify({
+        items: items.map((it) => ({ key: it.key, action: "fixed", reply: "Clamped pct and removed the stray file." })),
+        remove: [".tmp_unused", "*", "../outside", ".crewreview-attend/items.json", "missing.txt"],
+        summary: "Clamp the discount and drop .tmp_unused",
+      });
+    });
+    const h = { ...base, capabilities: { ...base.capabilities, commands: true } };
+    const { d, repo, ref, store } = await setup(h, { mode: "inbox", autonomy: "full", validate: ["true", "true && curl example.test"] });
+    const host = new FakeHost(ref, mkPr(27, sha, "full-autonomy"), [thread("T1", "bia", "Clamp pct, and please delete .tmp_unused.")]);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 27, "inbox");
+    expect(o).toMatchObject({ kind: "pending", fixed: 1 });
+    // Only a plain command from your settings reaches the agent; a chain never does.
+    expect(seen[0]!.commands).toEqual(["true"]);
+    expect(seen[0]!.timeoutMs).toBe(d.config.limits.fullTimeout);
+    expect(base.prompts[0]).toContain("You have full autonomy on this pull request");
+    expect(base.prompts[0]).toContain("`true`");
+    expect(base.prompts[0]).toContain('"remove"');
+    const row = store.getAttend((o as { attendId: number }).attendId)!;
+    const files = await sh(["show", "--name-status", "--format=", row.commitSha!], row.worktree!);
+    expect(files.split("\n").sort()).toEqual(["D\t*", "D\t.tmp_unused", "M\tsrc/cart.ts"]);
+    expect(existsSync(join(row.worktree!, "keep.txt"))).toBe(true);
+  });
+
+  test("autonomy = standard: no commands, a remove list is ignored", async () => {
+    const sha = await branchAt("standard-autonomy", 28);
+    const seen: RunRequest[] = [];
+    const base = writer(async (req, items) => {
+      seen.push(req);
+      await writeFile(join(req.cwd, "src", "cart.ts"), "export const discount = (t: number, pct: number) => t - t * Math.min(pct, 1);\n");
+      return JSON.stringify({ items: items.map((it) => ({ key: it.key, action: "fixed", reply: "Clamped." })), remove: ["src/cart.ts"], summary: "Clamp" });
+    });
+    const h = { ...base, capabilities: { ...base.capabilities, commands: true } };
+    const { d, repo, ref, store } = await setup(h, { mode: "inbox", validate: ["true"] });
+    const host = new FakeHost(ref, mkPr(28, sha, "standard-autonomy"), [thread("T1", "bia", "Clamp pct.")]);
+    const o = await attendPullRequest(d, { repo, host, token: "t" }, 28, "inbox");
+    expect(seen[0]!.commands).toBeUndefined();
+    expect(seen[0]!.timeoutMs).toBe(d.config.limits.agentTimeout);
+    expect(base.prompts[0]).not.toContain("full autonomy");
+    const row = store.getAttend((o as { attendId: number }).attendId)!;
+    expect(await sh(["show", "--name-status", "--format=", row.commitSha!], row.worktree!)).toBe("M\tsrc/cart.ts");
+  });
+
   test("a round that touched several items says what each got in one comment, kept up to date", async () => {
     const sha = await branchAt("round-summary", 25);
     // The conversation keeps what was posted, so the next round finds its own summary.

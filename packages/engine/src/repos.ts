@@ -73,6 +73,13 @@ const AttendSettings = z
      * says why in the reply; only what it can't do (forbidden files, git host actions) comes back. ask: it goes back.
      */
     decide: z.enum(["ask", "own"]).default("own"),
+    /**
+     * standard: the attendant edits files and Crewreview runs the checks after it. full: it also runs the project's
+     * checks itself (the commands in validate, exactly those, nothing else), deletes files by naming them, and gets
+     * limits.fullTimeout to work. It never gets the host's token or any other secret, and never commits or pushes. The
+     * checks run the pull request's code, as they do when Crewreview runs them after the agent.
+     */
+    autonomy: z.enum(["standard", "full"]).default("standard"),
     /** Commands that must pass in the worktree before anything is pushed, e.g. ["bun test"]. */
     validate: z.array(z.string()).default([]),
     /**

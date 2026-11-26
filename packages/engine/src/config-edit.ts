@@ -12,6 +12,7 @@ export const EDITABLE = {
   "limits.maxConcurrentAgents": "count?",
   "limits.agentTimeout": "duration",
   "limits.stallTimeout": "duration",
+  "limits.fullTimeout": "duration",
   "limits.maxDiffLines": "count",
   "limits.dailyRuns": "count?",
   "review.settle": "duration",

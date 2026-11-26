@@ -251,7 +251,7 @@ const AttendDecision = z.object({
 export type AttendDecision = z.infer<typeof AttendDecision>;
 
 /** The attendant's answer: one decision per item. Unknown keys are ignored; missing ones mean "needs a human". */
-export function parseAttendOutput(value: unknown, items: readonly AttendItem[]): { decisions: AttendDecision[]; summary: string } | undefined {
+export function parseAttendOutput(value: unknown, items: readonly AttendItem[]): { decisions: AttendDecision[]; summary: string; remove: string[] } | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const raw = (value as Record<string, unknown>).items;
   if (!Array.isArray(raw)) return undefined;
@@ -262,7 +262,41 @@ export function parseAttendOutput(value: unknown, items: readonly AttendItem[]):
   }
   const decisions = items.map((it) => byKey.get(it.key) ?? { key: it.key, action: "needs-human" as const, reply: "" });
   const summary = typeof (value as Record<string, unknown>).summary === "string" ? String((value as Record<string, unknown>).summary).slice(0, 300) : "";
-  return { decisions, summary };
+  const rawRemove = (value as Record<string, unknown>).remove;
+  const remove = Array.isArray(rawRemove) ? [...new Set(rawRemove.filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 300))].slice(0, MAX_REMOVALS) : [];
+  return { decisions, summary, remove };
+}
+
+/** How many files one answer may ask to delete. */
+export const MAX_REMOVALS = 50;
+
+/**
+ * The files the attendant asked to delete that may go: tracked in the checkout, given as a plain relative path, and
+ * not a secret or Crewreview's own folder. The agent can't delete anything itself; it names files and code decides.
+ * A protected file (CI, AGENTS.md…) may be named: its removal is a change like any other and waits for you the same
+ * way. Anything else is refused, with the reason, and nothing is deleted for it.
+ */
+export function removablePaths(
+  requested: readonly string[],
+  tracked: ReadonlySet<string>,
+  attendDir: string,
+): { remove: string[]; refused: { path: string; reason: "path" | "never" | "untracked" }[] } {
+  const remove: string[] = [];
+  const refused: { path: string; reason: "path" | "never" | "untracked" }[] = [];
+  for (const raw of requested) {
+    const path = raw.replace(/^\.\//, "");
+    const parts = path.split("/");
+    if (!path || path.startsWith("/") || /[\\\0]/.test(path) || /^[a-zA-Z]:/.test(path) || parts.some((p) => p === "" || p === "." || p === "..")) {
+      refused.push({ path: raw, reason: "path" });
+    } else if (NEVER.some((re) => re.test(path)) || path === attendDir || path.startsWith(`${attendDir}/`)) {
+      refused.push({ path: raw, reason: "never" });
+    } else if (!tracked.has(path)) {
+      refused.push({ path: raw, reason: "untracked" });
+    } else if (!remove.includes(path)) {
+      remove.push(path);
+    }
+  }
+  return { remove, refused };
 }
 
 /** Where an item left for you is, enough to find it on the pull request. */

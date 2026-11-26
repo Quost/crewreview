@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { firstSentence, globRegExp, heldPaths, regenerationPlan, leftForOwner, parseMarker, roundSummary, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
+import { firstSentence, globRegExp, MAX_REMOVALS, removablePaths, heldPaths, regenerationPlan, leftForOwner, parseMarker, roundSummary, makeMarker, parseAttendOutput, parseRawDiff, pendingItems, protectedFilesToEdit, sensitivePaths, settled, situationItems, specialModePaths, type AttendRules, type AttendThread } from "../src/index.ts";
 
 const rules: AttendRules = { me: "quost", trustedBots: ["copilot"], fromCrew: false };
 const c = (id: string, author: string, body: string, createdAt = "2026-11-19T10:00:00Z", authorIsBot = false) => ({ id, author, authorIsBot, body, createdAt });
@@ -240,5 +240,29 @@ describe("files a project's generator rebuilds after a merge", () => {
     ]);
     expect(plan.rest).toEqual(["lib/a.ex"]);
     expect(regenerationPlan(["lib/a.ex"], [gettext])).toEqual({ runs: [], rest: ["lib/a.ex"] });
+  });
+});
+
+describe("files the attendant asks to delete", () => {
+  const tracked = new Set([".tmp_unused", "src/old.ts", ".github/workflows/ci.yml", ".env.example", "config/app.key"]);
+
+  test("tracked files with a plain relative path go; the rest is refused with the reason", () => {
+    const r = removablePaths(["./.tmp_unused", "src/old.ts", "src/old.ts", ".github/workflows/ci.yml", "missing.ts"], tracked, ".crewreview-attend");
+    expect(r.remove).toEqual([".tmp_unused", "src/old.ts", ".github/workflows/ci.yml"]);
+    expect(r.refused).toEqual([{ path: "missing.ts", reason: "untracked" }]);
+  });
+
+  test("paths that leave the checkout, secrets and Crewreview's folder are never deleted", () => {
+    const r = removablePaths(["../x", "/etc/passwd", "src/../.tmp_unused", "C:/x", "a\\\\b", "src//old.ts", "config/app.key", ".crewreview-attend/items.json"], tracked, ".crewreview-attend");
+    expect(r.remove).toEqual([]);
+    expect(r.refused.map((x) => x.reason)).toEqual(["path", "path", "path", "path", "path", "path", "never", "never"]);
+  });
+
+  test("the answer's remove list is read, capped and only strings", () => {
+    const items = [{ key: "k", kind: "thread" as const, text: "t" }];
+    const many = Array.from({ length: 80 }, (_, i) => `f${i}`);
+    const out = parseAttendOutput({ items: [{ key: "k", action: "fixed", reply: "" }], remove: [...many, 3, "", "f1"] }, items as never)!;
+    expect(out.remove).toHaveLength(MAX_REMOVALS);
+    expect(parseAttendOutput({ items: [] }, [])!.remove).toEqual([]);
   });
 });

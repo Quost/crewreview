@@ -66,6 +66,7 @@ export function SettingsCard({ version }: { version: number }) {
         { key: "limits.dailyRuns", kind: "count?", label: t.t("web.settings.dailyRuns"), hint: t.t("web.settings.emptyNone") },
         { key: "limits.agentTimeout", kind: "duration", label: t.t("web.limits.agentTimeout"), hint: duration },
         { key: "limits.stallTimeout", kind: "duration", label: t.t("web.limits.stall"), hint: duration },
+        { key: "limits.fullTimeout", kind: "duration", label: t.t("web.limits.full"), hint: duration },
         { key: "limits.maxDiffLines", kind: "count", label: t.t("web.limits.maxDiff") },
       ],
     },

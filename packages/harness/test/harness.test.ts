@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { writeAgent } from "../src/adapters/kiro.ts";
 import { ACP_PRESETS, buildRegistry as registryOf } from "../src/index.ts";
 import {
+  allowableCommand,
   assertSafeFlags,
   claudeHarness,
   claudeParser,
@@ -184,6 +185,30 @@ test("known ACP agents are built in, and a config entry with the same id replace
   expect([...custom.keys()].filter((k) => k === "agy")).toHaveLength(1);
 });
 
+describe("commands an agent may run", () => {
+  test("only one plain command each: no chain, glob, redirection or substitution", () => {
+    for (const ok of ["mix test", "bun run check", "./scripts/check.sh --fast", "npm run lint:ci"]) expect(allowableCommand(ok)).toBe(true);
+    for (const bad of ["mix test && curl x", "rm -rf *", "echo $(id)", "a; b", "a | b", "a > b", "`id`", "", " mix test", "x".repeat(201)]) expect(allowableCommand(bad)).toBe(false);
+  });
+
+  test("Claude Code gets no shell, commands or not: acceptEdits would approve rm and mv by itself", () => {
+    const w = claudeHarness().command({ ...req("write"), commands: ["mix test"] }, ctx).argv;
+    expect(w).toContain("--tools=Read,Grep,Glob,Edit,Write");
+    expect(w.join(" ")).not.toContain("Bash");
+    expect(claudeHarness().capabilities.commands).toBeUndefined();
+    expect(() => assertSafeFlags(["--allowedTools", "Bash(mix test)"], "read")).toThrow();
+  });
+
+  test("Kiro's write agent gets a shell held to those commands, each matched whole", () => {
+    const agent = writeAgent("crewreview-write-x", ["/w/job"], ["mix test", "./check.sh", "a; b"]) as { tools: string[]; toolsSettings: { shell?: { allowedCommands: string[] } } };
+    expect(agent.tools).toContain("shell");
+    expect(agent.toolsSettings.shell?.allowedCommands).toEqual(["^mix test$", "^\\./check\\.sh$"]);
+    const none = writeAgent("crewreview-write-x", ["/w/job"], ["a; b"]) as { tools: string[]; toolsSettings: { shell?: unknown } };
+    expect(none.tools).not.toContain("shell");
+    expect(none.toolsSettings.shell).toBeUndefined();
+  });
+});
+
 describe("kiro writes", () => {
   test("the write agent trusts reads, allows writes only inside the folder, and has no shell or MCP", () => {
     const agent = writeAgent("crewreview-write-x", ["/w/job", "/private/w/job"]) as {
@@ -227,5 +252,31 @@ describe("kiro writes", () => {
     // Reading needs no agent at all.
     const read = await kiro.run({ prompt: "review", cwd: work, access: "read", timeoutMs: 10_000 });
     expect(read.ok).toBe(false);
+  });
+
+  test.skipIf(process.platform === "win32")("a run that may execute the project's checks keeps no secret in its environment", async () => {
+    const root = await mkdtemp(join(tmpdir(), "crewreview-kiro-env-"));
+    const agents = join(root, "agents");
+    const work = join(root, "work");
+    const fake = join(root, "kiro-cli");
+    await writeFile(fake, `#!/bin/sh\nenv\n`);
+    await chmod(fake, 0o755);
+    await mkdir(work);
+    const kiro = kiroHarness({ executable: fake, agentsDir: agents });
+    const saved = { k: process.env.KIRO_API_KEY, g: process.env.GH_TOKEN };
+    process.env.KIRO_API_KEY = "kiro-secret";
+    process.env.GH_TOKEN = "gh-secret";
+    try {
+      const plain = await kiro.run({ prompt: "fix it", cwd: work, access: "write", timeoutMs: 10_000 });
+      expect(plain.text).toContain("KIRO_API_KEY=kiro-secret");
+      const checks = await kiro.run({ prompt: "fix it", cwd: work, access: "write", timeoutMs: 10_000, commands: ["mix test"] });
+      expect(checks.text).not.toContain("kiro-secret");
+      expect(checks.text).not.toContain("gh-secret");
+    } finally {
+      process.env.KIRO_API_KEY = saved.k;
+      process.env.GH_TOKEN = saved.g;
+      if (saved.k === undefined) delete process.env.KIRO_API_KEY;
+      if (saved.g === undefined) delete process.env.GH_TOKEN;
+    }
   });
 });
