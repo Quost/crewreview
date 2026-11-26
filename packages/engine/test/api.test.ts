@@ -82,6 +82,11 @@ describe("local API", () => {
   test("tasks: none yet, a task on a repository that isn't linked, an unknown task, a malformed id", async () => {
     const h = { ...auth(), "x-crewreview": "1", "content-type": "application/json" };
     expect(await (await fetch(`${server.url}api/tasks`, { headers: auth() })).json()).toEqual([]);
+    expect((await fetch(`${server.url}api/skills`)).status).toBe(401);
+    const cat = (await (await fetch(`${server.url}api/skills`, { headers: auth() })).json()) as { skills: { id: string; kind: string; body: string }[]; tasks: string[] };
+    expect(cat.tasks).toEqual(["plan", "relay", "review", "verify"]);
+    expect(cat.skills.map((s) => s.id)).toEqual(expect.arrayContaining(["plan", "relay", "lens-correctness"]));
+    expect(cat.skills.every((s) => s.body.length > 0 && ["role", "method", "lens"].includes(s.kind))).toBe(true);
     const nowhere = await fetch(`${server.url}api/tasks`, { method: "POST", headers: h, body: JSON.stringify({ repo: "nope", text: "Do it" }) });
     expect([nowhere.status, ((await nowhere.json()) as { error: string }).error]).toEqual([404, "not-found"]);
     const empty = await fetch(`${server.url}api/tasks`, { method: "POST", headers: h, body: JSON.stringify({ repo: "nope", text: "  " }) });

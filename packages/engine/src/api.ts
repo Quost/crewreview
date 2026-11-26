@@ -204,6 +204,7 @@ export async function startApi(o: ApiOptions): Promise<ApiInfo & { stop(): Promi
       return "error" in r ? json(r, r.error === "not-desktop" ? 409 : 400) : json(r);
     }
     if (p === "/api/team" && m === "GET") return json(crew.team());
+    if (p === "/api/skills" && m === "GET") return json(crew.skills());
     // Crew mode tasks: list, one with its ledger, a new one, and your approvals.
     if (p === "/api/tasks" && m === "GET") return json(await crew.tasks());
     if (p === "/api/tasks" && m === "POST") {

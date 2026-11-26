@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- The Tasks page lists the skills, the instructions each agent role follows, which are now files in `packages/engine/skills/`, and shows which ones a task uses. Builders now hand off with evidence: they say which checks they ran and what those printed (the relay skill).
+
 ## 0.24.0 — 2026-11-25
 
 ### Added

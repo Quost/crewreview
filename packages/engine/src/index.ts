@@ -3,6 +3,7 @@ export * from "./config.ts";
 export * from "./config-edit.ts";
 export * from "./git.ts";
 export * from "./lenses.ts";
+export * from "./skills.ts";
 export * from "./prompts.ts";
 export * from "./context.ts";
 export * from "./review.ts";

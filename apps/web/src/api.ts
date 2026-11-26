@@ -148,6 +148,23 @@ export interface TaskInfo {
   pr?: { number: number; url: string };
 }
 
+/** One entry of the skills catalog: the instructions a role follows, or a built-in review lens. */
+export interface SkillInfo {
+  id: string;
+  title: string;
+  description: string;
+  kind: "role" | "method" | "lens";
+  roles: TeamRole[];
+  source: "builtin";
+  body: string;
+}
+
+export interface SkillsCatalog {
+  skills: SkillInfo[];
+  /** Ids of the skills a crew mode task uses. */
+  tasks: string[];
+}
+
 export type TeamRole = "review" | "verify" | "attend" | "plan" | "build";
 
 export interface TeamView {
