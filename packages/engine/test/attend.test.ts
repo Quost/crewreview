@@ -451,8 +451,9 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
   test("autonomy = full: the project's checks are the only commands, files named for removal go, the rest stays", async () => {
     await sh(["checkout", "-q", "-B", "full-autonomy", "main"], work);
     await writeFile(join(work, ".tmp_unused"), "");
-    // A tracked file named "*": naming it must not delete everything else.
-    await writeFile(join(work, "*"), "");
+    // A tracked file named "*" (not a valid name on Windows): naming it must not delete everything else.
+    const star = process.platform !== "win32";
+    if (star) await writeFile(join(work, "*"), "");
     await writeFile(join(work, "keep.txt"), "keep\n");
     await writeFile(join(work, "src", "cart.ts"), "export const discount = (t: number, pct: number) => t - t * pct;\n");
     await sh(["add", "-A"], work);
@@ -484,7 +485,7 @@ describe("attendant end to end (fake host, real git, fake agent)", () => {
     expect(base.prompts[0]).toContain('"remove"');
     const row = store.getAttend((o as { attendId: number }).attendId)!;
     const files = await sh(["show", "--name-status", "--format=", row.commitSha!], row.worktree!);
-    expect(files.split("\n").sort()).toEqual(["D\t*", "D\t.tmp_unused", "M\tsrc/cart.ts"]);
+    expect(files.split("\n").sort()).toEqual([...(star ? ["D\t*"] : []), "D\t.tmp_unused", "M\tsrc/cart.ts"]);
     expect(existsSync(join(row.worktree!, "keep.txt"))).toBe(true);
   });
 
