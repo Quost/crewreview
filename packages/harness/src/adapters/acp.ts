@@ -16,6 +16,12 @@ export interface AcpAgentConfig {
   /** Env var name patterns the agent needs for its own login. */
   authEnv?: string[];
   envPassthrough?: string[];
+  /** The command a person runs to sign the agent in, when there is one. */
+  loginCommand?: string;
+  /** The one command that installs it, when there is one. */
+  installCommand?: string;
+  /** Where to download or sign up for it, when there is one page to point at. */
+  signupUrl?: string;
 }
 
 const READ_KINDS: ReadonlySet<ToolKind> = new Set(["read", "search", "think"]);
@@ -49,6 +55,10 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
     // The app answers every permission request and serves file reads itself, so read mode is enforced by us.
     // The conformance canary still has to prove the agent doesn't write behind our back.
     capabilities: { readOnly: "enforced", write: true, streaming: true, costReport: false, modelSelect: false },
+
+    ...(cfg.loginCommand ? { loginCommand: cfg.loginCommand } : {}),
+    ...(cfg.installCommand ? { installCommand: cfg.installCommand } : {}),
+    ...(cfg.signupUrl ? { signupUrl: cfg.signupUrl } : {}),
 
     async detect() {
       if (detected) return detected;

@@ -88,6 +88,16 @@ export function LimitsPage({ version, agentsVersion }: { version: number; agents
                           <Pill tone="bad">{t.t("doctor.no")}</Pill> {h.loginCommand && <code className="small">{h.loginCommand}</code>}
                         </span>
                       )}
+                      {!h.installed && (h.installCommand || h.signupUrl) && (
+                        <span className="small">
+                          {h.installCommand && <code className="small mono">{h.installCommand}</code>}{" "}
+                          {h.signupUrl && (
+                            <a href={h.signupUrl} target="_blank" rel="noreferrer">
+                              {t.t("web.limits.getHarness")}
+                            </a>
+                          )}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

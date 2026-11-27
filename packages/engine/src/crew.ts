@@ -882,7 +882,23 @@ export class CrewDaemon {
       const signIn = det.installed ? await signInOf(h) : undefined;
       // Whether it may review now, or first has to prove its read-only lock on this machine (ACP and custom agents).
       const review = det.installed ? await reviewable(h, this.o.conformance) : undefined;
-      out.push({ id: h.id, name: h.name, kind: h.kind, installed: det.installed, version: det.version, capabilities: h.capabilities, conformance: conf, signIn, loginCommand: h.loginCommand, pausedUntil: this.quota.pausedUntil(h.id), chosen: h.id === chosen?.id, review, proving: this.proving.has(h.id) });
+      out.push({
+        id: h.id,
+        name: h.name,
+        kind: h.kind,
+        installed: det.installed,
+        version: det.version,
+        capabilities: h.capabilities,
+        conformance: conf,
+        signIn,
+        loginCommand: h.loginCommand,
+        installCommand: h.installCommand,
+        signupUrl: h.signupUrl,
+        pausedUntil: this.quota.pausedUntil(h.id),
+        chosen: h.id === chosen?.id,
+        review,
+        proving: this.proving.has(h.id),
+      });
     }
     return out;
   }

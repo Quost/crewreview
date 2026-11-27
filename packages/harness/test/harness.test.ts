@@ -180,6 +180,24 @@ test("known ACP agents are built in, and a config entry with the same id replace
   const ids = [...registryOf().keys()];
   expect(ids).toEqual(["claude", "codex", "kiro", "kilo-gateway", ...ACP_PRESETS.map((p) => p.id)]);
   expect(ACP_PRESETS.map((p) => p.command.join(" "))).toEqual(["agy acp", "opencode acp", "gemini --experimental-acp", "freebuff --acp"]);
+  // Freebuff carries the line that installs it and the page that signs it up, so doctor and the app can say how to get it.
+  const freebuff = ACP_PRESETS.find((p) => p.id === "freebuff")!;
+  expect(freebuff.installCommand).toBe("npm i -g freebuff");
+  expect(freebuff.loginCommand).toBe("freebuff login");
+  expect(freebuff.signupUrl).toBe("https://freebuff.com/?ref=ref-bee41763-3c54-4f61-be0e-b892a627cc12&via=rewards_link");
+  const built = registryOf().get("freebuff")!;
+  expect(built.installCommand).toBe(freebuff.installCommand);
+  expect(built.loginCommand).toBe(freebuff.loginCommand);
+  expect(built.signupUrl).toBe(freebuff.signupUrl);
+  // Every built-in ACP agent says how to get it: an install line and the page to download it from.
+  for (const preset of ACP_PRESETS) {
+    expect(preset.installCommand).toBeString();
+    expect(preset.signupUrl).toMatch(/^https:\/\//);
+    expect(registryOf().get(preset.id)?.installCommand).toBe(preset.installCommand);
+    expect(registryOf().get(preset.id)?.signupUrl).toBe(preset.signupUrl);
+  }
+  expect(ACP_PRESETS.find((p) => p.id === "agy")?.signupUrl).toBe("https://antigravity.google/download");
+  expect(ACP_PRESETS.find((p) => p.id === "opencode")?.signupUrl).toBe("https://opencode.ai/download");
   const custom = registryOf({ acp: [{ id: "agy", name: "My agy", command: ["/opt/agy", "acp"] }] });
   expect(custom.get("agy")?.name).toBe("My agy");
   expect([...custom.keys()].filter((k) => k === "agy")).toHaveLength(1);
