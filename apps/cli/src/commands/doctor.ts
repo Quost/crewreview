@@ -52,7 +52,7 @@ export async function doctor(c: Ctx, conformance: boolean): Promise<number> {
     const det = await h.detect();
     const [here, service] = det.installed && h.signIn ? await Promise.all([h.signIn(), h.signIn(asService)]) : [undefined, undefined];
     const login = h.loginCommand ?? "";
-    // How to get it, for an agent that carries its own install line and page (Freebuff, say) and isn't here yet.
+    // How to get it, for an agent that carries its own install line and page (the built-in ACP presets) and isn't here yet.
     if (!det.installed && h.installCommand) hints.push(t.t("doctor.installHint", { name: h.name, command: h.installCommand }));
     if (!det.installed && h.signupUrl) hints.push(t.t("doctor.getHint", { name: h.name, url: h.signupUrl }));
     if (here?.state === "no") hints.push(t.t("doctor.signInHint", { name: h.name, command: login }));

@@ -32,9 +32,28 @@ export const BUILTIN_ORDER = ["claude", "codex", "kiro", "kilo-gateway"] as cons
  * An `[[harness.acp]]` entry with the same id replaces the preset.
  */
 export const ACP_PRESETS: readonly AcpAgentConfig[] = [
-  { id: "agy", name: "Antigravity", command: ["agy", "acp"] },
-  { id: "opencode", name: "OpenCode", command: ["opencode", "acp"] },
-  { id: "gemini", name: "Gemini CLI", command: ["gemini", "--experimental-acp"], authEnv: ["^GEMINI_API_KEY$", "^GOOGLE_API_KEY$", "^GOOGLE_GENAI_USE_VERTEXAI$", "^GOOGLE_CLOUD_PROJECT$"] },
+  {
+    id: "agy",
+    name: "Antigravity",
+    command: ["agy", "acp"],
+    installCommand: "curl -fsSL https://antigravity.google/cli/install.sh | bash",
+    signupUrl: "https://antigravity.google/download",
+  },
+  {
+    id: "opencode",
+    name: "OpenCode",
+    command: ["opencode", "acp"],
+    installCommand: "curl -fsSL https://opencode.ai/install | bash",
+    signupUrl: "https://opencode.ai/download",
+  },
+  {
+    id: "gemini",
+    name: "Gemini CLI",
+    command: ["gemini", "--experimental-acp"],
+    authEnv: ["^GEMINI_API_KEY$", "^GOOGLE_API_KEY$", "^GOOGLE_GENAI_USE_VERTEXAI$", "^GOOGLE_CLOUD_PROJECT$"],
+    installCommand: "npm install -g @google/gemini-cli",
+    signupUrl: "https://github.com/google-gemini/gemini-cli",
+  },
   {
     id: "freebuff",
     name: "Freebuff",

@@ -189,6 +189,15 @@ test("known ACP agents are built in, and a config entry with the same id replace
   expect(built.installCommand).toBe(freebuff.installCommand);
   expect(built.loginCommand).toBe(freebuff.loginCommand);
   expect(built.signupUrl).toBe(freebuff.signupUrl);
+  // Every built-in ACP agent says how to get it: an install line and the page to download it from.
+  for (const preset of ACP_PRESETS) {
+    expect(preset.installCommand).toBeString();
+    expect(preset.signupUrl).toMatch(/^https:\/\//);
+    expect(registryOf().get(preset.id)?.installCommand).toBe(preset.installCommand);
+    expect(registryOf().get(preset.id)?.signupUrl).toBe(preset.signupUrl);
+  }
+  expect(ACP_PRESETS.find((p) => p.id === "agy")?.signupUrl).toBe("https://antigravity.google/download");
+  expect(ACP_PRESETS.find((p) => p.id === "opencode")?.signupUrl).toBe("https://opencode.ai/download");
   const custom = registryOf({ acp: [{ id: "agy", name: "My agy", command: ["/opt/agy", "acp"] }] });
   expect(custom.get("agy")?.name).toBe("My agy");
   expect([...custom.keys()].filter((k) => k === "agy")).toHaveLength(1);
