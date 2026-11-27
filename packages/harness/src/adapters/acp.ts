@@ -1,11 +1,12 @@
 import { readFile, realpath, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
 import { client, methods, ndJsonStream, PROTOCOL_VERSION, RequestError } from "@agentclientprotocol/sdk";
 import type { PermissionOption, RequestPermissionRequest, RequestPermissionResponse, ToolKind } from "@agentclientprotocol/sdk";
 import { scrubEnv } from "../env.ts";
 import { lastLines } from "../failure.ts";
-import { versionOf, which } from "../process.ts";
-import type { Access, Detection, Harness, HarnessEvent, RunRequest, RunResult } from "../types.ts";
+import { runProcess, versionOf, which } from "../process.ts";
+import type { Access, Detection, Harness, HarnessEvent, RunRequest, RunResult, SignIn } from "../types.ts";
 import { stallWatch } from "../stall.ts";
 
 export interface AcpAgentConfig {
@@ -22,6 +23,36 @@ export interface AcpAgentConfig {
   installCommand?: string;
   /** Where to download or sign up for it, when there is one page to point at. */
   signupUrl?: string;
+  /** How to tell whether it is signed in, for `doctor` and the app: a saved login, or a key of its own. */
+  authCheck?: AcpAuthCheck;
+}
+
+/**
+ * ACP agents keep their login where only they know: a file, or an env var with a key. Both are checked, cheapest first,
+ * so a line in `doctor` says signed in or not instead of a dash. Nothing is run: `doctor` asks this twice per agent.
+ */
+export interface AcpAuthCheck {
+  /** Env vars that hold a key the agent signs in with. */
+  env?: string[];
+  /** Files with a saved login. `~` is the home of the environment checked, and `$NAME` reads that variable. */
+  files?: string[];
+  /** The agent's own command that only answers when it is signed in: exit 0 means yes. Asked last, since it runs. */
+  args?: string[];
+}
+
+/** A saved login is a file with something in it: an empty one, or empty JSON, is an agent that was signed out. */
+export async function hasSavedLogin(env: Record<string, string | undefined>, file: string): Promise<boolean> {
+  const home = env.HOME ?? env.USERPROFILE ?? homedir();
+  const path = file.replace(/^~/, home).replace(/\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g, (m, name: string) => env[name] ?? m);
+  const text = (await readFile(path, "utf8").catch(() => undefined))?.trim();
+  if (!text) return false;
+  try {
+    const saved: unknown = JSON.parse(text);
+    return typeof saved === "object" && saved !== null && Object.keys(saved).length > 0;
+  } catch {
+    // Some agents save the token itself, not a JSON object.
+    return true;
+  }
 }
 
 const READ_KINDS: ReadonlySet<ToolKind> = new Set(["read", "search", "think"]);
@@ -59,6 +90,27 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
     ...(cfg.loginCommand ? { loginCommand: cfg.loginCommand } : {}),
     ...(cfg.installCommand ? { installCommand: cfg.installCommand } : {}),
     ...(cfg.signupUrl ? { signupUrl: cfg.signupUrl } : {}),
+    ...(cfg.authCheck
+      ? {
+          async signIn(env: Record<string, string | undefined> = process.env): Promise<SignIn> {
+            const auth = cfg.authCheck!;
+            if (!which(exe, env.PATH ?? "")) return { state: "unknown", reason: "missing" };
+            if ((auth.env ?? []).some((name) => env[name])) return { state: "yes" };
+            for (const file of auth.files ?? []) if (await hasSavedLogin(env, file)) return { state: "yes" };
+            if (!auth.args) return { state: "no" };
+            // The login can live where only the agent can look (the system keyring, say): let it answer instead.
+            const path = which(exe, env.PATH)!;
+            const r = await runProcess({
+              argv: [path, ...auth.args],
+              cwd: tmpdir(),
+              env: scrubEnv(env, { keep: (cfg.authEnv ?? []).map((p) => new RegExp(p)), passthrough: cfg.envPassthrough }),
+              timeoutMs: 20_000,
+            });
+            if (r.spawnError || r.timedOut) return { state: "unknown" };
+            return { state: r.exitCode === 0 ? "yes" : "no" };
+          },
+        }
+      : {}),
 
     async detect() {
       if (detected) return detected;

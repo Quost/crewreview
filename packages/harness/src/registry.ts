@@ -38,6 +38,13 @@ export const ACP_PRESETS: readonly AcpAgentConfig[] = [
     command: ["agy", "acp"],
     installCommand: "curl -fsSL https://antigravity.google/cli/install.sh | bash",
     signupUrl: "https://antigravity.google/download",
+    // The login lives in the system keyring, so there may be no file to read: asking it to list its models is the
+    // answer, and it only does that signed in. An API key counts too.
+    authCheck: {
+      env: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+      files: ["~/.gemini/antigravity-cli/antigravity-oauth-token"],
+      args: ["models"],
+    },
   },
   {
     id: "opencode",
@@ -45,14 +52,19 @@ export const ACP_PRESETS: readonly AcpAgentConfig[] = [
     command: ["opencode", "acp"],
     installCommand: "curl -fsSL https://opencode.ai/install | bash",
     signupUrl: "https://opencode.ai/download",
+    loginCommand: "opencode auth login",
+    // `opencode auth login` writes one entry per provider, and `auth logout` takes it out again.
+    authCheck: { files: ["$XDG_DATA_HOME/opencode/auth.json", "~/.local/share/opencode/auth.json"] },
   },
   {
     id: "gemini",
-    name: "Gemini CLI",
+    // Google moved the free and Google AI plans to Antigravity CLI: this one is for Code Assist licenses now.
+    name: "Gemini CLI (Code Assist)",
     command: ["gemini", "--experimental-acp"],
     authEnv: ["^GEMINI_API_KEY$", "^GOOGLE_API_KEY$", "^GOOGLE_GENAI_USE_VERTEXAI$", "^GOOGLE_CLOUD_PROJECT$"],
     installCommand: "npm install -g @google/gemini-cli",
     signupUrl: "https://github.com/google-gemini/gemini-cli",
+    authCheck: { env: ["GEMINI_API_KEY", "GOOGLE_API_KEY"], files: ["~/.gemini/oauth_creds.json"] },
   },
   {
     id: "freebuff",
@@ -63,6 +75,8 @@ export const ACP_PRESETS: readonly AcpAgentConfig[] = [
     installCommand: "npm i -g freebuff",
     // The link that gets someone a Freebuff account; Crewreview's install hints and Harnesses & limits point here.
     signupUrl: "https://freebuff.com/?ref=ref-bee41763-3c54-4f61-be0e-b892a627cc12&via=rewards_link",
+    // `freebuff login` saves the device token beside the rest of its config.
+    authCheck: { files: ["$FREEBUFF_CONFIG_DIR/credentials.json", "~/.config/manicode/credentials.json"] },
   },
 ];
 
