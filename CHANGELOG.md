@@ -4,6 +4,8 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+## 0.27.0 — 2026-11-27
+
 ### Added
 
 - **Kilo Gateway harness** (`kilo-gateway`): programmatic access to Kilo's free model router (Auto Free, ERNIE, Nemotron, Particle AI, Flint, Beam, etc.) via a new CLI wrapper. Build it from `packages/kilo-gateway-cli` (`bun run build`), set `KILO_API_KEY`, use `--harness kilo-gateway`, and pick the model with `model = "auto-free"` in `[harness.kilo-gateway]`.
