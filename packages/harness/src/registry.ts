@@ -35,7 +35,16 @@ export const ACP_PRESETS: readonly AcpAgentConfig[] = [
   { id: "agy", name: "Antigravity", command: ["agy", "acp"] },
   { id: "opencode", name: "OpenCode", command: ["opencode", "acp"] },
   { id: "gemini", name: "Gemini CLI", command: ["gemini", "--experimental-acp"], authEnv: ["^GEMINI_API_KEY$", "^GOOGLE_API_KEY$", "^GOOGLE_GENAI_USE_VERTEXAI$", "^GOOGLE_CLOUD_PROJECT$"] },
-  { id: "freebuff", name: "Freebuff", command: ["freebuff", "--acp"], authEnv: ["^FREEBUFF_"] },
+  {
+    id: "freebuff",
+    name: "Freebuff",
+    command: ["freebuff", "--acp"],
+    authEnv: ["^FREEBUFF_"],
+    loginCommand: "freebuff login",
+    installCommand: "npm i -g freebuff",
+    // The link that gets someone a Freebuff account; Crewreview's install hints and Harnesses & limits point here.
+    signupUrl: "https://freebuff.com/?ref=ref-bee41763-3c54-4f61-be0e-b892a627cc12&via=rewards_link",
+  },
 ];
 
 export function buildRegistry(cfg: RegistryConfig = {}): Map<string, Harness> {

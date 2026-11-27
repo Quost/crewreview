@@ -85,6 +85,10 @@ export interface Harness {
   signIn?(env?: Record<string, string | undefined>): Promise<SignIn>;
   /** The command a person runs to sign this harness in, when there is one. */
   loginCommand?: string;
+  /** The one command that installs it, when there is one. */
+  installCommand?: string;
+  /** Where to download or sign up for it, when there is one page to point at. */
+  signupUrl?: string;
 }
 
 /** Native adapters also expose their command line, so tests can check it for forbidden flags. */

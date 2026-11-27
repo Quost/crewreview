@@ -293,6 +293,10 @@ export interface HarnessInfo {
   conformance?: { readOnly: string; writeScope?: string; structured: string; at: string };
   signIn?: { state: "yes" | "no" | "unknown"; reason?: string; expiresAt?: string };
   loginCommand?: string;
+  /** The one command that installs it. */
+  installCommand?: string;
+  /** Where to download or sign up for it. */
+  signupUrl?: string;
   /** Paused at its usage limit until then. */
   pausedUntil?: number;
   /** The one reviews use: the configured harness, or with \`auto\` the first installed one. */
