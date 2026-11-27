@@ -298,7 +298,7 @@ For other agents, the skill is in [`plugins/crewreview/skills/crewreview/SKILL.m
 | Any ACP agent | Agent Client Protocol over stdio; Crewreview answers every permission request | enforced by Crewreview, must pass conformance |
 | Custom | Any CLI described in your config | must pass conformance |
 
-Install a harness the way its row says, sign it in (`freebuff login`, `claude auth login`, `opencode auth login`…), and `crewreview doctor` shows what is installed, what is signed in, and where to get the ones that aren't there yet. For the ACP agents that means the login they saved (`~/.config/manicode/credentials.json` for Freebuff, `~/.local/share/opencode/auth.json` for OpenCode, `~/.gemini/oauth_creds.json` for Gemini CLI, `~/.gemini/antigravity-cli/antigravity-oauth-token` for Antigravity) or a key in the environment.
+Install a harness the way its row says, sign it in (`freebuff login`, `claude auth login`, `opencode auth login`…), and `crewreview doctor` shows what is installed, what is signed in, and where to get the ones that aren't there yet. For the ACP agents that means the login they saved (`~/.config/manicode/credentials.json` for Freebuff, `~/.local/share/opencode/auth.json` for OpenCode, `~/.gemini/oauth_creds.json` for Gemini CLI) or a key in the environment. Antigravity keeps its login in the system keyring, so there it asks `agy models`, which only answers signed in.
 
 Gemini CLI is only for Gemini Code Assist Standard and Enterprise licenses: Google moved free accounts and Google AI Pro/Ultra to Antigravity CLI, which Crewreview also drives over ACP (`agy acp`). With a Code Assist license, `gemini` signs in on its first run.
 

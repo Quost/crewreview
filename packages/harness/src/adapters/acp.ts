@@ -1,11 +1,11 @@
 import { readFile, realpath, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
 import { client, methods, ndJsonStream, PROTOCOL_VERSION, RequestError } from "@agentclientprotocol/sdk";
 import type { PermissionOption, RequestPermissionRequest, RequestPermissionResponse, ToolKind } from "@agentclientprotocol/sdk";
 import { scrubEnv } from "../env.ts";
 import { lastLines } from "../failure.ts";
-import { versionOf, which } from "../process.ts";
+import { runProcess, versionOf, which } from "../process.ts";
 import type { Access, Detection, Harness, HarnessEvent, RunRequest, RunResult, SignIn } from "../types.ts";
 import { stallWatch } from "../stall.ts";
 
@@ -36,6 +36,8 @@ export interface AcpAuthCheck {
   env?: string[];
   /** Files with a saved login. `~` is the home of the environment checked, and `$NAME` reads that variable. */
   files?: string[];
+  /** The agent's own command that only answers when it is signed in: exit 0 means yes. Asked last, since it runs. */
+  args?: string[];
 }
 
 /** A saved login is a file with something in it: an empty one, or empty JSON, is an agent that was signed out. */
@@ -95,7 +97,17 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
             if (!which(exe, env.PATH ?? "")) return { state: "unknown", reason: "missing" };
             if ((auth.env ?? []).some((name) => env[name])) return { state: "yes" };
             for (const file of auth.files ?? []) if (await hasSavedLogin(env, file)) return { state: "yes" };
-            return { state: "no" };
+            if (!auth.args) return { state: "no" };
+            // The login can live where only the agent can look (the system keyring, say): let it answer instead.
+            const path = which(exe, env.PATH)!;
+            const r = await runProcess({
+              argv: [path, ...auth.args],
+              cwd: tmpdir(),
+              env: scrubEnv(env, { keep: (cfg.authEnv ?? []).map((p) => new RegExp(p)), passthrough: cfg.envPassthrough }),
+              timeoutMs: 20_000,
+            });
+            if (r.spawnError || r.timedOut) return { state: "unknown" };
+            return { state: r.exitCode === 0 ? "yes" : "no" };
           },
         }
       : {}),

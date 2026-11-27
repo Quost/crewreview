@@ -19,7 +19,8 @@ describe.skipIf(process.platform === "win32")("sign-in check of the ACP agents",
     const home = await mkdtemp(join(tmpdir(), "crewreview-acp-home-"));
     const bin = await mkdtemp(join(tmpdir(), "crewreview-acp-bin-"));
     for (const name of ["agy", "opencode", "gemini", "freebuff"]) {
-      await writeFile(join(bin, name), "#!/bin/sh\nexit 0\n");
+      // Signed out unless the test says otherwise: a status command that fails.
+      await writeFile(join(bin, name), "#!/bin/sh\nexit 1\n");
       await chmod(join(bin, name), 0o755);
     }
     return {
@@ -65,6 +66,17 @@ describe.skipIf(process.platform === "win32")("sign-in check of the ACP agents",
     // OpenCode can be told to keep its data elsewhere too.
     await write("data/opencode/auth.json", JSON.stringify({ openai: { type: "oauth" } }));
     expect(await reg.get("opencode")!.signIn!({ ...env, XDG_DATA_HOME: join(env.HOME, "data") })).toEqual({ state: "yes" });
+  });
+
+  test("an agent whose login only it can see is asked, and answers", async () => {
+    const { env } = await setup();
+    const reg = buildRegistry();
+    // Antigravity keeps its token in the system keyring: listing its models is the answer, and it needs the login.
+    const agy = join(env.PATH.split(":")[0]!, "agy");
+    await writeFile(agy, "#!/bin/sh\n[ \"$1\" = models ] || exit 9\n[ \"$FAKE_LOGIN\" = yes ] && exit 0\nexit 1\n");
+    await chmod(agy, 0o755);
+    expect(await reg.get("agy")!.signIn!({ ...env, FAKE_LOGIN: "yes" })).toEqual({ state: "yes" });
+    expect(await reg.get("agy")!.signIn!({ ...env, FAKE_LOGIN: "no" })).toEqual({ state: "no" });
   });
 
   test("an agent that isn't on PATH says so", async () => {

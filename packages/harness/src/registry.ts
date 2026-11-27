@@ -38,8 +38,13 @@ export const ACP_PRESETS: readonly AcpAgentConfig[] = [
     command: ["agy", "acp"],
     installCommand: "curl -fsSL https://antigravity.google/cli/install.sh | bash",
     signupUrl: "https://antigravity.google/download",
-    // The CLI signs in silently from the system keyring and mirrors the token in its folder; an API key counts too.
-    authCheck: { env: ["GEMINI_API_KEY", "GOOGLE_API_KEY"], files: ["~/.gemini/antigravity-cli/antigravity-oauth-token"] },
+    // The login lives in the system keyring, so there may be no file to read: asking it to list its models is the
+    // answer, and it only does that signed in. An API key counts too.
+    authCheck: {
+      env: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+      files: ["~/.gemini/antigravity-cli/antigravity-oauth-token"],
+      args: ["models"],
+    },
   },
   {
     id: "opencode",
