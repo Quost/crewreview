@@ -4,6 +4,13 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- **Kilo Gateway harness** (`kilo-gateway`): programmatic access to Kilo's free model router (Auto Free, ERNIE, Nemotron, Particle AI, Flint, Beam, etc.) via a new CLI wrapper. Build it from `packages/kilo-gateway-cli` (`bun run build`), set `KILO_API_KEY`, use `--harness kilo-gateway`, and pick the model with `model = "auto-free"` in `[harness.kilo-gateway]`.
+- **Freebuff harness** (`freebuff`): ad-supported free coding agent with free models (DeepSeek V4.1 Flash, Solar, Nemotron 3.5 Lightning) via ACP (`freebuff --acp`). Requires Freebuff 0.2.37+ (ACP support in PR #1611). Install with `npm i -g freebuff`, run `freebuff login`, and use `--harness freebuff`.
+- Updated CLI help and error messages to include the new harnesses.
+- Updated documentation (README.md) with harness table and configuration examples.
+
 ## 0.26.0 — 2026-11-26
 
 ### Added

@@ -94,6 +94,8 @@ export const ConfigSchema = z
         claude: HarnessSettings.optional(),
         codex: HarnessSettings.optional(),
         kiro: HarnessSettings.optional(),
+        /** The id keeps its hyphen so `[harness.kilo-gateway]` is the table a seat of that harness reads. */
+        "kilo-gateway": HarnessSettings.optional(),
         acp: z.array(AcpAgent).default([]),
         custom: z.array(CustomHarness).default([]),
       })

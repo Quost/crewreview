@@ -292,11 +292,13 @@ For other agents, the skill is in [`plugins/crewreview/skills/crewreview/SKILL.m
 | Claude Code | `claude -p`, stream-json, tools limited to Read/Grep/Glob, user hooks and plugins off | flags + conformance test |
 | Codex CLI | `codex exec --json -s read-only`, user config ignored | sandbox + conformance test |
 | Kiro CLI | `kiro-cli chat --no-interactive`, only read tools trusted | flags + conformance test |
-| Antigravity (`agy`), OpenCode, Gemini CLI | built in over ACP (`agy acp`, `opencode acp`, `gemini --experimental-acp`): they show up when installed | enforced by Crewreview, must pass conformance (**Prove** in the app) |
+| Kilo Gateway | `kilo-gateway -p`, stream-json, free models (ERNIE, Nemotron, Particle AI, Flint, Beam) | flags + conformance test |
+| Freebuff | `freebuff --acp` (requires Freebuff 0.2.37+), ad-supported free models (DeepSeek, Solar, Nemotron 3.5 Lightning) | enforced by Crewreview, must pass conformance |
+| Antigravity (`agy`), OpenCode, Gemini CLI | built in over ACP (`agy acp`, `opencode acp`, `gemini --experimental-acp`): they show up when installed | enforced by Crewreview, must pass conformance |
 | Any ACP agent | Agent Client Protocol over stdio; Crewreview answers every permission request | enforced by Crewreview, must pass conformance |
 | Custom | Any CLI described in your config | must pass conformance |
 
-Write scope for the attendant, tested on 2026-11-19: Claude Code and Codex (with `/tmp` and `$TMPDIR` closed) pass; Kiro CLI's `fs_write` wrote outside its folder, so Kiro can review but not attend. Antigravity 1.5.13 over ACP, tested on 2026-11-20, passes read-only and write scope, so it can do both.
+Write scope for the attendant, tested on 2026-11-27: Claude Code and Codex (with `/tmp` and `$TMPDIR` closed) pass; Kiro CLI's `fs_write` wrote outside its folder, so Kiro can review but not attend. Antigravity 1.5.13 over ACP, tested on 2026-11-20, passes read-only and write scope, so it can do both. Kilo Gateway and Freebuff ACP not yet tested for write scope.
 
 An agent that has to prove its lock gets a **Prove it's read-only** button in the app's setup and on Harnesses & limits: two tiny prompts on your plan, about a minute, and the result is kept for that version.
 
@@ -310,12 +312,15 @@ Optional. `~/.config/crewreview/config.toml` (Windows: `%APPDATA%\Crewreview\con
 language = "pt-BR"            # interface language
 
 [harness]
-default = "claude"            # or auto, codex, kiro, an ACP agent, a custom one
+default = "kilo-gateway"      # or auto, claude, codex, kiro, freebuff, an ACP agent, a custom one
 verifier = "codex"            # a different vendor makes a stronger check
 fallback = ["codex", "kiro"]  # who takes over while a harness is paused at its usage limit
 
 [harness.claude]
 model = "opus"
+
+[harness.kilo-gateway]
+model = "auto-free"
 
 [[harness.acp]]
 id = "gemini"

@@ -4,7 +4,7 @@ import type { ConformanceStore } from "./conformance-store.ts";
 
 export function registryFor(config: Config): Map<string, Harness> {
   const h = config.harness;
-  return buildRegistry({ claude: h.claude, codex: h.codex, kiro: h.kiro, acp: h.acp, custom: h.custom });
+  return buildRegistry({ claude: h.claude, codex: h.codex, kiro: h.kiro, kiloGateway: h["kilo-gateway"], acp: h.acp, custom: h.custom });
 }
 
 const VERIFIED_BY_FLAGS = new Set(["claude", "codex", "kiro"]);
