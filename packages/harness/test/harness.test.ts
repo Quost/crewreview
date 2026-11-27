@@ -178,8 +178,8 @@ describe("output parsers", () => {
 
 test("known ACP agents are built in, and a config entry with the same id replaces one", () => {
   const ids = [...registryOf().keys()];
-  expect(ids).toEqual(["claude", "codex", "kiro", ...ACP_PRESETS.map((p) => p.id)]);
-  expect(ACP_PRESETS.map((p) => p.command.join(" "))).toEqual(["agy acp", "opencode acp", "gemini --experimental-acp"]);
+  expect(ids).toEqual(["claude", "codex", "kiro", "kilo-gateway", ...ACP_PRESETS.map((p) => p.id)]);
+  expect(ACP_PRESETS.map((p) => p.command.join(" "))).toEqual(["agy acp", "opencode acp", "gemini --experimental-acp", "freebuff --acp"]);
   const custom = registryOf({ acp: [{ id: "agy", name: "My agy", command: ["/opt/agy", "acp"] }] });
   expect(custom.get("agy")?.name).toBe("My agy");
   expect([...custom.keys()].filter((k) => k === "agy")).toHaveLength(1);
