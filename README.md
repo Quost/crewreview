@@ -294,11 +294,13 @@ For other agents, the skill is in [`plugins/crewreview/skills/crewreview/SKILL.m
 | Kiro CLI | `kiro-cli chat --no-interactive`, only read tools trusted | flags + conformance test |
 | Kilo Gateway | `kilo-gateway -p`, stream-json, free models (ERNIE, Nemotron, Particle AI, Flint, Beam) | flags + conformance test |
 | Freebuff | `freebuff --acp` (requires Freebuff 0.2.37+), ad-supported free models (DeepSeek, Solar, Nemotron 3.5 Lightning); [get Freebuff here](https://freebuff.com/?ref=ref-bee41763-3c54-4f61-be0e-b892a627cc12&via=rewards_link) | enforced by Crewreview, must pass conformance |
-| Antigravity (`agy`), OpenCode, Gemini CLI | built in over ACP (`agy acp`, `opencode acp`, `gemini --experimental-acp`): they show up when installed; [get Antigravity](https://antigravity.google/download), [OpenCode](https://opencode.ai/download) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) | enforced by Crewreview, must pass conformance |
+| Antigravity (`agy`), OpenCode, Gemini CLI | built in over ACP (`agy acp`, `opencode acp`, `gemini --experimental-acp`): they show up when installed; [get Antigravity](https://antigravity.google/download), [OpenCode](https://opencode.ai/download) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (Code Assist only) | enforced by Crewreview, must pass conformance |
 | Any ACP agent | Agent Client Protocol over stdio; Crewreview answers every permission request | enforced by Crewreview, must pass conformance |
 | Custom | Any CLI described in your config | must pass conformance |
 
-Install a harness the way its row says, sign it in (`freebuff login`, `claude auth login`…), and `crewreview doctor` shows what is installed, what is signed in, and where to get the ones that aren't there yet.
+Install a harness the way its row says, sign it in (`freebuff login`, `claude auth login`, `opencode auth login`…), and `crewreview doctor` shows what is installed, what is signed in, and where to get the ones that aren't there yet. For the ACP agents that means the login they saved (`~/.config/manicode/credentials.json` for Freebuff, `~/.local/share/opencode/auth.json` for OpenCode, `~/.gemini/oauth_creds.json` for Gemini CLI, `~/.gemini/antigravity-cli/antigravity-oauth-token` for Antigravity) or a key in the environment.
+
+Gemini CLI is only for Gemini Code Assist Standard and Enterprise licenses: Google moved free accounts and Google AI Pro/Ultra to Antigravity CLI, which Crewreview also drives over ACP (`agy acp`). With a Code Assist license, `gemini` signs in on its first run.
 
 Write scope for the attendant, tested on 2026-11-27: Claude Code and Codex (with `/tmp` and `$TMPDIR` closed) pass; Kiro CLI's `fs_write` wrote outside its folder, so Kiro can review but not attend. Antigravity 1.5.13 over ACP, tested on 2026-11-20, passes read-only and write scope, so it can do both. Kilo Gateway and Freebuff ACP not yet tested for write scope.
 
