@@ -5,8 +5,8 @@
   "license": "AGPL-3.0-only",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/Quost/crewreview/releases/download/v0.26.0/crewreview-windows-x64.exe#/crewreview.exe",
-      "hash": "1823b17756a14e153b03041bc3992c9bd479d75f4b544a766cd088646e22313a"
+      "url": "https://github.com/Quost/crewreview/releases/download/v0.27.0/crewreview-windows-x64.exe#/crewreview.exe",
+      "hash": "56c1fa19b93083f9ff638eed01ace34fd7e5977d55b94632cab4a8fbe02a54a5"
     }
   },
   "bin": "crewreview.exe",
