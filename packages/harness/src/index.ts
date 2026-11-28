@@ -10,5 +10,5 @@ export * from "./registry.ts";
 export { claudeHarness, claudeParser } from "./adapters/claude.ts";
 export { codexHarness, codexParser } from "./adapters/codex.ts";
 export { kiroHarness } from "./adapters/kiro.ts";
-export { acpHarness, decidePermission, type AcpAgentConfig } from "./adapters/acp.ts";
+export { acpHarness, decidePermission, noteUsageUpdate, usageOf, type AcpAgentConfig, type AcpReportedUsage } from "./adapters/acp.ts";
 export { customHarness, type CustomHarnessConfig } from "./adapters/custom.ts";
