@@ -73,6 +73,9 @@ export const ACP_PRESETS: readonly AcpAgentConfig[] = [
     authEnv: ["^FREEBUFF_"],
     loginCommand: "freebuff login",
     installCommand: "npm i -g freebuff",
+    // Its ACP server streams the answer and the tools but no token or cost report yet: doctor says so, and the run is
+    // counted as a run, not as tokens the app would have had to invent.
+    costReport: false,
     // The link that gets someone a Freebuff account; Crewreview's install hints and Harnesses & limits point here.
     signupUrl: "https://freebuff.com/?ref=ref-bee41763-3c54-4f61-be0e-b892a627cc12&via=rewards_link",
     // `freebuff login` saves the device token beside the rest of its config.

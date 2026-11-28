@@ -4,6 +4,10 @@ Notable changes to Crewreview. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+### Added
+
+- **ACP agents report the tokens and cost of a run.** Antigravity, OpenCode, Gemini CLI and any custom ACP agent now count like the built-in harnesses: Crewreview reads what the agent says about the turn (`PromptResponse.usage`, Gemini CLI's `_meta.quota.token_count`, and the `usage_update` notifications carrying the session's cost in dollars and the context it held) and puts it in the run's report, in `report.json`, and in today's tokens and cost on Harnesses & limits. OpenCode reports dollars too; Antigravity and Gemini CLI report tokens. Freebuff's ACP server reports neither yet, so its runs count as runs and add no tokens, and the harnesses table calls the column **tokens & cost**.
+
 ## 0.27.0 — 2026-11-27
 
 ### Added

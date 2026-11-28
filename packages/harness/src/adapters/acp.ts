@@ -2,6 +2,7 @@ import { readFile, realpath, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
 import { client, methods, ndJsonStream, PROTOCOL_VERSION, RequestError } from "@agentclientprotocol/sdk";
+import type { Usage } from "@crewreview/core";
 import type { PermissionOption, RequestPermissionRequest, RequestPermissionResponse, ToolKind } from "@agentclientprotocol/sdk";
 import { scrubEnv } from "../env.ts";
 import { lastLines } from "../failure.ts";
@@ -25,6 +26,11 @@ export interface AcpAgentConfig {
   signupUrl?: string;
   /** How to tell whether it is signed in, for `doctor` and the app: a saved login, or a key of its own. */
   authCheck?: AcpAuthCheck;
+  /**
+   * Whether the agent reports the tokens (and, when it knows them, the dollars) of a turn over ACP. Unset: yes, it is
+   * asked and whatever it sends is counted. `false`: it sends nothing yet, so `doctor` says so instead of promising it.
+   */
+  costReport?: boolean;
 }
 
 /**
@@ -53,6 +59,86 @@ export async function hasSavedLogin(env: Record<string, string | undefined>, fil
     // Some agents save the token itself, not a JSON object.
     return true;
   }
+}
+
+/**
+ * What an ACP agent said about a turn's tokens and cost, wherever it said it: `PromptResponse.usage` (the end-of-turn
+ * usage agents are adopting), Gemini's `_meta.quota.token_count`, or the `usage_update` notifications that carry the
+ * session's cumulative cost and the context it holds. Nothing here is required: each agent reports what it knows.
+ */
+export interface AcpReportedUsage {
+  /** The session's cumulative cost in dollars, as last reported. A run is one fresh session, so that is its cost. */
+  costUsd?: number;
+  /** Tokens in the context window at the end of the turn. */
+  contextTokens?: number;
+}
+
+const asObject = (v: unknown): Record<string, any> | undefined => (typeof v === "object" && v !== null ? (v as Record<string, any>) : undefined);
+
+const asNumber = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
+
+/** Tokens are whole; dollars are not. */
+const asCount = (v: unknown): number | undefined => {
+  const n = asNumber(v);
+  return n === undefined ? undefined : Math.round(n);
+};
+
+/** The first of these that is a token count: agents spell the same field in camelCase and in snake_case. */
+function firstCount(o: Record<string, any> | undefined, ...names: string[]): number | undefined {
+  for (const name of names) {
+    const n = asCount(o?.[name]);
+    if (n !== undefined) return n;
+  }
+  return undefined;
+}
+
+/** Dollars the agent stated as a number, in any of the names agents use for a run's cost. */
+function statedDollars(o: Record<string, any> | undefined): number | undefined {
+  return asNumber(o?.costUsd) ?? asNumber(o?.cost_usd) ?? asNumber(o?.total_cost_usd);
+}
+
+/** A cost object is dollars only when it says so: `credits` and other units are not money the report can add up. */
+function costObjectInDollars(cost: unknown): number | undefined {
+  const c = asObject(cost);
+  const amount = asNumber(c?.amount);
+  return amount !== undefined && String(c?.currency ?? "").toUpperCase() === "USD" ? amount : undefined;
+}
+
+/**
+ * Keeps what a `usage_update` says. Its cost is the session's total (one run is one session), and its `used` is the
+ * context the agent held at that moment: the last one before the answer is the end of the run.
+ */
+export function noteUsageUpdate(update: unknown, reported: AcpReportedUsage): void {
+  const u = asObject(update);
+  if (u?.sessionUpdate !== "usage_update") return;
+  const used = asCount(u.used);
+  if (used !== undefined) reported.contextTokens = used;
+  // The protocol makes `cost` a patch: an omitted one leaves the last value, `null` clears it.
+  if (u.cost === null) delete reported.costUsd;
+  else {
+    const usd = costObjectInDollars(u.cost);
+    if (usd !== undefined) reported.costUsd = usd;
+  }
+}
+
+/** The usage a finished ACP turn reported, in Crewreview's terms. Undefined when the agent said nothing. */
+export function usageOf(response: unknown, reported: AcpReportedUsage = {}): Usage | undefined {
+  const r = asObject(response);
+  const meta = asObject(r?._meta);
+  const u = asObject(r?.usage) ?? asObject(asObject(meta?.quota)?.token_count) ?? asObject(meta?.usage);
+  const outputTokens = firstCount(u, "outputTokens", "output_tokens", "candidatesTokenCount", "candidates_token_count");
+  const total = firstCount(u, "totalTokens", "total_tokens", "totalTokenCount", "total_token_count");
+  const said = firstCount(u, "inputTokens", "input_tokens", "promptTokenCount", "prompt_token_count");
+  // An agent that sends only context updates still says how much the context held (Antigravity does this as well as
+  // its turn usage): a run is one fresh session, so the end of its context is what the run spent.
+  const inputTokens = said ?? (total !== undefined ? Math.max(0, total - (outputTokens ?? 0)) : outputTokens === undefined ? reported.contextTokens : undefined);
+  const costUsd = statedDollars(u) ?? statedDollars(r) ?? costObjectInDollars(u?.cost) ?? costObjectInDollars(r?.cost) ?? reported.costUsd;
+  const usage: Usage = {
+    ...(inputTokens !== undefined ? { inputTokens } : {}),
+    ...(outputTokens !== undefined ? { outputTokens } : {}),
+    ...(costUsd !== undefined ? { costUsd } : {}),
+  };
+  return Object.keys(usage).length > 0 ? usage : undefined;
 }
 
 const READ_KINDS: ReadonlySet<ToolKind> = new Set(["read", "search", "think"]);
@@ -85,7 +171,8 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
     kind: "acp",
     // The app answers every permission request and serves file reads itself, so read mode is enforced by us.
     // The conformance canary still has to prove the agent doesn't write behind our back.
-    capabilities: { readOnly: "enforced", write: true, streaming: true, costReport: false, modelSelect: false },
+    // Tokens and cost come from the agent over the protocol when it reports them; nothing is estimated when it doesn't.
+    capabilities: { readOnly: "enforced", write: true, streaming: true, costReport: cfg.costReport ?? true, modelSelect: false },
 
     ...(cfg.loginCommand ? { loginCommand: cfg.loginCommand } : {}),
     ...(cfg.installCommand ? { installCommand: cfg.installCommand } : {}),
@@ -151,6 +238,8 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
       });
       const emit = (e: HarnessEvent) => req.onEvent?.(e);
       let text = "";
+      let usage: Usage | undefined;
+      const reported: AcpReportedUsage = {};
       const watch = stallWatch(req.stallMs ?? 0, 5000);
 
       const app = client({ name: "crewreview" })
@@ -185,6 +274,8 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
             emit({ type: "text", text: u.content.text, at: Date.now() });
           } else if (u.sessionUpdate === "tool_call") {
             emit({ type: "tool", text: u.title ?? u.kind ?? "tool", at: Date.now() });
+          } else if (u.sessionUpdate === "usage_update") {
+            noteUsageUpdate(u, reported);
           }
         });
 
@@ -224,6 +315,7 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
             sessionId: session.sessionId,
             prompt: [{ type: "text", text: req.prompt }],
           });
+          usage = usageOf(r, reported);
           if (r.stopReason === "refusal") {
             failure = "crash";
             error = "agent refused";
@@ -247,6 +339,7 @@ export function acpHarness(cfg: AcpAgentConfig): Harness {
         text: text.trim(),
         exitCode,
         durationMs: performance.now() - started,
+        usage,
         failure: ok ? undefined : (failure ?? "crash"),
         error: ok ? undefined : (error ?? (lastLines(stderr) || "empty answer")),
       };

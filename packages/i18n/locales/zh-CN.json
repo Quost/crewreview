@@ -37,7 +37,7 @@
   "doctor.col.version": "版本",
   "doctor.col.readOnly": "只读",
   "doctor.col.write": "写入",
-  "doctor.col.cost": "费用",
+  "doctor.col.cost": "token 与费用",
   "doctor.installed": "已安装",
   "doctor.notInstalled": "未安装",
   "doctor.yes": "是",

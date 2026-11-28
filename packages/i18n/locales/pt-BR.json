@@ -37,7 +37,7 @@
   "doctor.col.version": "versão",
   "doctor.col.readOnly": "só leitura",
   "doctor.col.write": "escrita",
-  "doctor.col.cost": "custo",
+  "doctor.col.cost": "tokens e custo",
   "doctor.installed": "instalado",
   "doctor.notInstalled": "não instalado",
   "doctor.yes": "sim",
